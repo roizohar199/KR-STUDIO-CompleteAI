@@ -416,11 +416,12 @@ const VocalAnalysis = () => {
                   className="hidden"
                   id="file-input"
                 />
-                <label htmlFor="file-input" className="cursor-pointer">
-                  <button className="w-full border border-gray-600 text-white px-6 py-3 rounded-lg hover:border-studio-primary transition-colors">
-                    <FileText className="w-5 h-5 ml-2 inline" />
-                    בחר קובץ
-                  </button>
+                <label 
+                  htmlFor="file-input" 
+                  className="w-full border border-gray-600 text-white px-6 py-3 rounded-lg hover:border-studio-primary transition-colors cursor-pointer flex items-center justify-center"
+                >
+                  <FileText className="w-5 h-5 ml-2" />
+                  בחר קובץ
                 </label>
               </div>
             )}
