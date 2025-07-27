@@ -89,7 +89,7 @@ src/
 
 ## 📝 רישיון
 
-פרויקט זה פותח עבור StudioAI ומשמש להפקה ומיקס מוזיקלי.
+פרויקט זה פותח עבור KR-STUDIO CompleteAI(Roi Zohar) ומשמש להפקה ומיקס מוזיקלי.
 
 ## 🤝 תרומה
 
