@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import VocalAnalysis from './components/VocalAnalysis';
@@ -8,9 +8,14 @@ import ProductionRecommendations from './components/ProductionRecommendations';
 import ExportVersions from './components/ExportVersions';
 import CreditsContracts from './components/CreditsContracts';
 import UserVerification from './components/UserVerification';
+import LanguageSelector from './components/LanguageSelector';
+
+// יצירת context לשפה
+export const LanguageContext = createContext();
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
+  const [language, setLanguage] = useState('he'); // ברירת מחדל: עברית
 
   const renderPage = () => {
     switch (activePage) {
@@ -36,12 +41,14 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-studio-dark">
-      <Sidebar activePage={activePage} onPageChange={setActivePage} />
-      <main className="flex-1 overflow-auto">
-        {renderPage()}
-      </main>
-    </div>
+    <LanguageContext.Provider value={{ language, setLanguage }}>
+      <div className="flex h-screen bg-studio-dark" dir={language === 'he' ? 'rtl' : 'ltr'}>
+        <Sidebar activePage={activePage} onPageChange={setActivePage} />
+        <main className="flex-1 overflow-auto">
+          {renderPage()}
+        </main>
+      </div>
+    </LanguageContext.Provider>
   );
 }
 

@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { AlertTriangle, CreditCard, Clock, CheckCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  
   const getAlertConfig = () => {
     switch (status) {
       case 'expired':
@@ -10,9 +15,9 @@ const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
           icon: AlertTriangle,
           color: 'bg-red-500/10 border-red-500/20',
           textColor: 'text-red-400',
-          title: 'המנוי פג תוקף',
-          message: 'יש לחדש את המנוי כדי להמשיך להשתמש בשירות',
-          action: 'חדש מנוי',
+          title: t('subscriptionExpired'),
+          message: t('subscriptionExpiredMessage'),
+          action: t('renewSubscription'),
           actionColor: 'bg-red-500 hover:bg-red-600'
         };
       case 'expiring-soon':
@@ -20,9 +25,9 @@ const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
           icon: Clock,
           color: 'bg-yellow-500/10 border-yellow-500/20',
           textColor: 'text-yellow-400',
-          title: 'המנוי עומד לפוג',
-          message: `המנוי יפוג בעוד ${daysUntilExpiry} ימים`,
-          action: 'חדש עכשיו',
+          title: t('subscriptionExpiringSoon'),
+          message: language === 'he' ? `המנוי יפוג בעוד ${daysUntilExpiry} ימים` : `Subscription expires in ${daysUntilExpiry} days`,
+          action: t('renewNow'),
           actionColor: 'bg-yellow-500 hover:bg-yellow-600'
         };
       case 'payment-failed':
@@ -30,9 +35,9 @@ const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
           icon: CreditCard,
           color: 'bg-red-500/10 border-red-500/20',
           textColor: 'text-red-400',
-          title: 'תשלום נכשל',
-          message: 'התשלום האחרון נכשל. יש לבדוק את אמצעי התשלום',
-          action: 'עדכן תשלום',
+          title: t('paymentFailed'),
+          message: t('paymentFailedMessage'),
+          action: t('updatePayment'),
           actionColor: 'bg-red-500 hover:bg-red-600'
         };
       case 'free-limit-reached':
@@ -40,9 +45,9 @@ const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
           icon: AlertTriangle,
           color: 'bg-orange-500/10 border-orange-500/20',
           textColor: 'text-orange-400',
-          title: 'הגעת למגבלת הפרויקטים',
-          message: 'השתמשת בכל הפרויקטים הזמינים במנוי שלך. שדרג למנוי גבוה יותר להמשך שימוש',
-          action: 'שדרג עכשיו',
+          title: t('projectLimitReached'),
+          message: t('projectLimitReachedMessage'),
+          action: t('upgradeNow'),
           actionColor: 'bg-orange-500 hover:bg-orange-600'
         };
       default:
@@ -50,8 +55,8 @@ const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
           icon: CheckCircle,
           color: 'bg-green-500/10 border-green-500/20',
           textColor: 'text-green-400',
-          title: 'המנוי פעיל',
-          message: 'כל התכונות זמינות לשימוש',
+          title: t('subscriptionActive'),
+          message: t('subscriptionActiveMessage'),
           action: null,
           actionColor: null
         };

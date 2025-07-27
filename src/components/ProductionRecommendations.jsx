@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Lightbulb, Music, Mic, Settings, Star, ExternalLink, Volume2, Radio, Waves, Clock, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 const ProductionRecommendations = () => {
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  
   const [analysisData, setAnalysisData] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState('pop');

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { 
   Sparkles, 
   Plus, 
@@ -14,37 +14,42 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 const Dashboard = ({ onPageChange }) => {
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  
   const stats = [
     {
-      title: 'פרויקטים פעילים',
+      title: t('activeProjects'),
       value: '2',
-      change: '+12% השבוע',
+      change: language === 'he' ? '+12% השבוע' : '+12% this week',
       icon: Music,
       color: 'bg-blue-500',
       trend: 'up'
     },
     {
-      title: 'ניתוחים השבוע',
+      title: t('weeklyAnalyses'),
       value: '0',
-      change: '+8% חודש זה',
+      change: language === 'he' ? '+8% חודש זה' : '+8% this month',
       icon: Mic,
       color: 'bg-green-500',
       trend: 'up'
     },
     {
-      title: 'סקיצות נוצרו',
+      title: t('sketchesCreated'),
       value: '0',
-      change: '+15% השבוע',
+      change: language === 'he' ? '+15% השבוע' : '+15% this week',
       icon: BarChart3,
       color: 'bg-purple-500',
       trend: 'up'
     },
     {
-      title: 'סשנים פעילים',
+      title: t('activeSessions'),
       value: '0',
-      change: 'רק עכשיו',
+      change: language === 'he' ? 'רק עכשיו' : 'just now',
       icon: Users,
       color: 'bg-orange-500',
       trend: 'up'
@@ -53,48 +58,48 @@ const Dashboard = ({ onPageChange }) => {
 
   const recentProjects = [
     {
-      title: 'שיר פופ חדש',
-      singer: 'זמר דוגמה',
+      title: t('popSongExample'),
+      singer: t('singerExample'),
       date: '27/07/2025',
-      status: 'מיקס',
+      status: t('mix'),
       statusColor: 'bg-purple-500',
-      genre: 'pop'
+      genre: t('pop')
     },
     {
-      title: 'בלדה רגשית',
-      singer: 'זמרת דוגמה',
+      title: t('emotionalBallad'),
+      singer: t('singerFemaleExample'),
       date: '27/07/2025',
-      status: 'הקלטה',
+      status: t('recording'),
       statusColor: 'bg-orange-500',
-      genre: 'folk'
+      genre: t('folk')
     }
   ];
 
   const quickActions = [
     {
-      title: 'ניתוח ערוץ שירה',
-      subtitle: 'AI נתח קובץ אודיו עם',
+      title: t('vocalAnalysis'),
+      subtitle: t('quickActionVocalAnalysisSubtitle'),
       icon: Mic,
       color: 'bg-blue-500',
       onClick: () => onPageChange('vocal-analysis')
     },
     {
-      title: 'צור סקיצה חדשה',
-      subtitle: 'יצירת דמו מהיר',
+      title: t('createNewSketch'),
+      subtitle: t('quickActionCreateSketchSubtitle'),
       icon: Music,
       color: 'bg-green-500',
       onClick: () => onPageChange('sketches')
     },
     {
-      title: 'סשן חדש',
-      subtitle: 'התחל סשן עם נגנים',
+      title: t('newSession'),
+      subtitle: t('quickActionNewSessionSubtitle'),
       icon: Users,
       color: 'bg-purple-500',
       onClick: () => onPageChange('sessions')
     },
     {
-      title: 'המלצות הפקה',
-      subtitle: 'קבל הצעות חכמות',
+      title: t('productionRecommendations'),
+      subtitle: t('quickActionProductionRecommendationsSubtitle'),
       icon: Lightbulb,
       color: 'bg-orange-500',
       onClick: () => onPageChange('recommendations')
@@ -106,8 +111,8 @@ const Dashboard = ({ onPageChange }) => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">לוח בקרה ראשי</h1>
-          <p className="text-gray-400">ברוך הבא למערכת ההפקה החכמה שלך</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('mainDashboard')}</h1>
+          <p className="text-gray-400">{t('welcomeMessage')}</p>
         </div>
         <div className="flex space-x-3 space-x-reverse">
           <Button 
@@ -116,11 +121,11 @@ const Dashboard = ({ onPageChange }) => {
             onClick={() => onPageChange('vocal-analysis')}
           >
             <Sparkles className="w-5 h-5 ml-2" />
-            ניתוח ערוץ שירה
+            {t('vocalAnalysis')}
           </Button>
           <Button variant="outline" size="lg">
             <Plus className="w-5 h-5 ml-2" />
-            פרויקט חדש
+            {t('newProject')}
           </Button>
         </div>
       </div>
@@ -157,11 +162,11 @@ const Dashboard = ({ onPageChange }) => {
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center">
               <Music className="w-5 h-5 text-white ml-2" />
-              <CardTitle className="text-white">פרויקטים אחרונים</CardTitle>
+              <CardTitle className="text-white">{t('recentProjects')}</CardTitle>
             </div>
             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               <Eye className="w-4 h-4 ml-1" />
-              הצג הכל
+              {t('showAll')}
             </Button>
           </CardHeader>
           <CardContent>
@@ -194,7 +199,7 @@ const Dashboard = ({ onPageChange }) => {
           <CardHeader>
             <div className="flex items-center">
               <Lightbulb className="w-5 h-5 text-white ml-2" />
-              <CardTitle className="text-white">פעולות מהירות</CardTitle>
+              <CardTitle className="text-white">{t('quickActions')}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -225,12 +230,12 @@ const Dashboard = ({ onPageChange }) => {
         <CardHeader>
           <div className="flex items-center">
             <Lightbulb className="w-5 h-5 text-white ml-2" />
-            <CardTitle className="text-white">פעילות אחרונה</CardTitle>
+            <CardTitle className="text-white">{t('lastActivity')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-gray-400">אין פעילות להצגה</p>
+            <p className="text-gray-400">{t('noActivity')}</p>
           </div>
         </CardContent>
       </Card>

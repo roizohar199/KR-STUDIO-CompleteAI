@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
   CreditCard, 
   X, 
@@ -10,8 +10,13 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 const PaymentModal = ({ isOpen, onClose, subscription, onPaymentSuccess }) => {
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  
   const [paymentMethod, setPaymentMethod] = useState('credit-card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardDetails, setCardDetails] = useState({

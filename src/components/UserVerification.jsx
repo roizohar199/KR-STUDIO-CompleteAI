@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   User, 
   Shield, 
@@ -24,8 +24,13 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import PaymentAlert from './PaymentAlert';
 import PaymentModal from './PaymentModal';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 const UserVerification = () => {
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  
   const [user, setUser] = useState({
     email: 'roizohar111@gmail.com',
     name: 'רועי זוהר',

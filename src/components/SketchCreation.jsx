@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Music, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 const SketchCreation = () => {
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  
   const [formData, setFormData] = useState({
     project: '',
     lyrics: '',
@@ -32,34 +37,34 @@ const SketchCreation = () => {
       <div className="mb-8">
         <div className="flex items-center mb-2">
           <Music className="w-8 h-8 text-white ml-3" />
-          <h1 className="text-3xl font-bold text-white">יצירת סקיצות מהירה</h1>
+          <h1 className="text-3xl font-bold text-white">{t('quickSketchCreation')}</h1>
         </div>
         <p className="text-gray-400 text-lg">
-          הפוך רעיון לסקיצה מוזיקלית בכמה לחיצות
+          {t('sketchCreationDescription')}
         </p>
       </div>
 
       <div className="max-w-4xl">
         <Card className="bg-studio-gray border-studio-gray">
           <CardHeader>
-            <CardTitle className="text-white text-2xl">יצירת סקיצה חדשה</CardTitle>
+            <CardTitle className="text-white text-2xl">{t('createNewSketch')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Project Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  בחר פרויקט
+                  {t('selectProject')}
                 </label>
                 <Select value={formData.project} onValueChange={(value) => handleInputChange('project', value)}>
                   <SelectTrigger className="w-full bg-studio-dark border-studio-gray text-white">
-                    <SelectValue placeholder="...בחר פרויקט" />
+                    <SelectValue placeholder={t('selectProjectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-studio-gray border-studio-gray">
-                    <SelectItem value="project1">פרויקט 1</SelectItem>
-                    <SelectItem value="project2">פרויקט 2</SelectItem>
-                    <SelectItem value="project3">פרויקט 3</SelectItem>
-                    <SelectItem value="new">צור פרויקט חדש</SelectItem>
+                    <SelectItem value="project1">{t('project1')}</SelectItem>
+                    <SelectItem value="project2">{t('project2')}</SelectItem>
+                    <SelectItem value="project3">{t('project3')}</SelectItem>
+                    <SelectItem value="new">{t('createNewProject')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -67,12 +72,12 @@ const SketchCreation = () => {
               {/* Lyrics or General Idea */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  מילים או רעיון כללי
+                  {t('lyricsOrGeneralIdea')}
                 </label>
                 <Textarea
                   value={formData.lyrics}
                   onChange={(e) => handleInputChange('lyrics', e.target.value)}
-                  placeholder="הכנס את המילים, הרעיון הכללי, או התיאור של השיר..."
+                  placeholder={t('lyricsPlaceholder')}
                   className="w-full bg-studio-dark border-studio-gray text-white placeholder:text-gray-500 min-h-[120px] resize-none"
                 />
               </div>
@@ -80,13 +85,13 @@ const SketchCreation = () => {
               {/* Musical Style */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  סגנון מוזיקלי
+                  {t('musicalStyle')}
                 </label>
                 <Input
                   type="text"
                   value={formData.style}
                   onChange={(e) => handleInputChange('style', e.target.value)}
-                  placeholder="...לדוגמה: פופ קצבי, בלדת רוק, היפ הופ"
+                  placeholder={t('musicalStylePlaceholder')}
                   className="w-full bg-studio-dark border-studio-gray text-white placeholder:text-gray-500"
                 />
               </div>
@@ -99,7 +104,7 @@ const SketchCreation = () => {
                 className="w-full h-14 text-lg font-semibold studio-gradient hover:studio-gradient-hover"
               >
                 <Sparkles className="w-6 h-6 ml-3" />
-                צור סקיצה עם AI
+                {t('createSketchWithAI')}
               </Button>
             </form>
           </CardContent>
@@ -109,29 +114,29 @@ const SketchCreation = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-studio-gray border-studio-gray">
             <CardHeader>
-              <CardTitle className="text-white">סקיצות אחרונות</CardTitle>
+              <CardTitle className="text-white">{t('recentSketches')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
-                <p className="text-gray-400">אין סקיצות להצגה</p>
+                <p className="text-gray-400">{t('noSketchesToShow')}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-studio-gray border-studio-gray">
             <CardHeader>
-              <CardTitle className="text-white">הגדרות AI</CardTitle>
+              <CardTitle className="text-white">{t('aiSettings')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">איכות גבוהה</span>
+                  <span className="text-gray-300">{t('highQuality')}</span>
                   <div className="w-12 h-6 bg-studio-primary rounded-full relative">
                     <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5"></div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">הרמוניות אוטומטיות</span>
+                  <span className="text-gray-300">{t('automaticHarmonies')}</span>
                   <div className="w-12 h-6 bg-studio-primary rounded-full relative">
                     <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5"></div>
                   </div>
