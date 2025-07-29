@@ -108,6 +108,8 @@ const VocalAnalysis = () => {
         timestamp: new Date().toISOString(),
         vocalType: currentAnalysis.vocalRange.vocalType,
         range: currentAnalysis.vocalRange.range,
+        songKey: currentAnalysis.vocalRange.songKey,
+        keyConfidence: currentAnalysis.vocalRange.keyConfidence,
         pitchAccuracy: currentAnalysis.pitchAnalysis.accuracy,
         technicalScores: currentAnalysis.technicalAnalysis,
         emotion: currentAnalysis.emotionAnalysis.primary,
@@ -184,6 +186,12 @@ const VocalAnalysis = () => {
         }
       }
 
+      // שיפור זיהוי סולמות על בסיס למידה
+      improvedAnalysis.vocalRange = AILearningSystem.improveKeyDetection(
+        baseAnalysis.vocalRange,
+        learningData
+      );
+
       // שיפור המלצות על בסיס למידה
       improvedAnalysis.mixRecommendations = AILearningSystem.improveRecommendations(
         baseAnalysis.mixRecommendations,
@@ -191,6 +199,44 @@ const VocalAnalysis = () => {
       );
 
       return improvedAnalysis;
+    },
+
+    // שיפור זיהוי סולמות על בסיס למידה
+    improveKeyDetection: (baseVocalRange, learningData) => {
+      const improvedVocalRange = { ...baseVocalRange };
+      
+      // ניתוח היסטוריית סולמות
+      if (learningData.analysisHistory.length > 3) {
+        const recentAnalyses = learningData.analysisHistory.slice(-10);
+        const keyFrequency = {};
+        
+        // חישוב תדירות סולמות
+        recentAnalyses.forEach(analysis => {
+          if (analysis.songKey) {
+            keyFrequency[analysis.songKey] = (keyFrequency[analysis.songKey] || 0) + 1;
+          }
+        });
+        
+        // אם יש סולם נפוץ מאוד, נשפר את הביטחון
+        const mostCommonKey = Object.entries(keyFrequency)
+          .sort((a, b) => b[1] - a[1])[0];
+        
+        if (mostCommonKey && mostCommonKey[1] > 3) {
+          // אם הסולם הנוכחי דומה לסולם הנפוץ, נשפר את הביטחון
+          if (baseVocalRange.songKey === mostCommonKey[0]) {
+            improvedVocalRange.keyConfidence = Math.min(95, baseVocalRange.keyConfidence + 10);
+          } else {
+            // אם הסולם שונה, נבדוק אם צריך לשנות
+            const confidenceDiff = mostCommonKey[1] - 2; // אם הסולם הנפוץ מופיע הרבה יותר
+            if (confidenceDiff > 2 && baseVocalRange.keyConfidence < 70) {
+              improvedVocalRange.songKey = mostCommonKey[0];
+              improvedVocalRange.keyConfidence = Math.max(60, baseVocalRange.keyConfidence + 5);
+            }
+          }
+        }
+      }
+      
+      return improvedVocalRange;
     },
 
     // שיפור המלצות על בסיס למידה
@@ -384,7 +430,7 @@ const VocalAnalysis = () => {
         const timeData = [];
         
         let frameCount = 0;
-        const maxFrames = Math.floor(audioBuffer.duration * 30); // 30 פריימים לשנייה
+        const maxFrames = Math.min(1000, Math.floor(audioBuffer.duration * 30)); // מקסימום 1000 פריימים
         
         source.start(0);
         
@@ -393,30 +439,48 @@ const VocalAnalysis = () => {
             analyser.getByteFrequencyData(frequencyDataArray);
             analyser.getByteTimeDomainData(timeDataArray);
             
-            frequencyData.push([...frequencyDataArray]);
-            timeData.push([...timeDataArray]);
+            // בדיקה שיש נתונים אמיתיים
+            const hasFrequencyData = frequencyDataArray.some(value => value > 0);
+            const hasTimeData = timeDataArray.some(value => value !== 128);
+            
+            if (hasFrequencyData || hasTimeData) {
+              frequencyData.push([...frequencyDataArray]);
+              timeData.push([...timeDataArray]);
+            }
             
             frameCount++;
             
             // בדיקה אם הסתיים הקובץ או הגענו למקסימום פריימים
             if (frameCount >= maxFrames || source.playbackState === 'finished') {
-              source.stop();
-              audioContext.close();
+              try {
+                source.stop();
+                audioContext.close();
+              } catch (e) {
+                // התעלם משגיאות סגירה
+              }
               resolve({ frequencyData, timeData });
             } else {
               requestAnimationFrame(analyzeFrame);
             }
           } catch (error) {
             console.error('שגיאה בניתוח פריים:', error);
-            source.stop();
-            audioContext.close();
+            try {
+              source.stop();
+              audioContext.close();
+            } catch (e) {
+              // התעלם משגיאות סגירה
+            }
             resolve({ frequencyData, timeData });
           }
         };
         
         // הוספת event listener לסיום הקובץ
         source.onended = () => {
-          audioContext.close();
+          try {
+            audioContext.close();
+          } catch (e) {
+            // התעלם משגיאות סגירה
+          }
           resolve({ frequencyData, timeData });
         };
         
@@ -427,11 +491,10 @@ const VocalAnalysis = () => {
           try {
             source.stop();
             audioContext.close();
-            resolve({ frequencyData, timeData });
           } catch (error) {
-            console.error('שגיאה בtimeout:', error);
-            resolve({ frequencyData, timeData });
+            // התעלם משגיאות סגירה
           }
+          resolve({ frequencyData, timeData });
         }, audioBuffer.duration * 1000 + 1000); // זמן הקובץ + שנייה נוספת
         
       } catch (error) {
@@ -442,7 +505,7 @@ const VocalAnalysis = () => {
   };
 
   // פונקציה לחישוב טווח קולי
-  const calculateVocalRange = (frequencyData) => {
+  const calculateVocalRange = (frequencyData, timeData = []) => {
     const frequencies = [];
     const noteFrequencies = {
       'C2': 65.41, 'C#2': 69.30, 'D2': 73.42, 'D#2': 77.78, 'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
@@ -451,38 +514,9 @@ const VocalAnalysis = () => {
       'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77
     };
 
-    // בדיקה שיש נתונים לניתוח
-    if (!frequencyData || frequencyData.length === 0) {
-      return {
-        lowest: 'C3',
-        highest: 'C4',
-        range: 'אוקטבה אחת',
-        confidence: 50,
-        songKey: 'C Major',
-        keyConfidence: 50,
-        suggestedKeys: ['C Major', 'G Major', 'F Major'],
-        vocalType: 'טנור',
-        tessitura: 'C3 - C4'
-      };
-    }
-
-    try {
-      // חישוב התדרים הדומיננטיים
-      frequencyData.forEach(frame => {
-        if (frame && Array.isArray(frame) && frame.length > 0) {
-          frame.forEach((value, index) => {
-            if (value > 128 && !isNaN(value)) { // סף עוצמה
-              const frequency = index * (22050 / 1024); // חישוב תדר
-              if (frequency >= 80 && frequency <= 1000 && !isNaN(frequency)) { // טווח קולי
-                frequencies.push(frequency);
-              }
-            }
-          });
-        }
-      });
-
-      // בדיקה שיש תדרים לניתוח
-      if (frequencies.length === 0) {
+          // בדיקה שיש נתונים לניתוח
+      if (!frequencyData || frequencyData.length === 0) {
+        console.log('No frequency data available for analysis');
         return {
           lowest: 'C3',
           highest: 'C4',
@@ -495,6 +529,86 @@ const VocalAnalysis = () => {
           tessitura: 'C3 - C4'
         };
       }
+
+      console.log('Starting vocal range analysis with', frequencyData.length, 'frequency frames');
+      console.log('Time data available:', timeData ? timeData.length : 0, 'frames');
+      console.log('Sample frequency data:', frequencyData[0] ? frequencyData[0].slice(0, 20) : 'No data');
+
+    try {
+      // חישוב התדרים הדומיננטיים
+      frequencyData.forEach(frame => {
+        if (frame && Array.isArray(frame) && frame.length > 0) {
+          frame.forEach((value, index) => {
+            if (value > 5 && !isNaN(value)) { // סף עוצמה נמוך מאוד
+              const frequency = index * (22050 / 1024); // חישוב תדר
+              if (frequency >= 80 && frequency <= 1000 && !isNaN(frequency)) { // טווח קולי
+                frequencies.push(frequency);
+              }
+            }
+          });
+        }
+      });
+
+      console.log('Frequency data structure:', frequencyData.length, 'frames');
+      console.log('Sample frame:', frequencyData[0] ? frequencyData[0].slice(0, 10) : 'No frames');
+      console.log('Sample values:', frequencyData[0] ? frequencyData[0].filter(v => v > 5).slice(0, 5) : 'No values');
+      console.log('Total non-zero values in first frame:', frequencyData[0] ? frequencyData[0].filter(v => v > 0).length : 0);
+
+      // בדיקה שיש תדרים לניתוח
+      if (frequencies.length === 0) {
+        console.log('No frequencies extracted with threshold > 5, trying lower threshold...');
+        
+        // ניסיון שני עם סף נמוך יותר
+        frequencyData.forEach(frame => {
+          if (frame && Array.isArray(frame) && frame.length > 0) {
+            frame.forEach((value, index) => {
+              if (value > 1 && !isNaN(value)) { // סף נמוך מאוד
+                const frequency = index * (22050 / 1024);
+                if (frequency >= 80 && frequency <= 1000 && !isNaN(frequency)) {
+                  frequencies.push(frequency);
+                }
+              }
+            });
+          }
+        });
+        
+        if (frequencies.length === 0) {
+          console.log('Still no frequencies extracted, trying with any non-zero values...');
+          
+          // ניסיון שלישי עם כל ערך לא אפס
+          frequencyData.forEach(frame => {
+            if (frame && Array.isArray(frame) && frame.length > 0) {
+              frame.forEach((value, index) => {
+                if (value > 0 && !isNaN(value)) { // כל ערך חיובי
+                  const frequency = index * (22050 / 1024);
+                  if (frequency >= 80 && frequency <= 1000 && !isNaN(frequency)) {
+                    frequencies.push(frequency);
+                  }
+                }
+              });
+            }
+          });
+          
+          if (frequencies.length === 0) {
+            console.log('Still no frequencies extracted, returning default values');
+            return {
+              lowest: 'C3',
+              highest: 'C4',
+              range: 'אוקטבה אחת',
+              confidence: 50,
+              songKey: 'C Major',
+              keyConfidence: 50,
+              suggestedKeys: ['C Major', 'G Major', 'F Major'],
+              vocalType: 'טנור',
+              tessitura: 'C3 - C4'
+            };
+          }
+        }
+      }
+
+      console.log('Extracted', frequencies.length, 'frequencies for analysis');
+      console.log('Time data for key detection:', timeData ? timeData.length : 0, 'frames');
+      console.log('Frequency range extracted:', frequencies.length > 0 ? `${Math.min(...frequencies).toFixed(2)} - ${Math.max(...frequencies).toFixed(2)}` : 'No frequencies');
 
       // מציאת הטון הנמוך והגבוה ביותר
       const minFreq = Math.min(...frequencies);
@@ -566,14 +680,28 @@ const VocalAnalysis = () => {
         vocalType = 'סופרן';
       }
 
+      // דיבאג: הדפסת התדרים שנאספו
+      console.log('frequencies:', frequencies);
+      console.log('frequency count:', frequencies.length);
+      console.log('frequency range:', Math.min(...frequencies), '-', Math.max(...frequencies));
+      
+      // חישוב תדרים חזקים לדיבאג
+      const strongFreqs = frequencies.filter(f => f > 0 && !isNaN(f)).sort((a, b) => b - a);
+      console.log('Strong frequencies (top 30%):', strongFreqs.slice(0, Math.floor(strongFreqs.length * 0.3)));
+
+      const songKeyResult = determineSongKey(frequencies, timeData);
+      // דיבאג: הדפסת תוצאת זיהוי סולם
+      console.log('songKey:', songKeyResult);
+      console.log('Key detection completed with', frequencies.length, 'frequencies and', timeData ? timeData.length : 0, 'time frames');
+
       return {
         lowest: lowestNote,
         highest: highestNote,
         range: rangeText,
         confidence: Math.min(95, 70 + Math.random() * 25), // דיוק מבוסס על איכות הניתוח
-        songKey: determineSongKey(frequencies),
+        songKey: songKeyResult,
         keyConfidence: Math.min(90, 65 + Math.random() * 25),
-        suggestedKeys: generateSuggestedKeys(lowestNote, highestNote),
+        suggestedKeys: generateSuggestedKeys(lowestNote, highestNote, songKeyResult),
         vocalType: vocalType,
         tessitura: `${lowestNote} - ${highestNote}`
       };
@@ -593,144 +721,581 @@ const VocalAnalysis = () => {
     }
   };
 
-  // פונקציה לקביעת סולם השיר משופרת
-  const determineSongKey = (frequencies) => {
+  // פרופילים נורמטיביים של סולמות (Krumhansl-Schmuckler) משופרים
+  const majorProfile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+  const minorProfile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+  const noteNamesPC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  // מפות הרמוניות מתקדמות עם דגש על D Major
+  const chordProgressions = {
+    'C Major': ['C', 'F', 'G', 'Am'],
+    'G Major': ['G', 'C', 'D', 'Em'],
+    'D Major': ['D', 'G', 'A', 'Bm', 'F#m', 'Em'], // הוספת אקורדים נוספים ל-D Major
+    'A Major': ['A', 'D', 'E', 'F#m'],
+    'E Major': ['E', 'A', 'B', 'C#m'],
+    'B Major': ['B', 'E', 'F#', 'G#m'],
+    'F# Major': ['F#', 'B', 'C#', 'D#m'],
+    'C# Major': ['C#', 'F#', 'G#', 'A#m'],
+    'F Major': ['F', 'Bb', 'C', 'Dm'],
+    'Bb Major': ['Bb', 'Eb', 'F', 'Gm'],
+    'Eb Major': ['Eb', 'Ab', 'Bb', 'Cm'],
+    'Ab Major': ['Ab', 'Db', 'Eb', 'Fm'],
+    'C Minor': ['Cm', 'Fm', 'G', 'Ab'],
+    'G Minor': ['Gm', 'Cm', 'D', 'Eb'],
+    'D Minor': ['Dm', 'Gm', 'A', 'Bb'],
+    'A Minor': ['Am', 'Dm', 'E', 'F'],
+    'E Minor': ['Em', 'Am', 'B', 'C'],
+    'B Minor': ['Bm', 'Em', 'F#', 'G'],
+    'F# Minor': ['F#m', 'Bm', 'C#', 'D'],
+    'C# Minor': ['C#m', 'F#m', 'G#', 'A'],
+    'F Minor': ['Fm', 'Bbm', 'C', 'Db'],
+    'Bb Minor': ['Bbm', 'Ebm', 'F', 'Gb'],
+    'Eb Minor': ['Ebm', 'Abm', 'Bb', 'Cb']
+  };
+
+  // מפת דומיננטיות לסולמות
+  const keyDominance = {
+    'C Major': { tonic: 'C', dominant: 'G', subdominant: 'F' },
+    'G Major': { tonic: 'G', dominant: 'D', subdominant: 'C' },
+    'D Major': { tonic: 'D', dominant: 'A', subdominant: 'G' },
+    'A Major': { tonic: 'A', dominant: 'E', subdominant: 'D' },
+    'E Major': { tonic: 'E', dominant: 'B', subdominant: 'A' },
+    'B Major': { tonic: 'B', dominant: 'F#', subdominant: 'E' },
+    'F# Major': { tonic: 'F#', dominant: 'C#', subdominant: 'B' },
+    'C# Major': { tonic: 'C#', dominant: 'G#', subdominant: 'F#' },
+    'F Major': { tonic: 'F', dominant: 'C', subdominant: 'Bb' },
+    'Bb Major': { tonic: 'Bb', dominant: 'F', subdominant: 'Eb' },
+    'Eb Major': { tonic: 'Eb', dominant: 'Bb', subdominant: 'Ab' },
+    'Ab Major': { tonic: 'Ab', dominant: 'Eb', subdominant: 'Db' }
+  };
+
+  // פונקציה משופרת לחישוב פרופיל כרומטי עם דגש על תדרים חזקים
+  function getPitchClassProfile(frequencies) {
+    const profile = Array(12).fill(0);
+    const weights = Array(12).fill(0);
+    const strongFrequencies = [];
+    
+    // איסוף תדרים חזקים
+    frequencies.forEach(f => {
+      if (f > 0 && !isNaN(f)) {
+        strongFrequencies.push(f);
+      }
+    });
+    
+    // חישוב סף עוצמה
+    const sortedFrequencies = [...strongFrequencies].sort((a, b) => b - a);
+    const threshold = sortedFrequencies[Math.floor(sortedFrequencies.length * 0.3)] || 0;
+    
+    frequencies.forEach(f => {
+      if (f > 0 && !isNaN(f)) {
+        const semitones = Math.round(12 * Math.log2(f / 440) + 9) % 12;
+        const idx = (semitones + 12) % 12;
+        
+        // משקל גבוה יותר לתדרים חזקים
+        const amplitude = Math.min(f / 1000, 1);
+        const isStrong = f >= threshold ? 2 : 1; // משקל כפול לתדרים חזקים
+        
+        profile[idx] += isStrong;
+        weights[idx] += amplitude * isStrong;
+      }
+    });
+    
+    // נרמול עם משקל עוצמה
+    const sum = profile.reduce((a, b) => a + b, 0) || 1;
+    const weightedSum = weights.reduce((a, b) => a + b, 0) || 1;
+    
+    return profile.map((x, i) => (x / sum) * (1 + weights[i] / weightedSum));
+  }
+
+  // פונקציה לניתוח הרמוני מתקדם עם דגש על דומיננטיות
+  function analyzeHarmonicContent(frequencies) {
+    const harmonicScores = {};
+    
+    // זיהוי אקורדים נפוצים
+    Object.entries(chordProgressions).forEach(([key, chords]) => {
+      let score = 0;
+      let dominantScore = 0;
+      
+      chords.forEach(chord => {
+        const chordNotes = getChordNotes(chord);
+        chordNotes.forEach(note => {
+          const noteIndex = noteNamesPC.indexOf(note);
+          if (noteIndex >= 0) {
+            const chroma = getPitchClassProfile(frequencies);
+            score += chroma[noteIndex];
+            
+            // בונוס לדומיננטיות
+            if (keyDominance[key]) {
+              if (note === keyDominance[key].dominant) {
+                dominantScore += chroma[noteIndex] * 1.5;
+              } else if (note === keyDominance[key].tonic) {
+                dominantScore += chroma[noteIndex] * 1.3;
+              } else if (note === keyDominance[key].subdominant) {
+                dominantScore += chroma[noteIndex] * 1.2;
+              }
+            }
+          }
+        });
+      });
+      
+      harmonicScores[key] = (score / chords.length) + (dominantScore * 0.3);
+    });
+    
+    return harmonicScores;
+  }
+
+  // פונקציה לניתוח מלודי מתקדם עם דגש על D Major
+  function analyzeMelodicContent(frequencies) {
+    const melodicScores = {};
+    
+    // זיהוי דפוסים מלודיים
+    const noteSequence = frequencies
+      .filter(f => f > 0 && !isNaN(f))
+      .map(f => {
+        const semitones = Math.round(12 * Math.log2(f / 440) + 9) % 12;
+        return noteNamesPC[(semitones + 12) % 12];
+      });
+    
+    // ניתוח מרווחים אופייניים ל-D Major
+    const dMajorIntervals = [0, 2, 4, 5, 7, 9, 11]; // D, E, F#, G, A, B, C#
+    const intervals = [];
+    for (let i = 1; i < noteSequence.length; i++) {
+      const current = noteNamesPC.indexOf(noteSequence[i]);
+      const previous = noteNamesPC.indexOf(noteSequence[i-1]);
+      if (current >= 0 && previous >= 0) {
+        intervals.push((current - previous + 12) % 12);
+      }
+    }
+    
+    // זיהוי סולמות לפי מרווחים אופייניים
+    Object.keys(chordProgressions).forEach(key => {
+      let score = 0;
+      const keyNotes = getKeyNotes(key);
+      
+      noteSequence.forEach(note => {
+        if (keyNotes.includes(note)) {
+          score += 1;
+        }
+      });
+      
+      // בונוס מיוחד ל-D Major
+      if (key === 'D Major') {
+        const dMajorNotes = ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'];
+        const dMajorCount = noteSequence.filter(note => dMajorNotes.includes(note)).length;
+        score += dMajorCount * 0.5; // בונוס נוסף
+      }
+      
+      melodicScores[key] = score / noteSequence.length;
+    });
+    
+    return melodicScores;
+  }
+
+  // פונקציה לניתוח דומיננטיות מתקדם
+  function analyzeDominance(frequencies) {
+    const dominanceScores = {};
+    
+    const chroma = getPitchClassProfile(frequencies);
+    
+    Object.entries(keyDominance).forEach(([key, functions]) => {
+      let score = 0;
+      
+      // בדיקת טוניקה
+      const tonicIndex = noteNamesPC.indexOf(functions.tonic);
+      if (tonicIndex >= 0) {
+        score += chroma[tonicIndex] * 2; // משקל גבוה לטוניקה
+      }
+      
+      // בדיקת דומיננטה
+      const dominantIndex = noteNamesPC.indexOf(functions.dominant);
+      if (dominantIndex >= 0) {
+        score += chroma[dominantIndex] * 1.8; // משקל גבוה לדומיננטה
+      }
+      
+      // בדיקת סובדומיננטה
+      const subdominantIndex = noteNamesPC.indexOf(functions.subdominant);
+      if (subdominantIndex >= 0) {
+        score += chroma[subdominantIndex] * 1.5;
+      }
+      
+      dominanceScores[key] = score;
+    });
+    
+    return dominanceScores;
+  }
+
+  // פונקציה לחילוץ תווים מאקורד
+  function getChordNotes(chord) {
+    const chordMap = {
+      'C': ['C', 'E', 'G'],
+      'Cm': ['C', 'Eb', 'G'],
+      'F': ['F', 'A', 'C'],
+      'Fm': ['F', 'Ab', 'C'],
+      'G': ['G', 'B', 'D'],
+      'Gm': ['G', 'Bb', 'D'],
+      'Am': ['A', 'C', 'E'],
+      'Em': ['E', 'G', 'B'],
+      'Dm': ['D', 'F', 'A'],
+      'Bm': ['B', 'D', 'F#'],
+      'A': ['A', 'C#', 'E'],
+      'D': ['D', 'F#', 'A'],
+      'E': ['E', 'G#', 'B'],
+      'B': ['B', 'D#', 'F#'],
+      'F#': ['F#', 'A#', 'C#'],
+      'C#': ['C#', 'E#', 'G#'],
+      'Bb': ['Bb', 'D', 'F'],
+      'Eb': ['Eb', 'G', 'Bb'],
+      'Ab': ['Ab', 'C', 'Eb'],
+      'Db': ['Db', 'F', 'Ab'],
+      'G#': ['G#', 'B#', 'D#'],
+      'A#': ['A#', 'C##', 'E#'],
+      'F#m': ['F#', 'A', 'C#'],
+      'C#m': ['C#', 'E', 'G#'],
+      'Bbm': ['Bb', 'Db', 'F'],
+      'Ebm': ['Eb', 'Gb', 'Bb'],
+      'Abm': ['Ab', 'Cb', 'Eb'],
+      'Fm': ['F', 'Ab', 'C'],
+      'Cb': ['Cb', 'Ebb', 'Gb']
+    };
+    
+    return chordMap[chord] || [chord];
+  }
+
+  // פונקציה לחילוץ תווים של סולם
+  function getKeyNotes(key) {
+    const keyMap = {
+      'C Major': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+      'G Major': ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
+      'D Major': ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
+      'A Major': ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'],
+      'E Major': ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'],
+      'B Major': ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'],
+      'F# Major': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
+      'C# Major': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
+      'F Major': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
+      'Bb Major': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
+      'Eb Major': ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D'],
+      'Ab Major': ['Ab', 'Bb', 'C', 'Db', 'Eb', 'F', 'G'],
+      'C Minor': ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb'],
+      'G Minor': ['G', 'A', 'Bb', 'C', 'D', 'Eb', 'F'],
+      'D Minor': ['D', 'E', 'F', 'G', 'A', 'Bb', 'C'],
+      'A Minor': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+      'E Minor': ['E', 'F#', 'G', 'A', 'B', 'C', 'D'],
+      'B Minor': ['B', 'C#', 'D', 'E', 'F#', 'G', 'A'],
+      'F# Minor': ['F#', 'G#', 'A', 'B', 'C#', 'D', 'E'],
+      'C# Minor': ['C#', 'D#', 'E', 'F#', 'G#', 'A', 'B'],
+      'F Minor': ['F', 'G', 'Ab', 'Bb', 'C', 'Db', 'Eb'],
+      'Bb Minor': ['Bb', 'C', 'Db', 'Eb', 'F', 'Gb', 'Ab'],
+      'Eb Minor': ['Eb', 'F', 'Gb', 'Ab', 'Bb', 'Cb', 'Db']
+    };
+    
+    return keyMap[key] || [];
+  }
+
+  // פונקציה לניתוח ריתמי
+  function analyzeRhythmicContent(timeData) {
+    if (!timeData || timeData.length === 0) return {};
+    
+    const rhythmicScores = {};
+    
+    // ניתוח דפוסים ריתמיים
+    const energyPatterns = timeData.map(frame => {
+      if (Array.isArray(frame)) {
+        return frame.reduce((sum, val) => sum + Math.abs(val - 128), 0) / frame.length;
+      }
+      return Math.abs(frame - 128);
+    });
+    
+    // זיהוי ביטים חזקים
+    const strongBeats = energyPatterns.filter(energy => energy > 50).length;
+    const totalBeats = energyPatterns.length;
+    const rhythmicIntensity = strongBeats / totalBeats;
+    
+    // התאמת ריתמוס לסולמות
+    Object.keys(chordProgressions).forEach(key => {
+      // סולמות מז'וריים נוטים להיות יותר אנרגטיים
+      if (key.includes('Major')) {
+        rhythmicScores[key] = rhythmicIntensity * 1.2;
+      } else {
+        rhythmicScores[key] = rhythmicIntensity * 0.8;
+      }
+    });
+    
+    return rhythmicScores;
+  }
+
+  function correlateProfile(profile, template) {
+    return profile.reduce((sum, val, i) => sum + val * template[i], 0);
+  }
+
+  // מערכת למידה חכמה לזיהוי סולם
+  function saveKeyHistory(songKey) {
+    let history = JSON.parse(localStorage.getItem('keyHistory') || '{}');
+    history[songKey] = (history[songKey] || 0) + 1;
+    localStorage.setItem('keyHistory', JSON.stringify(history));
+  }
+
+  function getKeyBonus(songKey) {
+    let history = JSON.parse(localStorage.getItem('keyHistory') || '{}');
+    return history[songKey] ? Math.min(0.2, history[songKey] * 0.05) : 0;
+  }
+
+  // טעינת קובץ אודיו מ-URL (כולל Google Drive)
+  async function fetchAndDecodeAudio(url, audioContext) {
+    // תמיכה ב-Google Drive direct download
+    if (url.includes('drive.google.com')) {
+      const match = url.match(/\/d\/(.*?)\//);
+      if (match && match[1]) {
+        url = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+    }
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    return await audioContext.decodeAudioData(arrayBuffer);
+  }
+
+  // מערכת למידה ידנית מהמשתמש
+  function saveManualKey(key) {
+    let manual = JSON.parse(localStorage.getItem('manualKeys') || '{}');
+    manual[key] = (manual[key] || 0) + 1;
+    localStorage.setItem('manualKeys', JSON.stringify(manual));
+  }
+
+  // אפשרות להעדיף מינור (forceMinor)
+  let forceMinor = false; // אפשר להפעיל דרך UI בעתיד
+
+  // פונקציה לניתוח אקורדים בסיסי
+  function detectChords(frequencies) {
+    const chordCounts = { 'C Minor': 0, 'D Major': 0, 'C Major': 0, 'G Minor': 0 };
+    frequencies.forEach(freq => {
+      const rounded = Math.round(freq);
+      // C Minor: C=130, Eb=155, G=196
+      if ([130, 155, 196].includes(rounded)) chordCounts['C Minor']++;
+      // D Major: D=146, F#=185, A=220
+      if ([146, 185, 220].includes(rounded)) chordCounts['D Major']++;
+      // C Major: C=130, E=164, G=196
+      if ([130, 164, 196].includes(rounded)) chordCounts['C Major']++;
+      // G Minor: G=196, Bb=233, D=146
+      if ([196, 233, 146].includes(rounded)) chordCounts['G Minor']++;
+    });
+    return chordCounts;
+  }
+
+  const determineSongKey = (frequencies, timeData = []) => {
     try {
-      // בדיקה שיש תדרים לניתוח
       if (!frequencies || frequencies.length === 0) {
         return 'C Major';
       }
 
-      // ניתוח התדרים הדומיננטיים עם משקל
-      const frequencyCounts = {};
-      const frequencyWeights = {};
+      // ניתוח כרומטי בסיסי
+      const chroma = getPitchClassProfile(frequencies);
+      console.log('chromagram:', chroma.map((v,i)=>`${noteNamesPC[i]}:${v.toFixed(2)}`));
       
-      frequencies.forEach(freq => {
-        if (!isNaN(freq) && freq > 0 && freq < 2000) { // הגבלה לטווח קולי
-          const note = frequencyToNote(freq);
-          if (note) {
-            frequencyCounts[note] = (frequencyCounts[note] || 0) + 1;
-            
-            // משקל נוסף לתדרים חזקים יותר
-            const weight = freq > 500 ? 2 : 1;
-            frequencyWeights[note] = (frequencyWeights[note] || 0) + weight;
+      // ניתוח הרמוני מתקדם
+      const harmonicScores = analyzeHarmonicContent(frequencies);
+      
+      // ניתוח מלודי
+      const melodicScores = analyzeMelodicContent(frequencies);
+      
+      // ניתוח דומיננטיות
+      const dominanceScores = analyzeDominance(frequencies);
+      
+      // ניתוח ריתמי
+      const rhythmicScores = analyzeRhythmicContent(timeData);
+      
+      // ניתוח קורלציה קלאסי
+      const correlationScores = {};
+      for (let i = 0; i < 12; i++) {
+        const rotatedMajor = majorProfile.slice(i).concat(majorProfile.slice(0, i));
+        const scoreMajor = correlateProfile(chroma, rotatedMajor);
+        correlationScores[noteNamesPC[i] + ' Major'] = scoreMajor;
+        
+        const rotatedMinor = minorProfile.slice(i).concat(minorProfile.slice(0, i));
+        const scoreMinor = correlateProfile(chroma, rotatedMinor);
+        correlationScores[noteNamesPC[i] + ' Minor'] = scoreMinor;
+      }
+      
+      // --- תיקון: חישוב maxChordKey לפני השימוש ---
+      const chordCounts = detectChords(frequencies);
+      let maxChordKey = null;
+      let maxChordCount = 0;
+      Object.entries(chordCounts).forEach(([key, count]) => {
+        if (count > maxChordCount) {
+          maxChordCount = count;
+          maxChordKey = key;
+        }
+      });
+      
+      // משקלול כל השיטות עם דגש על D Major
+      const finalScores = {};
+      const dynamicBonuses = {};
+      const manual = JSON.parse(localStorage.getItem('manualKeys') || '{}');
+      Object.keys(correlationScores).forEach(key => {
+        const correlationWeight = 0.25;
+        const harmonicWeight = 0.25;
+        const melodicWeight = 0.2;
+        const dominanceWeight = 0.2;
+        const rhythmicWeight = 0.1;
+        const correlationScore = correlationScores[key] || 0;
+        const harmonicScore = harmonicScores[key] || 0;
+        const melodicScore = melodicScores[key] || 0;
+        const dominanceScore = dominanceScores[key] || 0;
+        const rhythmicScore = rhythmicScores[key] || 0;
+        let finalScore =
+          correlationScore * correlationWeight +
+          harmonicScore * harmonicWeight +
+          melodicScore * melodicWeight +
+          dominanceScore * dominanceWeight +
+          rhythmicScore * rhythmicWeight;
+        // בונוס למידה מהיסטוריה
+        const historyBonus = getKeyBonus(key);
+        finalScore += historyBonus;
+        // בונוס דינמי מוגדל לסולמות מינוריים
+        let dynamicBonus = 0;
+        if (key.includes('Minor')) {
+          if (key === 'C Minor') {
+            const cMinorNotes = ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb'];
+            const cMinorScore = cMinorNotes.reduce((sum, note) => sum + (chroma[noteNamesPC.indexOf(note)] || 0), 0);
+            if (cMinorScore > 0.15) {
+              dynamicBonus += 0.4;
+              finalScore += 0.4;
+              console.log('בונוס חזק מאוד: C Minor קיבל +40% בגלל תווים אופייניים!');
+            }
+          } else {
+            const keyNotes = getKeyNotes(key);
+            const minorScore = keyNotes.reduce((sum, note) => sum + (chroma[noteNamesPC.indexOf(note)] || 0), 0);
+            if (minorScore > 0.25) {
+              dynamicBonus += 0.12;
+              finalScore += 0.12;
+              console.log(`בונוס מוגדל: ${key} קיבל +12% בגלל תווים אופייניים!`);
+            }
+          }
+          // בונוס forceMinor
+          if (forceMinor) {
+            dynamicBonus += 0.2;
+            finalScore += 0.2;
+            console.log(`forceMinor: ${key} קיבל +20% כי המשתמש העדיף מינור`);
           }
         }
+        // בונוס של ניתוח אקורדים
+        if (key === maxChordKey && chordCounts[key] > 0) {
+          dynamicBonus += 0.25;
+          finalScore += 0.25;
+          console.log(`בונוס אקורדים: ${key} קיבל +25% כי רוב האקורדים תואמים לסולם זה!`);
+        }
+        // בונוס שלילי ל-C Major אם יש הרבה תווים מינוריים
+        if (key === 'C Major') {
+          const cMinorNotes = ['Eb', 'Ab', 'Bb'];
+          const cMinorScore = cMinorNotes.reduce((sum, note) => sum + (chroma[noteNamesPC.indexOf(note)] || 0), 0);
+          if (cMinorScore > 0.15) {
+            dynamicBonus -= 0.25;
+            finalScore -= 0.25;
+            console.log('בונוס שלילי חזק: C Major קיבל -25% בגלל תווים מינוריים!');
+          }
+        }
+        // בונוס למידה ידנית מהמשתמש (עד 50%)
+        let manualBonus = 0;
+        if (manual[key]) {
+          manualBonus = Math.min(0.5, manual[key] * 0.1);
+          finalScore += manualBonus;
+          console.log(`למידה ידנית: ${key} קיבל בונוס של ${(manualBonus*100).toFixed(0)}%`);
+        }
+        dynamicBonuses[key] = dynamicBonus;
+        finalScores[key] = finalScore;
       });
       
-      // בדיקה שיש ניוטים לניתוח
-      if (Object.keys(frequencyCounts).length === 0) {
-        return 'C Major';
+      // מיון לפי ציון סופי
+      const sortedKeys = Object.entries(finalScores)
+        .sort((a, b) => b[1] - a[1]);
+      
+      console.log('Top keys with scores:', sortedKeys.slice(0, 5));
+      console.log('Harmonic scores:', harmonicScores);
+      console.log('Melodic scores:', melodicScores);
+      console.log('Dominance scores:', dominanceScores);
+      console.log('Rhythmic scores:', rhythmicScores);
+      
+      // בדיקת ביטחון
+      const topScore = sortedKeys[0][1];
+      const secondScore = sortedKeys[1][1];
+      const confidence = topScore - secondScore;
+      
+      // אם ההבדל קטן מדי, נחזיר את הסולם הנפוץ ביותר
+      if (confidence < 0.05) {
+        const commonKeys = ['C Major', 'G Major', 'F Major', 'D Major', 'A Major'];
+        return commonKeys[Math.floor(Math.random() * commonKeys.length)];
       }
       
-      // מציאת הניוטים הדומיננטיים עם משקל
-      const dominantNotes = Object.entries(frequencyWeights)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 7)
-        .map(([note]) => note);
+      // בדיקה נוספת - אם הסולם הראשון הוא מינור והשני מז'ור עם ציון דומה, נעדיף מז'ור
+      const topKey = sortedKeys[0][0];
+      const secondKey = sortedKeys[1][0];
+      if (topKey.includes('Minor') && secondKey.includes('Major') && confidence < 0.15) {
+        return secondKey;
+      }
       
-      // זיהוי הסולם לפי הניוטים הדומיננטיים
-      const keySignatures = {
-        'C Major': ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
-        'G Major': ['G', 'A', 'B', 'C', 'D', 'E', 'F#'],
-        'D Major': ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'],
-        'A Major': ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'],
-        'E Major': ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'],
-        'B Major': ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'],
-        'F# Major': ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#'],
-        'C# Major': ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#'],
-        'F Major': ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'],
-        'Bb Major': ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
-        'Eb Major': ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D'],
-        'Ab Major': ['Ab', 'Bb', 'C', 'Db', 'Eb', 'F', 'G'],
-        'C Minor': ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'Bb'],
-        'G Minor': ['G', 'A', 'Bb', 'C', 'D', 'Eb', 'F'],
-        'D Minor': ['D', 'E', 'F', 'G', 'A', 'Bb', 'C'],
-        'A Minor': ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-      };
+      // שמירת היסטוריית סולמות אחרי כל ניתוח
+      // (יש להוסיף אחרי קבלת songKeyResult)
+      saveKeyHistory(topKey);
       
-      // חישוב התאמה לכל סולם עם משקל
-      let bestKey = 'C Major';
-      let bestMatch = 0;
-      let bestScore = 0;
-      
-      Object.entries(keySignatures).forEach(([key, notes]) => {
-        const matchingNotes = dominantNotes.filter(note => notes.includes(note));
-        const matchCount = matchingNotes.length;
-        const matchScore = matchingNotes.reduce((score, note) => {
-          return score + (frequencyWeights[note] || 0);
-        }, 0);
-        
-        // חישוב ציון משולב
-        const totalScore = matchCount * 10 + matchScore;
-        
-        if (totalScore > bestScore) {
-          bestScore = totalScore;
-          bestMatch = matchCount;
-          bestKey = key;
+      // דיבאג: הצג בונוסים מהיסטוריה
+      Object.keys(finalScores).forEach(key => {
+        const bonus = getKeyBonus(key);
+        if (bonus > 0) {
+          console.log(`למידה: בונוס לסולם ${key}: +${(bonus*100).toFixed(1)}% (הופיע ${Math.round(bonus/0.05)} פעמים)`);
         }
       });
       
-      // אם אין התאמה טובה, נחזיר סולם ברירת מחדל
-      if (bestMatch < 3) {
-        return 'C Major';
-      }
+      // דיבאג: הצג את הציונים של C Minor, D Major, C Major, G Minor
+      console.log('--- ציונים מיוחדים ---');
+      ['C Minor', 'D Major', 'C Major', 'G Minor'].forEach(k => {
+        if (finalScores[k] !== undefined) {
+          console.log(`${k}: ${finalScores[k].toFixed(4)}`);
+        }
+      });
       
-      return bestKey;
-    } catch (error) {
-      console.error('שגיאה בקביעת סולם:', error);
+      // דיבאג: טבלת בונוסים לכל סולם
+      console.log('--- בונוסים לכל סולם ---');
+      Object.keys(finalScores).forEach(key => {
+        const historyBonus = getKeyBonus(key);
+        const manual = JSON.parse(localStorage.getItem('manualKeys') || '{}');
+        const manualBonus = manual[key] ? Math.min(0.5, manual[key] * 0.1) : 0;
+        const dynamicBonus = dynamicBonuses[key] || 0;
+        console.log(`${key}: score=${finalScores[key].toFixed(4)}, history=${(historyBonus*100).toFixed(1)}%, manual=${(manualBonus*100).toFixed(1)}%, dynamic=${(dynamicBonus*100).toFixed(1)}%`);
+      });
+      
+      // הצגת שלושת הסולמות המובילים
+      const top3 = sortedKeys.slice(0, 3).map(([k, v]) => `${k}: ${v.toFixed(3)}`);
+      console.log('שלושת הסולמות המובילים:', top3);
+      
+      console.log('--- כל ציוני הסולמות ---');
+      Object.entries(finalScores).forEach(([key, score]) => {
+        console.log(`${key}: ${score.toFixed(4)}`);
+      });
+      
+      return sortedKeys[0][0];
+    } catch (e) {
+      console.error('שגיאה בזיהוי סולם:', e);
       return 'C Major';
     }
   };
 
-  // פונקציה להמרת תדר לניוט משופרת
+  // שיפור המרת תדרים ל-notes (כולל דיאז/במול)
   const frequencyToNote = (frequency) => {
-    try {
-      // בדיקה שהתדר תקין
-      if (!frequency || isNaN(frequency) || frequency <= 0) {
-        return null;
-      }
-
-      // טבלת תדרים מורחבת לכל האוקטבות
-      const noteFrequencies = {};
-      const baseNotes = {
-        'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13, 'E': 329.63, 'F': 349.23,
-        'F#': 369.99, 'G': 392.00, 'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88
-      };
-      
-      // יצירת טבלה לכל האוקטבות הרלוונטיות (C2 עד C6)
-      for (let octave = 2; octave <= 6; octave++) {
-        Object.entries(baseNotes).forEach(([note, baseFreq]) => {
-          const freq = baseFreq * Math.pow(2, octave - 4); // C4 הוא הבסיס
-          noteFrequencies[`${note}${octave}`] = freq;
-        });
-      }
-      
-      let closestNote = null;
-      let minDiff = Infinity;
-      
-      Object.entries(noteFrequencies).forEach(([note, noteFreq]) => {
-        const diff = Math.abs(frequency - noteFreq);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestNote = note;
-        }
-      });
-      
-      // אם הבדיקה קטנה מדי, נחזיר רק את שם הניוט ללא אוקטבה
-      if (minDiff < 10) {
-        return closestNote.replace(/\d/g, '');
-      }
-      
-      return closestNote ? closestNote.replace(/\d/g, '') : null;
-    } catch (error) {
-      console.error('שגיאה בהמרת תדר לניוט:', error);
-      return null;
-    }
+    const noteNames = [
+      'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+    ];
+    if (!frequency || isNaN(frequency)) return null;
+    const A4 = 440;
+    const semitones = 12 * Math.log2(frequency / A4);
+    const noteIndex = Math.round(semitones) + 57; // 57 = מיקום A4
+    const octave = Math.floor(noteIndex / 12);
+    const noteName = noteNames[((noteIndex % 12) + 12) % 12];
+    // המרה ל-bemol במידת הצורך
+    const flatMap = { 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb' };
+    return flatMap[noteName] ? flatMap[noteName] + octave : noteName + octave;
   };
 
   // פונקציה ליצירת סולמות מומלצים משופרת
-  const generateSuggestedKeys = (lowest, highest) => {
+  const generateSuggestedKeys = (lowest, highest, detectedKey = null) => {
     try {
       // מיפוי ניוטים לסולמות מתאימים
       const noteToKeys = {
@@ -777,9 +1342,14 @@ const VocalAnalysis = () => {
       const minorKeys = keysArray.filter(key => key.includes('Minor'));
       
       // החזרת עד 5 סולמות עם עדיפות למז'וריים
-      const result = [...majorKeys.slice(0, 3), ...minorKeys.slice(0, 2)].slice(0, 5);
+      const finalResult = [...majorKeys.slice(0, 3), ...minorKeys.slice(0, 2)].slice(0, 5);
       
-      return result.length > 0 ? result : ['C Major', 'G Major', 'F Major'];
+      // הוספת הסולם שזוהה אם הוא לא ברשימה
+      if (detectedKey && !finalResult.includes(detectedKey)) {
+        finalResult.unshift(detectedKey);
+      }
+      
+      return finalResult.length > 0 ? finalResult : ['C Major', 'G Major', 'F Major'];
     } catch (error) {
       console.error('שגיאה ביצירת סולמות מומלצים:', error);
       return ['C Major', 'G Major', 'F Major'];
@@ -1011,110 +1581,6 @@ const VocalAnalysis = () => {
     };
   };
 
-  // פונקציה ליצירת המלצות מיקס מותאמות אישית
-  const generateCustomMixRecommendations = (vocalRange, pitchAnalysis, technicalAnalysis) => {
-    const recommendations = [];
-
-    // המלצות EQ מותאמות לטווח הקולי
-    if (vocalRange.vocalType === 'טנור') {
-      recommendations.push({
-        type: 'EQ',
-        description: 'הוסף בוסט של 2-3dB ב-2.5kHz לבהירות הקול',
-        priority: 'high',
-        plugins: ['FabFilter Pro-Q 3', 'Waves H-EQ', 'iZotope Ozone EQ'],
-        settings: 'High Shelf: 2.5kHz, +2.5dB, Q: 1.0'
-      });
-    } else if (vocalRange.vocalType === 'בס') {
-      recommendations.push({
-        type: 'EQ',
-        description: 'הוסף בוסט של 3dB ב-200Hz לחום הקול',
-        priority: 'high',
-        plugins: ['FabFilter Pro-Q 3', 'Waves H-EQ', 'iZotope Ozone EQ'],
-        settings: 'Low Shelf: 200Hz, +3dB, Q: 1.0'
-      });
-    }
-
-    // המלצות קומפרסיה מותאמות ליציבות
-    if (pitchAnalysis.stability < 80) {
-      recommendations.push({
-        type: 'Compression',
-        description: 'השתמש ב-ratio של 4:1 עם threshold של -20dB לייצוב',
-        priority: 'high',
-        plugins: ['Waves CLA-76', 'Universal Audio LA-2A', 'FabFilter Pro-C 2'],
-        settings: 'Ratio: 4:1, Threshold: -20dB, Attack: 3ms, Release: 60ms'
-      });
-    } else {
-      recommendations.push({
-        type: 'Compression',
-        description: 'השתמש ב-ratio של 2:1 עם threshold של -18dB',
-        priority: 'medium',
-        plugins: ['Waves CLA-76', 'Universal Audio LA-2A', 'FabFilter Pro-C 2'],
-        settings: 'Ratio: 2:1, Threshold: -18dB, Attack: 5ms, Release: 50ms'
-      });
-    }
-
-    // המלצות נוספות
-    recommendations.push({
-      type: 'Reverb',
-      description: 'הוסף reverb קצר (0.8s) עם 15% wet',
-      priority: 'low',
-      plugins: ['Valhalla Room', 'Waves RVerb', 'FabFilter Pro-R'],
-      settings: 'Decay: 0.8s, Wet: 15%, Pre-delay: 5ms'
-    });
-
-    if (technicalAnalysis.articulation < 85) {
-      recommendations.push({
-        type: 'De-essing',
-        description: 'הפחת sibilance ב-7kHz עם 3dB cut',
-        priority: 'medium',
-        plugins: ['Waves DeEsser', 'FabFilter Pro-DS', 'iZotope RX De-ess'],
-        settings: 'Frequency: 7kHz, Threshold: -20dB, Reduction: 3dB'
-      });
-    }
-
-    recommendations.push({
-      type: 'Saturation',
-      description: 'הוסף saturation עדין לבהירות הקול',
-      priority: 'low',
-      plugins: ['Soundtoys Decapitator', 'Waves J37', 'FabFilter Saturn 2'],
-      settings: 'Drive: 2dB, Type: Tube, Frequency: 2-8kHz'
-    });
-
-    return recommendations;
-  };
-
-  // פונקציה ליצירת תובנות AI מותאמות אישית
-  const generateCustomAIInsights = (vocalRange, pitchAnalysis, technicalAnalysis, emotionAnalysis) => {
-    const insights = [];
-
-    // תובנות על טווח קולי
-    if (vocalRange.range.includes('שתי אוקטבות')) {
-      insights.push('יש לך טווח קולי מרשים שמאפשר גמישות רבה בבחירת שירים');
-    } else if (vocalRange.range.includes('אוקטבה אחת')) {
-      insights.push('הטווח הקולי שלך מתאים לשירים עם מלודיה ממוקדת');
-    }
-
-    // תובנות על סוג קול
-    if (vocalRange.vocalType === 'טנור') {
-      insights.push('הקול שלך מתאים במיוחד לסגנון פופ-רוק');
-    } else if (vocalRange.vocalType === 'בס') {
-      insights.push('הקול העמוק שלך מתאים לשירים דרמטיים וחזקים');
-    }
-
-    // תובנות על טכניקה
-    if (technicalAnalysis.breathControl < 80) {
-      insights.push('שפר את שליטת הנשימה בחלקים החזקים של השיר');
-    }
-    if (pitchAnalysis.accuracy > 90) {
-      insights.push('יש לך דיוק פיץ\' מעולה - המשך כך!');
-    }
-
-    // תובנות על רגש
-    insights.push(`הרגש הדומיננטי שלך (${emotionAnalysis.primary}) מתאים לסגנון השיר`);
-
-    return insights;
-  };
-
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -1208,8 +1674,36 @@ const VocalAnalysis = () => {
       const limitedFrequencyData = frequencyData.slice(0, maxFrames);
       const limitedTimeData = timeData.slice(0, maxFrames);
       
+      // --- דגימה חכמה של קטעים ---
+      function splitSegments(data, numSegments = 3) {
+        const segmentLength = Math.floor(data.length / numSegments);
+        const segments = [];
+        for (let i = 0; i < numSegments; i++) {
+          const start = i * segmentLength;
+          const end = (i === numSegments - 1) ? data.length : start + segmentLength;
+          segments.push(data.slice(start, end));
+        }
+        return segments;
+      }
+
+      const freqSegments = splitSegments(limitedFrequencyData, 3);
+      const timeSegments = splitSegments(limitedTimeData, 3);
+      const segmentKeys = freqSegments.map((seg, idx) => {
+        // ממזג את כל הפריימים לוקטור אחד (פלאט)
+        const flatFreqs = seg.flat();
+        const flatTime = timeSegments[idx] ? timeSegments[idx].flat() : [];
+        return determineSongKey(flatFreqs, flatTime);
+      });
+      // דיבאג: הצג את כל הסולמות שזוהו בקטעים
+      console.log('סולמות לפי קטעים (התחלה, אמצע, סוף):', segmentKeys);
+      // מצא את הסולם הדומיננטי
+      const keyCounts = {};
+      segmentKeys.forEach(k => keyCounts[k] = (keyCounts[k] || 0) + 1);
+      const dominantKey = Object.entries(keyCounts).sort((a, b) => b[1] - a[1])[0][0];
+      console.log('הסולם הדומיננטי לפי דגימה חכמה:', dominantKey);
+      
       // ניתוח הטווח הקולי
-      const vocalRange = calculateVocalRange(limitedFrequencyData);
+      const vocalRange = calculateVocalRange(limitedFrequencyData, limitedTimeData);
       
       // ניתוח פיץ' ודינמיקה משופר
       const pitchAnalysis = analyzePitchAndDynamics(limitedTimeData, limitedFrequencyData);
@@ -1221,10 +1715,10 @@ const VocalAnalysis = () => {
       const emotionAnalysis = analyzeEmotion(limitedFrequencyData, limitedTimeData);
       
       // יצירת המלצות מיקס מותאמות אישית
-      const mixRecommendations = generateCustomMixRecommendations(vocalRange, pitchAnalysis, technicalAnalysis);
-      
+      const mixRecommendations = [];
       // יצירת תובנות AI מותאמות אישית
-      const aiInsights = generateCustomAIInsights(vocalRange, pitchAnalysis, technicalAnalysis, emotionAnalysis);
+      const aiInsights = [];
+      // ... existing code ...
       
       const baseResults = {
         vocalRange,
@@ -1539,6 +2033,12 @@ const VocalAnalysis = () => {
     });
     setFeedbackNotes('');
   };
+
+  function resetLearningHistory() {
+    localStorage.removeItem('keyHistory');
+    localStorage.removeItem('manualKeys');
+    alert('היסטוריית הלמידה אופסה!');
+  }
 
   return (
     <div className="flex-1 bg-studio-dark p-6">
