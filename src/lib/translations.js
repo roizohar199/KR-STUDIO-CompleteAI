@@ -577,6 +577,15 @@ export const translations = {
     radio: 'Radio',
     radioDesc: 'Radio-optimized version with compression',
     stems: 'STEMS',
+
+    // Auto-ML Technologies
+    autoMLTechnologies: 'טכנולוגיות Auto-ML מתקדמות',
+    cnnKeyDetection: 'CNN לזיהוי סולמות',
+    cnnDescription: 'רשת נוירונים קונבולוציונית לזיהוי דפוסים מתקדם ודיוק גבוה בזיהוי סולמות',
+    madmomAnalysis: 'madmom לניתוח מוזיקלי',
+    madmomDescription: 'זיהוי ביטים ומקצב, חילוץ מלודיה וניתוח אקורדים מתקדם',
+    autoMLLearning: 'Auto-ML למידה עצמית',
+    autoMLDescription: 'אופטימיזציה אוטומטית, בחירת מודל חכמה ולמידה מתמשכת',
     stemsDesc: 'Separate files for each channel',
     export: 'Export',
     exportInfo: 'Export Information',
