@@ -37,7 +37,7 @@ const UserVerification = () => {
     subscription: 'premium',
     status: 'active',
     expiresAt: '2025-12-31',
-    features: ['vocal-analysis', 'sketches', 'sessions', 'recommendations', 'export', 'credits'],
+    features: ['sketches', 'sessions', 'recommendations', 'export', 'credits'],
     usage: {
       vocalAnalyses: 15,
       sketchesCreated: 8,
@@ -57,7 +57,7 @@ const UserVerification = () => {
       name: 'חינמי',
       color: 'text-gray-500',
       icon: User,
-      features: ['vocal-analysis'],
+      features: ['stem-analysis'],
       limit: 1,
       limitType: 'projects'
     },
@@ -65,7 +65,7 @@ const UserVerification = () => {
       name: 'בסיסי',
       color: 'text-blue-500',
       icon: Shield,
-      features: ['vocal-analysis', 'sketches'],
+      features: ['stem-analysis', 'sketches'],
       limit: 3,
       limitType: 'projects',
       price: 149,
@@ -76,7 +76,7 @@ const UserVerification = () => {
       name: 'פרימיום',
       color: 'text-purple-500',
       icon: Crown,
-      features: ['vocal-analysis', 'sketches', 'sessions', 'recommendations', 'export', 'credits'],
+      features: ['stem-analysis', 'sketches', 'sessions', 'recommendations', 'export', 'credits'],
       limit: 'unlimited',
       limitType: 'uses',
       price: 299,
@@ -86,7 +86,6 @@ const UserVerification = () => {
   };
 
   const features = {
-    'vocal-analysis': { name: 'ניתוח ערוץ שירה', icon: Mic },
     'sketches': { name: 'יצירת סקיצות', icon: Music },
     'sessions': { name: 'ניהול סשנים', icon: Users },
     'recommendations': { name: 'המלצות הפקה', icon: Lightbulb },

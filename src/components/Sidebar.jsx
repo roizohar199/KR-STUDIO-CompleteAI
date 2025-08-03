@@ -23,13 +23,9 @@ const Sidebar = ({ activePage, onPageChange }) => {
   
   const menuItems = [
     { id: 'dashboard', label: t('dashboard'), icon: Home },
-    { id: 'vocal-analysis', label: t('vocalAnalysis'), icon: Mic },
-    { id: 'advanced-analysis', label: 'ניתוח מתקדם עם AI', icon: Brain },
-    { id: 'music-database', label: 'בסיס נתוני מוזיקה', icon: Database },
-    { id: 'cloud-processing', label: 'עיבוד בענן עם GPU', icon: Cloud },
     { id: 'sketches', label: t('sketches'), icon: Music },
     { id: 'sessions', label: t('sessions'), icon: Users },
-    { id: 'recommendations', label: t('productionRecommendations'), icon: Lightbulb },
+    { id: 'productionRecommendations', label: t('productionRecommendations'), icon: Lightbulb },
     { id: 'export', label: t('exportVersions'), icon: BarChart3 },
     { id: 'credits', label: t('creditsContracts'), icon: FileText },
     { id: 'verification', label: t('userVerification'), icon: Shield },

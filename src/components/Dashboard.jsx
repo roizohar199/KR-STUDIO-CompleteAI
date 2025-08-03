@@ -77,13 +77,6 @@ const Dashboard = ({ onPageChange }) => {
 
   const quickActions = [
     {
-      title: t('vocalAnalysis'),
-      subtitle: t('quickActionVocalAnalysisSubtitle'),
-      icon: Mic,
-      color: 'bg-blue-500',
-      onClick: () => onPageChange('vocal-analysis')
-    },
-    {
       title: t('createNewSketch'),
       subtitle: t('quickActionCreateSketchSubtitle'),
       icon: Music,
@@ -102,7 +95,7 @@ const Dashboard = ({ onPageChange }) => {
       subtitle: t('quickActionProductionRecommendationsSubtitle'),
       icon: Lightbulb,
       color: 'bg-orange-500',
-      onClick: () => onPageChange('recommendations')
+      onClick: () => onPageChange('productionRecommendations')
     }
   ];
 
@@ -115,14 +108,6 @@ const Dashboard = ({ onPageChange }) => {
           <p className="text-gray-400">{t('welcomeMessage')}</p>
         </div>
         <div className="flex space-x-3 space-x-reverse">
-          <Button 
-            variant="studio" 
-            size="lg"
-            onClick={() => onPageChange('vocal-analysis')}
-          >
-            <Sparkles className="w-5 h-5 ml-2" />
-            {t('vocalAnalysis')}
-          </Button>
           <Button variant="outline" size="lg">
             <Plus className="w-5 h-5 ml-2" />
             {t('newProject')}

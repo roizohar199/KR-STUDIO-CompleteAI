@@ -30,30 +30,6 @@ export const translations = {
     credits: 'קרדיטים וחוזים',
     verification: 'אימות משתמש',
     
-    // ניתוח ערוץ שירה
-    vocalAnalysisTitle: 'ניתוח ערוץ שירה',
-    vocalAnalysisSubtitle: 'נתח ערוץ שירה עם בינה מלאכותית וקבל המלצות מקצועיות למיקס',
-    uploadAudioFile: 'העלה קובץ אודיו',
-    dragDropFile: 'גרור קובץ לכאן או לחץ לבחירה',
-    selectFile: 'בחר קובץ',
-    fileSelected: 'קובץ נבחר',
-    fileSize: 'גודל',
-    startAnalysis: 'התחל ניתוח AI',
-    analyzing: 'מנתח קובץ...',
-    analysisComplete: 'ניתוח הושלם בהצלחה!',
-    
-    // תוצאות ניתוח
-    vocalRangeAnalysis: 'ניתוח טווח קולי',
-    lowestNote: 'הטון הנמוך ביותר',
-    highestNote: 'הטון הגבוה ביותר',
-    vocalRange: 'טווח קולי',
-    accuracyLevel: 'רמת דיוק',
-    songKey: 'סולם השיר',
-    keyAccuracy: 'דיוק זיהוי הסולם',
-    vocalType: 'סוג קול',
-    comfortableRange: 'טווח נוח',
-    suggestedKeys: 'סולמות מומלצים',
-    
     // ניתוח פיץ'
     pitchAnalysis: 'ניתוח פיץ\' ודינמיקה',
     pitchAccuracy: 'דיוק פיץ\'',
@@ -140,11 +116,7 @@ export const translations = {
     step4: '4. קבל המלצות מותאמות אישית',
     step5: '5. עבור ל"המלצות ייצור" לקבלת פלאגינים',
     
-    // AI מתקדם
-    advancedAnalysis: 'ניתוח מתקדם',
-    advancedAnalysisDescription: 'המערכת מבצעת ניתוח אמיתי של הקובץ באמצעות Web Audio API.',
-    aiLearningSystem: 'מערכת AI שלומדת',
-    aiLearningDescription: 'המערכת לומדת מכל ניתוח ומשפרת את עצמה.',
+    // הסר את כל המפתחות והערכים שקשורים ל-advancedAnalysis או לניתוח מתקדם.
     
     // נגן אודיו
     listenToFile: 'האזן לקובץ',
@@ -419,121 +391,7 @@ export const translations = {
     paymentSecure: 'Payment is secure and encrypted',
     poweredByStripe: 'Powered by Stripe',
     
-    // Vocal Analysis
-    vocalAnalysisTitle: 'Vocal Channel Analysis',
-    vocalAnalysisSubtitle: 'Analyze vocal channel with AI and get professional mixing recommendations',
-    uploadAudioFile: 'Upload Audio File',
-    dragDropFile: 'Drag file here or click to select',
-    selectFile: 'Select File',
-    fileSelected: 'File Selected',
-    fileSize: 'Size',
-    startAnalysis: 'Start AI Analysis',
-    analyzing: 'Analyzing file...',
-    analysisComplete: 'Analysis completed successfully!',
-    
-    // Analysis Results
-    vocalRangeAnalysis: 'Vocal Range Analysis',
-    lowestNote: 'Lowest Note',
-    highestNote: 'Highest Note',
-    vocalRange: 'Vocal Range',
-    accuracyLevel: 'Accuracy Level',
-    songKey: 'Song Key',
-    keyAccuracy: 'Key Detection Accuracy',
-    vocalType: 'Vocal Type',
-    comfortableRange: 'Comfortable Range',
-    suggestedKeys: 'Suggested Keys',
-    
-    // Pitch Analysis
-    pitchAnalysis: 'Pitch and Dynamics Analysis',
-    pitchAccuracy: 'Pitch Accuracy',
-    stability: 'Stability',
-    identifiedIssues: 'Identified Issues',
-    noSignificantIssues: 'No significant issues',
-    
-    // Technical Analysis
-    technicalAnalysis: 'Advanced Technical Analysis',
-    breathControl: 'Breath Control',
-    articulation: 'Articulation',
-    timing: 'Timing',
-    dynamics: 'Dynamics',
-    technicalMetrics: 'Technical Metrics',
-    vocalProfile: 'Vocal Profile',
-    
-    // Emotion Analysis
-    emotionAnalysis: 'Emotion Analysis',
-    primaryEmotion: 'Primary Emotion',
-    secondaryEmotion: 'Secondary Emotion',
-    emotionalIntensity: 'Emotional Intensity',
-    
-    // Mix Recommendations
-    mixRecommendations: 'Professional Mix Recommendations',
-    highPriority: 'High',
-    mediumPriority: 'Medium',
-    lowPriority: 'Low',
-    recommendedPlugins: 'Recommended Plugins',
-    recommendedSettings: 'Recommended Settings',
-    
-    // AI Insights
-    aiInsights: 'AI Insights',
-    exportPDF: 'Export PDF',
-    
-    // Feedback
-    helpSystemLearn: 'Help System Learn',
-    feedbackDescription: 'Your feedback helps the system improve future analyses. Tell us how accurate the analysis was and how useful the recommendations were.',
-    analysisAccuracy: 'Analysis Accuracy',
-    recommendationUsefulness: 'Recommendations Usefulness',
-    additionalNotes: 'Additional comments for system improvement...',
-    submitFeedback: 'Submit Feedback',
-    
-    // Learning Stats
-    learningStats: 'AI Learning Statistics',
-    totalAnalyses: 'Total Analyses',
-    modelVersion: 'Model Version',
-    vocalTypesAnalyzed: 'Vocal Types Analyzed',
-    averageAccuracy: 'Average Accuracy',
-    systemLearning: 'The system learns and improves with every analysis!',
-    resetData: 'Reset Data',
-    initialValue: '(Initial Value)',
-    
-    // Messages
-    fileTooLarge: 'File is too large. Please select a file smaller than 50MB.',
-    unsupportedFileType: 'Unsupported file type. Please select WAV, MP3, or FLAC file.',
-    fileTooLong: 'File is too long. Please select a file shorter than 10 minutes.',
-    analysisFailed: 'We couldn\'t analyze the file. Please try another file.',
-    browserNotSupported: 'Your browser doesn\'t support audio analysis. Please try another browser.',
-    fileCorrupted: 'File is corrupted or invalid. Please try another file.',
-    pdfExportError: 'Error exporting PDF. Try again.',
-    feedbackRequired: 'Please rate the analysis before submitting feedback',
-    feedbackSubmitted: 'Thank you for your feedback! The system will use this information to improve future analyses.',
-    resetConfirmation: 'Are you sure you want to reset the learning data? This action will delete all history.',
-    
-    // Descriptions
-    vocalRangeDescription: 'This analysis identifies the exact vocal range of the singer, including the musical key of the song.',
-    pitchAnalysisDescription: 'This analysis checks the singer\'s accuracy in relation to the correct musical notes.',
-    technicalAnalysisDescription: 'This analysis checks the singer\'s vocal technique.',
-    emotionAnalysisDescription: 'This analysis identifies the emotions and emotional tone of the vocal performance.',
-    mixRecommendationsDescription: 'These recommendations are based on deep analysis of the voice and aim to bring the vocal channel to the highest professional level.',
-    
-    // System Requirements
-    systemRequirements: 'System Requirements',
-    maxFileSize: 'File size: Up to 50MB',
-    maxDuration: 'Duration: Up to 10 minutes',
-    supportedFormats: 'Formats: WAV, MP3, FLAC',
-    supportedBrowsers: 'Browser: Chrome, Firefox, Safari',
-    
-    // How to Use
-    howToUse: 'How to Use:',
-    step1: '1. Upload an audio file (WAV, MP3, FLAC)',
-    step2: '2. Click "Start AI Analysis"',
-    step3: '3. Wait for analysis completion (2-3 minutes)',
-    step4: '4. Receive personalized recommendations',
-    step5: '5. Go to "Production Recommendations" for plugins',
-    
-    // Advanced AI
-    advancedAnalysis: 'Advanced Analysis',
-    advancedAnalysisDescription: 'The system performs real analysis of the file using Web Audio API.',
-    aiLearningSystem: 'AI Learning System',
-    aiLearningDescription: 'The system learns from every analysis and improves itself.',
+    // הסר את כל המפתחות והערכים שקשורים ל-advancedAnalysis או לניתוח מתקדם.
     
     // Audio Player
     listenToFile: 'Listen to File',

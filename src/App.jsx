@@ -92,30 +92,6 @@ function App() {
     switch (activePage) {
       case 'dashboard':
         return <Dashboard onPageChange={setActivePage} />;
-      case 'vocal-analysis':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="VocalAnalysis" />
-          </Suspense>
-        );
-      case 'advanced-analysis':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="AdvancedAudioAnalysis" />
-          </Suspense>
-        );
-      case 'music-database':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="MusicDatabase" />
-          </Suspense>
-        );
-      case 'cloud-processing':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="CloudProcessing" />
-          </Suspense>
-        );
       case 'sketches':
         return (
           <Suspense fallback={<LoadingSpinner />}>
@@ -128,7 +104,7 @@ function App() {
             <DynamicComponent componentName="SessionManagement" />
           </Suspense>
         );
-      case 'recommendations':
+      case 'productionRecommendations':
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="ProductionRecommendations" />
