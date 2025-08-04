@@ -16,8 +16,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-<<<<<<< HEAD
-=======
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -46,8 +44,6 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-
->>>>>>> master
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [language, setLanguage] = useState('he'); // ברירת מחדל: עברית
@@ -80,15 +76,6 @@ function App() {
         try {
           setIsLoading(true);
           setError(null);
-<<<<<<< HEAD
-          const Comp = await loadComponent(componentName);
-          if (Comp) {
-            setComponent(() => Comp);
-          } else {
-            setError(`לא ניתן לטעון את הרכיב ${componentName}`);
-          }
-        } catch (err) {
-=======
           console.log(`🔄 מנסה לטעון רכיב: ${componentName}`);
           const Comp = await loadComponent(componentName);
           if (Comp) {
@@ -100,7 +87,6 @@ function App() {
           }
         } catch (err) {
           console.error(`❌ שגיאה בטעינת רכיב ${componentName}:`, err);
->>>>>>> master
           setError(err.message);
         } finally {
           setIsLoading(false);
@@ -121,16 +107,12 @@ function App() {
             <div className="text-2xl mb-4">❌ שגיאה בטעינה</div>
             <div className="text-lg">{error}</div>
             <button 
-<<<<<<< HEAD
-              onClick={() => window.location.reload()}
-=======
               onClick={() => {
                 // במקום window.location.reload(), ננסה לטעון מחדש את הקומפוננטה
                 setError(null);
                 setIsLoading(true);
                 loadComp();
               }}
->>>>>>> master
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               נסה שוב
@@ -183,8 +165,6 @@ function App() {
             <DynamicComponent componentName="UserVerification" />
           </Suspense>
         );
-<<<<<<< HEAD
-=======
       case 'audio-separation':
         return (
           <Suspense fallback={<LoadingSpinner />}>
@@ -198,24 +178,12 @@ function App() {
             } />
           </Suspense>
         );
->>>>>>> master
       default:
         return <Dashboard onPageChange={setActivePage} />;
     }
   };
 
   return (
-<<<<<<< HEAD
-    <LanguageContext.Provider value={{ language, setLanguage }}>
-      <div className="flex h-screen bg-studio-dark" dir={language === 'he' ? 'rtl' : 'ltr'}>
-        <Sidebar activePage={activePage} onPageChange={setActivePage} />
-        <main className="flex-1 overflow-auto">
-          {renderPage()}
-        </main>
-        <PerformanceMonitor />
-      </div>
-    </LanguageContext.Provider>
-=======
     <ErrorBoundary>
       <LanguageContext.Provider value={{ language, setLanguage }}>
         <div className="flex h-screen bg-studio-dark" dir={language === 'he' ? 'rtl' : 'ltr'}>
@@ -227,7 +195,6 @@ function App() {
         </div>
       </LanguageContext.Provider>
     </ErrorBoundary>
->>>>>>> master
   );
 }
 

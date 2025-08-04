@@ -34,11 +34,7 @@ export default defineConfig({
     ]
   },
   server: {
-<<<<<<< HEAD
-    port: 3000,
-=======
     port: 5173,
->>>>>>> master
     host: true
   }
 }) 

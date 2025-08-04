@@ -89,8 +89,6 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #F7931E;
-<<<<<<< HEAD
-=======
 }
 
 /* Audio Separation Studio Styles */
@@ -225,5 +223,4 @@
 .volume-control:hover {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.2);
->>>>>>> master
 } 

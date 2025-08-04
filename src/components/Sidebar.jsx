@@ -1,19 +1,4 @@
 import React, { useContext } from 'react';
-<<<<<<< HEAD
-import { 
-  Home, 
-  Mic, 
-  Brain,
-  Database,
-  Cloud,
-  Music, 
-  Users, 
-  Lightbulb, 
-  BarChart3, 
-  FileText,
-  Headphones,
-  Shield
-=======
 import {
   Home,
   Mic,
@@ -28,18 +13,12 @@ import {
   Headphones,
   Shield,
   Split
->>>>>>> master
 } from 'lucide-react';
 import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 import LanguageSelector from './LanguageSelector';
 
 const Sidebar = ({ activePage, onPageChange }) => {
-<<<<<<< HEAD
-  const { language } = useContext(LanguageContext);
-  const t = useTranslation();
-  
-=======
   const handleMenuClick = (item) => {
     console.log(`🎯 לחיצה על תפריט: ${item.label} (${item.id})`);
     if (item.external) {
@@ -51,8 +30,6 @@ const Sidebar = ({ activePage, onPageChange }) => {
   };
   const { language } = useContext(LanguageContext);
   const t = useTranslation();
-
->>>>>>> master
   const menuItems = [
     { id: 'dashboard', label: t('dashboard'), icon: Home },
     { id: 'sketches', label: t('sketches'), icon: Music },
@@ -61,10 +38,7 @@ const Sidebar = ({ activePage, onPageChange }) => {
     { id: 'export', label: t('exportVersions'), icon: BarChart3 },
     { id: 'credits', label: t('creditsContracts'), icon: FileText },
     { id: 'verification', label: t('userVerification'), icon: Shield },
-<<<<<<< HEAD
-=======
     { id: 'audio-separation', label: 'הפרדת אודיו', icon: Split },
->>>>>>> master
   ];
 
   const quickStats = [
@@ -99,21 +73,11 @@ const Sidebar = ({ activePage, onPageChange }) => {
               return (
                 <button
                   key={item.id}
-<<<<<<< HEAD
-                  onClick={() => onPageChange(item.id)}
-=======
                   onClick={() => handleMenuClick(item)}
->>>>>>> master
                   className={`w-full flex items-center space-x-3 space-x-reverse px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-gradient-to-r from-orange-400 to-yellow-400 text-white'
                       : 'text-gray-700 hover:bg-gray-100'
-<<<<<<< HEAD
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-=======
                   } ${item.external ? 'border-l-2 border-blue-500' : ''}`}
                 >
                   <Icon className="w-5 h-5" />
@@ -121,7 +85,6 @@ const Sidebar = ({ activePage, onPageChange }) => {
                   {item.external && (
                     <span className="text-xs text-blue-500 mr-auto"></span>
                   )}
->>>>>>> master
                 </button>
               );
             })}
@@ -178,8 +141,4 @@ const Sidebar = ({ activePage, onPageChange }) => {
   );
 };
 
-<<<<<<< HEAD
-export default Sidebar; 
-=======
 export default Sidebar;
->>>>>>> master

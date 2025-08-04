@@ -36,8 +36,8 @@ const AudioSeparation = () => {
   const [duration, setDuration] = useState(0);
   const [volumeLevels, setVolumeLevels] = useState({});
   const [mutedTracks, setMutedTracks] = useState({});
-  const [currentView, setCurrentView] = useState('studio'); // 'studio', 'upload'
-  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [currentView, setCurrentView] = useState('upload'); // 'studio', 'upload'
+  const [showUploadForm, setShowUploadForm] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
   const [processingStep, setProcessingStep] = useState('uploading');
   const [serverConnected, setServerConnected] = useState(false);
@@ -414,8 +414,10 @@ const AudioSeparation = () => {
     }
   };
 
-  const handleFileInput = (e) => {
-    handleFileUpload(e);
+  const handleFileInput = (file) => {
+    // Create a mock event object for handleFileUpload
+    const mockEvent = { target: { files: [file] } };
+    handleFileUpload(mockEvent);
   };
 
   // Utility functions
