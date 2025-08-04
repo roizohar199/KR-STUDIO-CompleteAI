@@ -148,7 +148,12 @@ export class DynamicLoader {
       'SketchCreation': () => import('../components/SketchCreation'),
       'SessionManagement': () => import('../components/SessionManagement'),
       'CreditsContracts': () => import('../components/CreditsContracts'),
+<<<<<<< HEAD
       'UserVerification': () => import('../components/UserVerification')
+=======
+      'UserVerification': () => import('../components/UserVerification'),
+      'AudioSeparation': () => import('../components/AudioSeparation')
+>>>>>>> master
     };
 
     if (!componentMap[componentName]) {
@@ -156,15 +161,32 @@ export class DynamicLoader {
     }
 
     if (this.loadedModules.has(componentName)) {
+<<<<<<< HEAD
+=======
+      console.log(`📦 רכיב ${componentName} כבר נטען, משתמש בגרסה קיימת`);
+>>>>>>> master
       return this.loadedModules.get(componentName);
     }
 
     if (this.loadingPromises.has(componentName)) {
+<<<<<<< HEAD
       return this.loadingPromises.get(componentName);
     }
 
     const loadingPromise = componentMap[componentName]().then(module => {
       const component = module.default;
+=======
+      console.log(`⏳ רכיב ${componentName} כבר בטעינה, ממתין...`);
+      return this.loadingPromises.get(componentName);
+    }
+
+    console.log(`🚀 מתחיל טעינת רכיב: ${componentName}`);
+    const loadingPromise = componentMap[componentName]().then(module => {
+      const component = module.default;
+      if (!component) {
+        throw new Error(`רכיב ${componentName} לא יוצא נכון`);
+      }
+>>>>>>> master
       this.loadedModules.set(componentName, component);
       this.loadingPromises.delete(componentName);
       console.log(`✅ רכיב ${componentName} נטען דינמית בהצלחה`);

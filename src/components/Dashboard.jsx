@@ -108,7 +108,18 @@ const Dashboard = ({ onPageChange }) => {
           <p className="text-gray-400">{t('welcomeMessage')}</p>
         </div>
         <div className="flex space-x-3 space-x-reverse">
+<<<<<<< HEAD
           <Button variant="outline" size="lg">
+=======
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={() => {
+              console.log('🆕 כפתור New Project נלחץ');
+              onPageChange('sketches');
+            }}
+          >
+>>>>>>> master
             <Plus className="w-5 h-5 ml-2" />
             {t('newProject')}
           </Button>

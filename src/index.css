@@ -89,4 +89,141 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #F7931E;
+<<<<<<< HEAD
+=======
+}
+
+/* Audio Separation Studio Styles */
+:root {
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --accent-blue: #00d4ff;
+  --accent-purple: #b794f6;
+  --accent-green: #68d391;
+  --studio-dark: #1a1a1a;
+  --studio-darker: #0f0f0f;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.neon-glow {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.audio-wave {
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-green));
+  background-size: 200% 200%;
+  animation: wave-flow 3s ease-in-out infinite;
+}
+
+@keyframes wave-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.track-glow {
+  transition: all 0.3s ease;
+}
+
+.track-glow:hover {
+  box-shadow: 0 8px 32px rgba(103, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Volume Slider Styles */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Volume Button Hover Effects */
+.volume-button {
+  transition: all 0.3s ease;
+}
+
+.volume-button:hover {
+  transform: scale(1.05);
+}
+
+.volume-button:active {
+  transform: scale(0.95);
+}
+
+/* Track Card Enhancements */
+.track-card {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.track-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.track-card:hover::before {
+  opacity: 1;
+}
+
+/* Volume Control Container */
+.volume-control {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.volume-control:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+>>>>>>> master
 } 

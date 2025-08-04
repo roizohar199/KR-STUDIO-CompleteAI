@@ -5,6 +5,10 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import YAMNetAnalyzer from '../lib/yamnet';
 import AIApiService from '../lib/aiApi';
+<<<<<<< HEAD
+=======
+import { AdvancedTempoAnalyzer } from '../lib/tempoAnalysis.js';
+>>>>>>> master
 
 // ----- דמה עבור context ושפה -----
 const LanguageContext = React.createContext('he');
@@ -19,6 +23,10 @@ class AudioAnalyzer {
     this.isAnalyzing = false;
     this.yamnetAnalyzer = new YAMNetAnalyzer();
     this.yamnetLoaded = false;
+<<<<<<< HEAD
+=======
+    this.tempoAnalyzer = new AdvancedTempoAnalyzer();
+>>>>>>> master
     
     // יצירת מפה של כל הפלאגינים הזמינים
     this.allPluginsMap = this.createAllPluginsMap();
@@ -93,6 +101,15 @@ class AudioAnalyzer {
       const arrayBuffer = await file.arrayBuffer();
       const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
       
+<<<<<<< HEAD
+=======
+      // אתחול מערכת ניתוח טמפו מתקדמת
+      await this.tempoAnalyzer.initialize();
+      
+      // ניתוח טמפו מתקדם
+      const advancedTempoAnalysis = await this.tempoAnalyzer.analyzeTempoAdvanced(audioBuffer);
+      
+>>>>>>> master
       // ניתוח עם YAMNet
       const yamnetAnalysis = await this.performYAMNetAnalysis(audioBuffer);
       
@@ -100,7 +117,11 @@ class AudioAnalyzer {
       const traditionalAnalysis = this.performDeepAnalysis(audioBuffer);
       
       // שילוב התוצאות
+<<<<<<< HEAD
       return this.combineAnalyses(traditionalAnalysis, yamnetAnalysis);
+=======
+      return this.combineAnalyses(traditionalAnalysis, yamnetAnalysis, advancedTempoAnalysis);
+>>>>>>> master
     } catch (error) {
       console.error('שגיאה בניתוח הקובץ:', error);
       return null;
@@ -134,10 +155,18 @@ class AudioAnalyzer {
     }
   }
 
+<<<<<<< HEAD
   combineAnalyses(traditionalAnalysis, yamnetAnalysis) {
     const combined = {
       ...traditionalAnalysis,
       yamnet: yamnetAnalysis
+=======
+  combineAnalyses(traditionalAnalysis, yamnetAnalysis, advancedTempoAnalysis) {
+    const combined = {
+      ...traditionalAnalysis,
+      yamnet: yamnetAnalysis,
+      advancedTempo: advancedTempoAnalysis
+>>>>>>> master
     };
 
     // שיפור זיהוי כלי נגינה עם YAMNet
@@ -156,6 +185,22 @@ class AudioAnalyzer {
       );
     }
 
+<<<<<<< HEAD
+=======
+    // שילוב ניתוח טמפו מתקדם
+    if (advancedTempoAnalysis) {
+      combined.enhancedRhythm = {
+        ...combined.rhythmicAnalysis,
+        advancedTempo: advancedTempoAnalysis.primaryTempo,
+        tempoConfidence: advancedTempoAnalysis.confidence,
+        beatMap: advancedTempoAnalysis.beatMap,
+        timeSignature: advancedTempoAnalysis.timeSignature,
+        groove: advancedTempoAnalysis.groove,
+        analysisMethods: advancedTempoAnalysis.analysis
+      };
+    }
+
+>>>>>>> master
     return combined;
   }
 
@@ -2245,6 +2290,115 @@ const AIAnalysisDisplay = ({ analysis, isAnalyzing }) => {
 
   if (!analysis) return null;
 
+<<<<<<< HEAD
+=======
+  // Advanced Tempo Analysis Section
+  const renderAdvancedTempoAnalysis = () => {
+    if (!analysis.advancedTempo) return null;
+
+    return (
+      <div className="mb-8">
+        <div className="flex items-center mb-4">
+          <Clock className="w-6 h-6 text-green-400 ml-2" />
+          <h3 className="text-lg font-semibold text-white">ניתוח טמפו מתקדם</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Primary Tempo */}
+          <Card className="bg-studio-gray border-studio-gray">
+            <CardContent className="p-6">
+              <div className="flex items-center mb-4">
+                <Target className="w-6 h-6 text-green-400 ml-2" />
+                <h4 className="text-lg font-semibold text-white">טמפו ראשי</h4>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-400 mb-2">
+                  {Math.round(analysis.advancedTempo.primaryTempo)} BPM
+                </div>
+                <div className="text-sm text-gray-400">
+                  ביטחון: {(analysis.advancedTempo.confidence * 100).toFixed(1)}%
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Beat Map */}
+          <Card className="bg-studio-gray border-studio-gray">
+            <CardContent className="p-6">
+              <div className="flex items-center mb-4">
+                <Music className="w-6 h-6 text-blue-400 ml-2" />
+                <h4 className="text-lg font-semibold text-white">מפת ביטים</h4>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-400 mb-2">
+                  {analysis.advancedTempo.beatMap.length}
+                </div>
+                <div className="text-sm text-gray-400">
+                  ביטים שזוהו
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Groove Analysis */}
+          <Card className="bg-studio-gray border-studio-gray">
+            <CardContent className="p-6">
+              <div className="flex items-center mb-4">
+                <TrendingUp className="w-6 h-6 text-purple-400 ml-2" />
+                <h4 className="text-lg font-semibold text-white">ניתוח Groove</h4>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">סדירות</span>
+                  <span className="text-white text-sm">
+                    {(analysis.advancedTempo.groove.regularity * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Swing</span>
+                  <span className="text-white text-sm">
+                    {(analysis.advancedTempo.groove.swing * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Analysis Methods */}
+        <Card className="bg-studio-gray border-studio-gray mt-6">
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <BarChart3 className="w-6 h-6 text-yellow-400 ml-2" />
+              <h4 className="text-lg font-semibold text-white">שיטות ניתוח</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {analysis.advancedTempo.analysis && Object.entries(analysis.advancedTempo.analysis).map(([method, result]) => (
+                <div key={method} className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
+                  <span className="text-gray-400 text-sm capitalize">
+                    {method.replace(/([A-Z])/g, ' $1').trim()}
+                  </span>
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <div className="w-16 bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(result.confidence || 0) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs text-white">
+                      {result.confidence ? (result.confidence * 100).toFixed(0) : 'N/A'}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+>>>>>>> master
   // YAMNet Analysis Section
   const renderYAMNetAnalysis = () => {
     if (!analysis.yamnet) return null;
@@ -2324,6 +2478,12 @@ const AIAnalysisDisplay = ({ analysis, isAnalyzing }) => {
       {/* YAMNet Analysis */}
       {renderYAMNetAnalysis()}
       
+<<<<<<< HEAD
+=======
+      {/* Advanced Tempo Analysis */}
+      {renderAdvancedTempoAnalysis()}
+      
+>>>>>>> master
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ניתוח כלי נגינה */}
         <Card className="bg-studio-gray border-studio-gray">
@@ -2487,7 +2647,24 @@ const AIAnalysisDisplay = ({ analysis, isAnalyzing }) => {
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">טמפו:</span>
                 <span className="text-white font-medium">
+<<<<<<< HEAD
                   {Math.round(analysis.rhythmicAnalysis.tempo)} BPM
+=======
+                  {analysis.enhancedRhythm?.advancedTempo 
+                    ? Math.round(analysis.enhancedRhythm.advancedTempo) 
+                    : Math.round(analysis.rhythmicAnalysis.tempo)} BPM
+                  {analysis.enhancedRhythm?.advancedTempo && (
+                    <span className="text-green-400 text-xs mr-2">(מתקדם)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">ביטחון:</span>
+                <span className="text-white font-medium">
+                  {analysis.enhancedRhythm?.tempoConfidence 
+                    ? `${(analysis.enhancedRhythm.tempoConfidence * 100).toFixed(1)}%`
+                    : 'N/A'}
+>>>>>>> master
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -2508,6 +2685,17 @@ const AIAnalysisDisplay = ({ analysis, isAnalyzing }) => {
                   {Math.round(analysis.rhythmicAnalysis.rhythmicComplexity * 100)}%
                 </span>
               </div>
+<<<<<<< HEAD
+=======
+              {analysis.enhancedRhythm?.beatMap && analysis.enhancedRhythm.beatMap.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-white mb-2">ביטים שזוהו:</h4>
+                  <div className="text-xs text-gray-400">
+                    {analysis.enhancedRhythm.beatMap.length} ביטים במשך {Math.round(analysis.enhancedRhythm.beatMap[analysis.enhancedRhythm.beatMap.length - 1])} שניות
+                  </div>
+                </div>
+              )}
+>>>>>>> master
             </div>
           </CardContent>
         </Card>

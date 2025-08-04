@@ -129,7 +129,17 @@ const PerformanceMonitor = () => {
               ניקוי
             </button>
             <button
+<<<<<<< HEAD
               onClick={() => window.location.reload()}
+=======
+              onClick={() => {
+                // במקום window.location.reload(), נשתמש בפונקציה מקומית
+                dynamicLoader.cleanup();
+                setTimeout(() => {
+                  window.location.reload();
+                }, 100);
+              }}
+>>>>>>> master
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded"
               title="רענון"
             >

@@ -16,6 +16,38 @@ const LoadingSpinner = () => (
   </div>
 );
 
+<<<<<<< HEAD
+=======
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('שגיאה גלובלית:', error, errorInfo);
+  }
+  handleReload = () => {
+    this.setState({ hasError: false, error: null });
+    window.location.reload();
+  };
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
+          <div className="text-3xl mb-4">❌ שגיאה כללית באפליקציה</div>
+          <div className="text-lg mb-4">{this.state.error?.message || 'אירעה שגיאה לא צפויה.'}</div>
+          <button onClick={this.handleReload} className="px-6 py-2 bg-blue-600 rounded hover:bg-blue-700">רענן דף</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+>>>>>>> master
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [language, setLanguage] = useState('he'); // ברירת מחדל: עברית
@@ -48,6 +80,7 @@ function App() {
         try {
           setIsLoading(true);
           setError(null);
+<<<<<<< HEAD
           const Comp = await loadComponent(componentName);
           if (Comp) {
             setComponent(() => Comp);
@@ -55,6 +88,19 @@ function App() {
             setError(`לא ניתן לטעון את הרכיב ${componentName}`);
           }
         } catch (err) {
+=======
+          console.log(`🔄 מנסה לטעון רכיב: ${componentName}`);
+          const Comp = await loadComponent(componentName);
+          if (Comp) {
+            console.log(`✅ רכיב ${componentName} נטען בהצלחה`);
+            setComponent(() => Comp);
+          } else {
+            console.error(`❌ רכיב ${componentName} לא נטען`);
+            setError(`לא ניתן לטעון את הרכיב ${componentName}`);
+          }
+        } catch (err) {
+          console.error(`❌ שגיאה בטעינת רכיב ${componentName}:`, err);
+>>>>>>> master
           setError(err.message);
         } finally {
           setIsLoading(false);
@@ -75,7 +121,16 @@ function App() {
             <div className="text-2xl mb-4">❌ שגיאה בטעינה</div>
             <div className="text-lg">{error}</div>
             <button 
+<<<<<<< HEAD
               onClick={() => window.location.reload()}
+=======
+              onClick={() => {
+                // במקום window.location.reload(), ננסה לטעון מחדש את הקומפוננטה
+                setError(null);
+                setIsLoading(true);
+                loadComp();
+              }}
+>>>>>>> master
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               נסה שוב
@@ -128,12 +183,29 @@ function App() {
             <DynamicComponent componentName="UserVerification" />
           </Suspense>
         );
+<<<<<<< HEAD
+=======
+      case 'audio-separation':
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <DynamicComponent componentName="AudioSeparation" fallback={
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <div className="text-lg text-gray-300">טוען הפרדת אודיו...</div>
+                </div>
+              </div>
+            } />
+          </Suspense>
+        );
+>>>>>>> master
       default:
         return <Dashboard onPageChange={setActivePage} />;
     }
   };
 
   return (
+<<<<<<< HEAD
     <LanguageContext.Provider value={{ language, setLanguage }}>
       <div className="flex h-screen bg-studio-dark" dir={language === 'he' ? 'rtl' : 'ltr'}>
         <Sidebar activePage={activePage} onPageChange={setActivePage} />
@@ -143,6 +215,19 @@ function App() {
         <PerformanceMonitor />
       </div>
     </LanguageContext.Provider>
+=======
+    <ErrorBoundary>
+      <LanguageContext.Provider value={{ language, setLanguage }}>
+        <div className="flex h-screen bg-studio-dark" dir={language === 'he' ? 'rtl' : 'ltr'}>
+          <Sidebar activePage={activePage} onPageChange={setActivePage} />
+          <main className="flex-1 overflow-auto">
+            {renderPage()}
+          </main>
+          <PerformanceMonitor />
+        </div>
+      </LanguageContext.Provider>
+    </ErrorBoundary>
+>>>>>>> master
   );
 }
 
