@@ -177,6 +177,11 @@ const AudioSeparation = () => {
         
         setProgress(progressData.progress);
         
+        // עדכון הודעות מפורטות
+        if (progressData.message) {
+          console.log('📊 התקדמות:', progressData.message);
+        }
+        
         if (progressData.status === 'completed') {
           console.log('✅ הפרדה הושלמה');
           clearInterval(interval);
@@ -496,6 +501,7 @@ const AudioSeparation = () => {
         step={processingStep}
         progress={progress}
         error={error}
+        fileName={uploadedFile?.name || 'קובץ אודיו'}
       />
     );
   };

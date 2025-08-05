@@ -15,17 +15,33 @@ const PORT = process.env.PORT || 10000;
 
 // Middleware
 app.use(cors({
-  origin: [
-    'https://mixifyai.k-rstudio.com',
-    'https://kr-studio-completeai.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:8080'
-  ],
+  origin: function (origin, callback) {
+    // רשימת דומיינים מותרים
+    const allowedOrigins = [
+      'https://mixifyai.k-rstudio.com',
+      'https://kr-studio-completeai.onrender.com',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'https://k-rstudio.com',
+      'https://www.k-rstudio.com'
+    ];
+    
+    // בדיקה אם הדומיין מותר או אם זה request ללא origin (כמו Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`🚫 CORS blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
 app.use(express.json());
 app.use(express.static('dist'));
 
@@ -37,10 +53,18 @@ app.use((req, res, next) => {
   console.log(`🌐 CORS Request: ${req.method} ${req.path} from ${req.headers.origin}`);
   
   // הוספת headers נוספים ל-CORS
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  if (req.headers.origin) {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // טיפול ב-preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
   
   next();
 });
@@ -249,10 +273,25 @@ app.post('/api/separate', async (req, res) => {
     let progress = 0;
     const progressInterval = setInterval(() => {
       if (progress < 90) {
-        progress += Math.random() * 10;
+        // התקדמות יותר ריאליסטית
+        const increment = Math.random() * 5 + 1; // 1-6 אחוזים
+        progress += increment;
         project.progress = Math.min(progress, 90);
+        
+        // הודעות מפורטות לפי התקדמות
+        if (progress < 20) {
+          project.status = 'processing';
+          project.message = 'מנתח אודיו ומכין לעיבוד...';
+        } else if (progress < 50) {
+          project.status = 'separating';
+          project.message = 'מפריד ערוצים - ווקאל ובס...';
+        } else if (progress < 80) {
+          project.message = 'מפריד ערוצים - תופים וכלי נגינה...';
+        } else {
+          project.message = 'מסיים עיבוד ומכין קבצים...';
+        }
       }
-    }, 1000);
+    }, 2000); // כל 2 שניות במקום כל שנייה
 
     demucsProcess.stdout.on('data', (data) => {
       console.log(`🎵 Demucs: ${data.toString()}`);
@@ -306,7 +345,8 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   res.json({
     progress: project.progress || 0,
     status: project.status,
-    error: project.error
+    error: project.error,
+    message: project.message || 'מעבד...'
   });
 });
 
@@ -437,6 +477,17 @@ async function createStemsFromDemucs(fileId, outputDir) {
 }
 
 
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  console.log('🏥 Health check request from:', req.headers.origin);
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    server: 'KR-STUDIO CompleteAI Backend',
+    version: '1.0.0'
+  });
+});
 
 // Serve React app
 app.get('*', (req, res) => {
