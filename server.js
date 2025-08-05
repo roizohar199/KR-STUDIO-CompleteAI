@@ -58,7 +58,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Upload endpoint
+// Audio separation endpoints
 app.post('/api/upload', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
@@ -91,7 +91,6 @@ app.post('/api/upload', upload.single('audio'), async (req, res) => {
   }
 });
 
-// Separation endpoint
 app.post('/api/separate', async (req, res) => {
   try {
     const { fileId, projectName } = req.body;
@@ -175,6 +174,98 @@ app.post('/api/separate', async (req, res) => {
   }
 });
 
+app.get('/api/separate/:fileId/progress', (req, res) => {
+  const { fileId } = req.params;
+  const project = projects.get(fileId);
+  
+  if (!project) {
+    return res.status(404).json({ error: 'פרויקט לא נמצא' });
+  }
+  
+  res.json({
+    progress: project.progress || 0,
+    status: project.status,
+    error: project.error
+  });
+});
+
+app.get('/api/projects', (req, res) => {
+  const projectsList = Array.from(projects.values()).map(project => ({
+    id: project.id,
+    name: project.projectName || 'פרויקט ללא שם',
+    status: project.status,
+    createdAt: project.createdAt,
+    progress: project.progress || 0,
+    stems: project.stems ? Object.keys(project.stems) : []
+  }));
+  
+  res.json(projectsList);
+});
+
+app.get('/api/projects/:id', (req, res) => {
+  const { id } = req.params;
+  const project = projects.get(id);
+  
+  if (!project) {
+    return res.status(404).json({ error: 'פרויקט לא נמצא' });
+  }
+  
+  res.json(project);
+});
+
+app.get('/api/projects/:id/download/:stem', (req, res) => {
+  const { id, stem } = req.params;
+  const project = projects.get(id);
+  
+  if (!project || !project.stemsDir) {
+    return res.status(404).json({ error: 'קובץ לא נמצא' });
+  }
+  
+  const filePath = path.join(project.stemsDir, `${stem}.mp3`);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'קובץ לא נמצא' });
+  }
+  
+  res.download(filePath);
+});
+
+app.delete('/api/projects/:id', async (req, res) => {
+  const { id } = req.params;
+  const project = projects.get(id);
+  
+  if (!project) {
+    return res.status(404).json({ error: 'פרויקט לא נמצא' });
+  }
+  
+  try {
+    // עצירת תהליך הפרדה אם רץ
+    const process = separationProcesses.get(id);
+    if (process) {
+      process.kill();
+      separationProcesses.delete(id);
+    }
+    
+    // מחיקת קבצים
+    if (project.originalPath) {
+      await fs.remove(project.originalPath);
+    }
+    
+    if (project.outputDir) {
+      await fs.remove(project.outputDir);
+    }
+    
+    projects.delete(id);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('שגיאה במחיקת פרויקט:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
 // יצירת STEMS מ-Demucs
 async function createStemsFromDemucs(fileId, outputDir) {
   try {
@@ -224,100 +315,7 @@ async function createStemsFromDemucs(fileId, outputDir) {
   }
 }
 
-// Progress endpoint
-app.get('/api/separate/:fileId/progress', (req, res) => {
-  const { fileId } = req.params;
-  const project = projects.get(fileId);
-  
-  if (!project) {
-    return res.status(404).json({ error: 'פרויקט לא נמצא' });
-  }
-  
-  res.json({
-    progress: project.progress || 0,
-    status: project.status,
-    error: project.error
-  });
-});
 
-// Projects endpoint
-app.get('/api/projects', (req, res) => {
-  const projectsList = Array.from(projects.values()).map(project => ({
-    id: project.id,
-    name: project.projectName || 'פרויקט ללא שם',
-    status: project.status,
-    createdAt: project.createdAt,
-    progress: project.progress || 0,
-    stems: project.stems ? Object.keys(project.stems) : []
-  }));
-  
-  res.json(projectsList);
-});
-
-// Project details endpoint
-app.get('/api/projects/:id', (req, res) => {
-  const { id } = req.params;
-  const project = projects.get(id);
-  
-  if (!project) {
-    return res.status(404).json({ error: 'פרויקט לא נמצא' });
-  }
-  
-  res.json(project);
-});
-
-// Download stem endpoint
-app.get('/api/projects/:id/download/:stem', (req, res) => {
-  const { id, stem } = req.params;
-  const project = projects.get(id);
-  
-  if (!project || !project.stemsDir) {
-    return res.status(404).json({ error: 'קובץ לא נמצא' });
-  }
-  
-  const filePath = path.join(project.stemsDir, `${stem}.mp3`);
-  
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'קובץ לא נמצא' });
-  }
-  
-  res.download(filePath);
-});
-
-// Delete project endpoint
-app.delete('/api/projects/:id', async (req, res) => {
-  const { id } = req.params;
-  const project = projects.get(id);
-  
-  if (!project) {
-    return res.status(404).json({ error: 'פרויקט לא נמצא' });
-  }
-  
-  try {
-    // עצירת תהליך הפרדה אם רץ
-    const process = separationProcesses.get(id);
-    if (process) {
-      process.kill();
-      separationProcesses.delete(id);
-    }
-    
-    // מחיקת קבצים
-    if (project.originalPath) {
-      await fs.remove(project.originalPath);
-    }
-    
-    if (project.outputDir) {
-      await fs.remove(project.outputDir);
-    }
-    
-    projects.delete(id);
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('שגיאה במחיקת פרויקט:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Serve React app
 app.get('*', (req, res) => {

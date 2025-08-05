@@ -1,6 +1,6 @@
 // שינוי ה-API_BASE_URL כדי שהמערכת תעבוד עם השרת החדש
-// אם השרת רץ על אותו דומיין, השתמש בנתיב יחסי
-const API_BASE_URL = 'https://kr-studio-audio-separation.onrender.com/api';
+// Backend עובד ב-Render
+const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
 
 // אם השרת רץ על דומיין אחר, שנה את זה לכתובת המלאה
 // const API_BASE_URL = 'https://your-backend-domain.com/api';
