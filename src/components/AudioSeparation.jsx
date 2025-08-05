@@ -126,7 +126,30 @@ const AudioSeparation = () => {
       }
       
       console.log('✅ גודל קובץ תקין, מתחיל העלאה...');
-      const result = await uploadAudio(file);
+      
+      // ניסיון העלאה עם retry
+      let result;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`📤 ניסיון העלאה ${retryCount + 1}/${maxRetries}...`);
+          result = await uploadAudio(file);
+          break; // אם הצליח, צא מהלולאה
+        } catch (uploadError) {
+          retryCount++;
+          console.error(`❌ ניסיון ${retryCount} נכשל:`, uploadError.message);
+          
+          if (retryCount >= maxRetries) {
+            throw new Error(`העלאה נכשלה אחרי ${maxRetries} ניסיונות: ${uploadError.message}`);
+          }
+          
+          // המתנה לפני ניסיון נוסף
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
       console.log('📤 תוצאת uploadAudio:', result);
       
       setUploadedFile(result.file);
@@ -185,9 +208,21 @@ const AudioSeparation = () => {
       console.error('❌ פרטי השגיאה:', error);
       console.error('❌ הודעת שגיאה:', error.message);
       console.error('❌ Stack trace:', error.stack);
-      setError(`שגיאה בהעלאה: ${error.message}`);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'העלאה נכשלה - זמן המתנה ארוך מדי. נסה שוב או בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      }
+      
+      setError(errorMessage);
       setIsProcessing(false);
       setProcessingStep(null);
+      setProgress(0);
     }
   };
 
@@ -655,12 +690,26 @@ const AudioSeparation = () => {
   const renderProcessingStatus = () => {
     if (!isProcessing) return null;
 
+    const handleRetry = () => {
+      console.log('🔄 מתחיל ניסיון חוזר...');
+      setError(null);
+      setProgress(0);
+      setProcessingStep('uploading');
+      setIsProcessing(true);
+      
+      // אם יש קובץ שנבחר, נסה שוב
+      if (selectedFile) {
+        handleFileUpload({ target: { files: [selectedFile] } });
+      }
+    };
+
     return (
       <ProcessingStatus 
         step={processingStep}
         progress={progress}
         error={error}
         fileName={uploadedFile?.name || 'קובץ אודיו'}
+        onRetry={handleRetry}
       />
     );
   };

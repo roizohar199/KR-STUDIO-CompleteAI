@@ -74,26 +74,42 @@ export const uploadAudio = async (file) => {
     console.log('📤 שולח בקשת העלאה לשרת...');
     console.log('📤 URL:', `${API_BASE_URL}/upload`);
     
-    const response = await fetch(`${API_BASE_URL}/upload`, {
-      method: 'POST',
-      body: formData,
-      signal: AbortSignal.timeout(600000), // 10 דקות timeout להעלאה
-    });
+    // יצירת AbortController עם timeout ארוך יותר
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 900000); // 15 דקות timeout
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        // הוספת headers נוספים
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
 
-    console.log('📤 תשובה מהשרת:', response.status, response.statusText);
+      clearTimeout(timeoutId);
+      console.log('📤 תשובה מהשרת:', response.status, response.statusText);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-      console.error('❌ שגיאה בהעלאה:', error);
-      throw new Error(error.error || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+        console.error('❌ שגיאה בהעלאה:', error);
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ קובץ הועלה בהצלחה!');
+      console.log('✅ תוצאת העלאה:', result);
+      console.log('✅ fileId:', result.file.id);
+      console.log('✅ ===== העלאה הושלמה בהצלחה =====');
+      return result;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
     }
-
-    const result = await response.json();
-    console.log('✅ קובץ הועלה בהצלחה!');
-    console.log('✅ תוצאת העלאה:', result);
-    console.log('✅ fileId:', result.file.id);
-    console.log('✅ ===== העלאה הושלמה בהצלחה =====');
-    return result;
   } catch (error) {
     console.error('❌ ===== שגיאה בהעלאה =====');
     console.error('❌ פרטי השגיאה:', error);
@@ -102,11 +118,15 @@ export const uploadAudio = async (file) => {
     // טיפול בשגיאות ספציפיות
     if (error.name === 'AbortError') {
       console.error('❌ timeout בהעלאה');
-      throw new Error('העלאה נכשלה - timeout (10 דקות)');
+      throw new Error('העלאה נכשלה - timeout (15 דקות). נסה שוב או בדוק את החיבור לאינטרנט');
     }
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
       console.error('❌ בעיית חיבור לשרת');
       throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
+    }
+    if (error.message.includes('NetworkError')) {
+      console.error('❌ שגיאת רשת');
+      throw new Error('שגיאת רשת - בדוק את החיבור לאינטרנט');
     }
     
     throw error;

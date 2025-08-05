@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Music, FileAudio, Zap, CheckCircle, AlertCircle, Clock, Download, Settings } from "lucide-react";
+import { Music, FileAudio, Zap, CheckCircle, AlertCircle, Clock, Download, Settings, RefreshCw } from "lucide-react";
 
-export default function ProcessingStatus({ step, progress, error, fileName }) {
+export default function ProcessingStatus({ step, progress, error, fileName, onRetry }) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(null);
 
@@ -122,11 +122,22 @@ export default function ProcessingStatus({ step, progress, error, fileName }) {
           <h2 className="text-2xl font-semibold text-white mb-2">שגיאה בעיבוד</h2>
           <p className="text-red-400 mb-6">{error}</p>
           
-          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-6">
             <p className="text-red-400 text-sm">
               נסה שוב או פנה לתמיכה אם הבעיה נמשכת
             </p>
           </div>
+          
+          {/* כפתור נסה שוב */}
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 mx-auto"
+            >
+              <RefreshCw className="w-5 h-5" />
+              נסה שוב
+            </button>
+          )}
         </div>
       </div>
     );
