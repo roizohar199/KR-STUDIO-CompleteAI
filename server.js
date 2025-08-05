@@ -35,6 +35,13 @@ app.options('*', cors());
 // CORS logging middleware
 app.use((req, res, next) => {
   console.log(`🌐 CORS Request: ${req.method} ${req.path} from ${req.headers.origin}`);
+  
+  // הוספת headers נוספים ל-CORS
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
   next();
 });
 
@@ -155,7 +162,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Audio separation endpoints
-app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
+app.post('/api/upload', upload.single('audio'), async (req, res) => {
   try {
     console.log('📁 התחלת העלאה:', req.file ? req.file.originalname : 'לא קובץ');
     
@@ -163,6 +170,21 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
       console.log('❌ לא נבחר קובץ');
       return res.status(400).json({ error: 'לא נבחר קובץ' });
     }
+  } catch (error) {
+    console.error('❌ שגיאת Multer:', error);
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'הקובץ גדול מדי (מקסימום 100MB)' });
+      }
+      if (error.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ error: 'יותר מדי קבצים' });
+      }
+      if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({ error: 'שדה לא צפוי' });
+      }
+    }
+    return res.status(400).json({ error: error.message || 'שגיאה בהעלאת קובץ' });
+  }
 
     // יצירת תיקיית uploads אם לא קיימת
     const uploadDir = path.join(__dirname, 'uploads');
