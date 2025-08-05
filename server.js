@@ -269,36 +269,60 @@ app.post('/api/separate', async (req, res) => {
       { cwd: __dirname }
     );
 
-    // מעקב אחר התקדמות
+    // מעקב אחר התקדמות אמיתית
     let progress = 0;
+    let processingStage = 'initializing';
+    
     const progressInterval = setInterval(() => {
-      if (progress < 90) {
-        // התקדמות יותר ריאליסטית
-        const increment = Math.random() * 5 + 1; // 1-6 אחוזים
+      // התקדמות איטית יותר וריאליסטית
+      if (progress < 85) {
+        const increment = Math.random() * 2 + 0.5; // 0.5-2.5 אחוזים
         progress += increment;
-        project.progress = Math.min(progress, 90);
+        project.progress = Math.min(progress, 85);
         
         // הודעות מפורטות לפי התקדמות
-        if (progress < 20) {
+        if (progress < 15) {
           project.status = 'processing';
           project.message = 'מנתח אודיו ומכין לעיבוד...';
-        } else if (progress < 50) {
+        } else if (progress < 35) {
           project.status = 'separating';
           project.message = 'מפריד ערוצים - ווקאל ובס...';
-        } else if (progress < 80) {
+        } else if (progress < 60) {
           project.message = 'מפריד ערוצים - תופים וכלי נגינה...';
-        } else {
+        } else if (progress < 85) {
           project.message = 'מסיים עיבוד ומכין קבצים...';
         }
       }
-    }, 2000); // כל 2 שניות במקום כל שנייה
+    }, 3000); // כל 3 שניות
 
     demucsProcess.stdout.on('data', (data) => {
-      console.log(`🎵 Demucs: ${data.toString()}`);
+      const output = data.toString();
+      console.log(`🎵 Demucs: ${output}`);
+      
+      // מעקב אחר התקדמות אמיתית לפי הפלט של Demucs
+      if (output.includes('Loading model')) {
+        project.message = 'טוען מודל AI...';
+        project.progress = Math.max(project.progress, 10);
+      } else if (output.includes('Separating')) {
+        project.message = 'מפריד ערוצים...';
+        project.progress = Math.max(project.progress, 30);
+      } else if (output.includes('Saving')) {
+        project.message = 'שומר קבצים...';
+        project.progress = Math.max(project.progress, 70);
+      } else if (output.includes('Done')) {
+        project.message = 'מסיים עיבוד...';
+        project.progress = Math.max(project.progress, 90);
+      }
     });
 
     demucsProcess.stderr.on('data', (data) => {
-      console.log(`⚠️ Demucs Error: ${data.toString()}`);
+      const error = data.toString();
+      console.log(`⚠️ Demucs Error: ${error}`);
+      
+      // עדכון הודעה אם יש שגיאה
+      if (error.includes('CUDA') || error.includes('GPU')) {
+        project.message = 'משתמש ב-CPU לעיבוד...';
+      }
     });
 
     demucsProcess.on('close', async (code) => {
