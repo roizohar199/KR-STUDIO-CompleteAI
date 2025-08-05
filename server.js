@@ -84,17 +84,29 @@ const upload = multer({
     
     const allowedExtensions = /\.(mp3|wav|flac|m4a|aac)$/i;
     const extname = allowedExtensions.test(file.originalname);
-    const mimetype = allowedMimeTypes.includes(file.mimetype) || allowedExtensions.test(file.originalname);
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
     
-    console.log('🔍 בדיקת סיומת:', extname);
+    console.log('🔍 בדיקת סיומת:', extname, 'עבור:', file.originalname);
     console.log('🔍 בדיקת MIME type:', file.mimetype, '->', mimetype);
     
-    if (mimetype && extname) {
+    // אם יש MIME type תקין או סיומת תקינה - קבל את הקובץ
+    if (mimetype || extname) {
       console.log('✅ קובץ אודיו תקין:', file.originalname);
       return cb(null, true);
     } else {
-      console.log('❌ קובץ לא נתמך:', file.originalname, file.mimetype);
-      cb(new Error(`רק קבצי אודיו נתמכים. קובץ: ${file.originalname}, MIME: ${file.mimetype}`));
+      // בדיקה נוספת - אולי הקובץ תקין אבל עם תווים מיוחדים
+      const cleanName = file.originalname.replace(/[^\w\s-]/g, '');
+      const cleanExtname = allowedExtensions.test(cleanName);
+      
+      console.log('🔍 בדיקה נוספת עם שם נקי:', cleanName, '->', cleanExtname);
+      
+      if (cleanExtname) {
+        console.log('✅ קובץ אודיו תקין (אחרי ניקוי):', file.originalname);
+        return cb(null, true);
+      } else {
+        console.log('❌ קובץ לא נתמך:', file.originalname, file.mimetype);
+        cb(new Error(`רק קבצי אודיו נתמכים. קובץ: ${file.originalname}, MIME: ${file.mimetype}`));
+      }
     }
   },
   limits: {
