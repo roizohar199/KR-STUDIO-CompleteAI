@@ -47,7 +47,17 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    const extension = path.extname(file.originalname).toLowerCase();
+    
+    // ניקוי שם הקובץ מתווים מיוחדים
+    const cleanName = file.originalname
+      .replace(/[^\w\s-]/g, '') // הסרת תווים מיוחדים
+      .replace(/\s+/g, '_') // החלפת רווחים ב-_
+      .substring(0, 50); // הגבלת אורך
+    
+    const filename = `audio_${cleanName}_${uniqueSuffix}${extension}`;
+    console.log('📁 שם קובץ חדש:', filename);
+    cb(null, filename);
   }
 });
 
@@ -55,16 +65,36 @@ const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
     console.log('🔍 בדיקת קובץ:', file.originalname, file.mimetype);
-    const allowedTypes = /mp3|wav|flac|m4a|aac/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    
+    // בדיקה יותר גמישה של MIME types
+    const allowedMimeTypes = [
+      'audio/mpeg',
+      'audio/mp3', 
+      'audio/wav',
+      'audio/x-wav',
+      'audio/flac',
+      'audio/x-flac',
+      'audio/m4a',
+      'audio/x-m4a',
+      'audio/aac',
+      'audio/x-aac',
+      'audio/mp4',
+      'audio/x-mp4'
+    ];
+    
+    const allowedExtensions = /\.(mp3|wav|flac|m4a|aac)$/i;
+    const extname = allowedExtensions.test(file.originalname);
+    const mimetype = allowedMimeTypes.includes(file.mimetype) || allowedExtensions.test(file.originalname);
+    
+    console.log('🔍 בדיקת סיומת:', extname);
+    console.log('🔍 בדיקת MIME type:', file.mimetype, '->', mimetype);
     
     if (mimetype && extname) {
       console.log('✅ קובץ אודיו תקין:', file.originalname);
       return cb(null, true);
     } else {
       console.log('❌ קובץ לא נתמך:', file.originalname, file.mimetype);
-      cb(new Error('רק קבצי אודיו נתמכים'));
+      cb(new Error(`רק קבצי אודיו נתמכים. קובץ: ${file.originalname}, MIME: ${file.mimetype}`));
     }
   },
   limits: {
@@ -75,6 +105,13 @@ const upload = multer({
 // Middleware לטיפול בשגיאות Multer
 const handleMulterError = (error, req, res, next) => {
   console.error('❌ שגיאת Multer:', error);
+  console.error('❌ פרטי שגיאה:', {
+    code: error.code,
+    field: error.field,
+    message: error.message,
+    stack: error.stack
+  });
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ error: 'הקובץ גדול מדי (מקסימום 100MB)' });
@@ -85,8 +122,15 @@ const handleMulterError = (error, req, res, next) => {
     if (error.code === 'LIMIT_UNEXPECTED_FILE') {
       return res.status(400).json({ error: 'שדה לא צפוי' });
     }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'יותר מדי קבצים' });
+    }
   }
-  res.status(400).json({ error: error.message });
+  
+  // שגיאה כללית
+  const errorMessage = error.message || 'שגיאה בהעלאת קובץ';
+  console.error('❌ שגיאה כללית:', errorMessage);
+  res.status(400).json({ error: errorMessage });
 };
 
 // נתונים זמניים לפרויקטים
