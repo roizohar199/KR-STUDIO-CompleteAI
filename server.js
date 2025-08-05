@@ -54,13 +54,16 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
+    console.log('🔍 בדיקת קובץ:', file.originalname, file.mimetype);
     const allowedTypes = /mp3|wav|flac|m4a|aac/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
     
     if (mimetype && extname) {
+      console.log('✅ קובץ אודיו תקין:', file.originalname);
       return cb(null, true);
     } else {
+      console.log('❌ קובץ לא נתמך:', file.originalname, file.mimetype);
       cb(new Error('רק קבצי אודיו נתמכים'));
     }
   },
@@ -68,6 +71,23 @@ const upload = multer({
     fileSize: 100 * 1024 * 1024 // 100MB
   }
 });
+
+// Middleware לטיפול בשגיאות Multer
+const handleMulterError = (error, req, res, next) => {
+  console.error('❌ שגיאת Multer:', error);
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'הקובץ גדול מדי (מקסימום 100MB)' });
+    }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'יותר מדי קבצים' });
+    }
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ error: 'שדה לא צפוי' });
+    }
+  }
+  res.status(400).json({ error: error.message });
+};
 
 // נתונים זמניים לפרויקטים
 const projects = new Map();
@@ -79,10 +99,23 @@ app.get('/api/health', (req, res) => {
 });
 
 // Audio separation endpoints
-app.post('/api/upload', upload.single('audio'), async (req, res) => {
+app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
   try {
+    console.log('📁 התחלת העלאה:', req.file ? req.file.originalname : 'לא קובץ');
+    
     if (!req.file) {
+      console.log('❌ לא נבחר קובץ');
       return res.status(400).json({ error: 'לא נבחר קובץ' });
+    }
+
+    // יצירת תיקיית uploads אם לא קיימת
+    const uploadDir = path.join(__dirname, 'uploads');
+    try {
+      await fs.ensureDir(uploadDir);
+      console.log('✅ תיקיית uploads נוצרה/קיימת:', uploadDir);
+    } catch (dirError) {
+      console.error('❌ שגיאה ביצירת תיקיית uploads:', dirError);
+      return res.status(500).json({ error: 'שגיאה ביצירת תיקיית העלאות' });
     }
 
     const fileId = Date.now().toString();
@@ -97,6 +130,8 @@ app.post('/api/upload', upload.single('audio'), async (req, res) => {
     projects.set(fileId, projectData);
 
     console.log(`📁 קובץ הועלה: ${req.file.originalname} -> ${fileId}`);
+    console.log(`📁 נתיב קובץ: ${req.file.path}`);
+    console.log(`📁 גודל קובץ: ${req.file.size} bytes`);
     
     res.json({ 
       file: { 
@@ -106,7 +141,8 @@ app.post('/api/upload', upload.single('audio'), async (req, res) => {
       } 
     });
   } catch (error) {
-    console.error('שגיאה בהעלאה:', error);
+    console.error('❌ שגיאה בהעלאה:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ error: error.message });
   }
 });
