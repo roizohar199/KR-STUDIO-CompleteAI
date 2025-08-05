@@ -220,28 +220,30 @@ app.post('/api/separate', async (req, res) => {
 
     const project = projects.get(fileId);
     const outputDir = path.join(__dirname, 'separated', fileId);
-    
+
     // יצירת תיקיית פלט
     await fs.ensureDir(outputDir);
-    
+
     // עדכון סטטוס הפרויקט
     project.status = 'processing';
     project.projectName = projectName;
     project.outputDir = outputDir;
     project.progress = 0;
     project.startedAt = new Date().toISOString();
-    
+
     // הפעלת Demucs
-    const demucsProcess = spawn('python', [
-      '-m', 'demucs',
-      '--out', outputDir,
-      '--two-stems=vocals',
-      '--mp3',
-      '--mp3-bitrate', '320',
-      project.originalPath
-    ], {
-      cwd: __dirname
-    });
+    const demucsProcess = spawn(
+      'python',
+      [
+        '-m', 'demucs',
+        '--out', outputDir,
+        '--two-stems=vocals',
+        '--mp3',
+        '--mp3-bitrate', '320',
+        project.originalPath
+      ],
+      { cwd: __dirname }
+    );
 
     // מעקב אחר התקדמות
     let progress = 0;
