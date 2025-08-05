@@ -11,4 +11,7 @@ services:
         value: 10000
     healthCheckPath: /api/health
     healthCheckTimeout: 180
-    autoDeploy: true 
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - "**/*" 
