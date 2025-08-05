@@ -14,9 +14,29 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://mixifyai.k-rstudio.com',
+    'https://kr-studio-completeai.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 app.use(express.static('dist'));
+
+// Handle preflight requests
+app.options('*', cors());
+
+// CORS logging middleware
+app.use((req, res, next) => {
+  console.log(`🌐 CORS Request: ${req.method} ${req.path} from ${req.headers.origin}`);
+  next();
+});
 
 // הגדרת Multer לעיבוד קבצים
 const storage = multer.diskStorage({
