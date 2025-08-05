@@ -10,23 +10,39 @@ const apiCall = async (endpoint, options = {}) => {
   try {
     console.log('[API] קריאה לשרת:', endpoint, options);
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
+    
+    const fetchOptions = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
       ...options,
-    });
+      // הגדרות נוספות לביצועים
+      signal: AbortSignal.timeout(300000), // 5 דקות timeout
+    };
+    
+    const response = await fetch(url, fetchOptions);
+    
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Network error' }));
       console.error('[API] שגיאת fetch:', url, error);
       throw new Error(error.error || `HTTP ${response.status}`);
     }
+    
     const data = await response.json();
     console.log('[API] תשובה מהשרת:', endpoint, data);
     return data;
   } catch (err) {
     console.error('[API] שגיאה כללית ב-apiCall:', endpoint, err, err?.stack);
+    
+    // טיפול בשגיאות ספציפיות
+    if (err.name === 'AbortError') {
+      throw new Error('הבקשה נכשלה - timeout');
+    }
+    if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+      throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
+    }
+    
     throw err;
   }
 };
@@ -34,7 +50,13 @@ const apiCall = async (endpoint, options = {}) => {
 // Upload audio file
 export const uploadAudio = async (file) => {
   try {
-    console.log('📁 מעלה קובץ:', file.name);
+    console.log('📁 מעלה קובץ:', file.name, 'גודל:', file.size);
+    
+    // בדיקת גודל הקובץ
+    const maxSize = 200 * 1024 * 1024; // 200MB
+    if (file.size > maxSize) {
+      throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 200MB`);
+    }
     
     const formData = new FormData();
     formData.append('audio', file);
@@ -42,10 +64,12 @@ export const uploadAudio = async (file) => {
     const response = await fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
       body: formData,
+      signal: AbortSignal.timeout(600000), // 10 דקות timeout להעלאה
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+      console.error('❌ שגיאה בהעלאה:', error);
       throw new Error(error.error || `HTTP ${response.status}`);
     }
 
@@ -54,6 +78,15 @@ export const uploadAudio = async (file) => {
     return result;
   } catch (error) {
     console.error('❌ שגיאה בהעלאה:', error);
+    
+    // טיפול בשגיאות ספציפיות
+    if (error.name === 'AbortError') {
+      throw new Error('העלאה נכשלה - timeout (10 דקות)');
+    }
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
+    }
+    
     throw error;
   }
 };
@@ -157,12 +190,25 @@ export const downloadStem = async (projectId, stemName) => {
 // Health check
 export const healthCheck = async () => {
   try {
+    console.log('🏥 בודק חיבור לשרת...');
     const result = await apiCall('/health');
-    console.log('🏥 סטטוס שרת:', result);
+    console.log('✅ שרת זמין:', result);
     return result;
   } catch (error) {
     console.error('❌ שרת לא זמין:', error);
-    throw error;
+    
+    // טיפול בשגיאות ספציפיות
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
+    }
+    if (error.message.includes('timeout')) {
+      throw new Error('השרת לא מגיב - נסה שוב מאוחר יותר');
+    }
+    if (error.message.includes('502')) {
+      throw new Error('השרת זמנית לא זמין - נסה שוב בעוד כמה דקות');
+    }
+    
+    throw new Error(`שגיאה בחיבור לשרת: ${error.message}`);
   }
 };
 

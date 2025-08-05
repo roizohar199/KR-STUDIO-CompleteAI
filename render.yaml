@@ -3,15 +3,19 @@ services:
     name: kr-studio-audio-separation
     env: node
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
     healthCheckPath: /api/health
-    healthCheckTimeout: 180
+    healthCheckTimeout: 300
     autoDeploy: true
     buildFilter:
       paths:
-        - "**/*" 
+        - "**/*"
+    # הגדרות נוספות לביצועים
+    instanceType: standard-1x
+    maxConcurrency: 10
+    maxInstances: 1 

@@ -13,6 +13,24 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// הגדרות נוספות לשרת
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+// הגדרות נוספות לביצועים
+app.use((req, res, next) => {
+  // הגדרת timeout ארוך יותר לבקשות
+  req.setTimeout(300000); // 5 דקות
+  res.setTimeout(300000); // 5 דקות
+  
+  // הוספת headers לביצועים
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  next();
+});
+
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
@@ -42,7 +60,6 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-app.use(express.json());
 app.use(express.static('dist'));
 
 // Handle preflight requests
@@ -141,7 +158,9 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB
+    fileSize: 200 * 1024 * 1024, // 200MB
+    files: 1,
+    fieldSize: 10 * 1024 * 1024 // 10MB
   }
 });
 
@@ -157,23 +176,37 @@ const handleMulterError = (error, req, res, next) => {
   
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'הקובץ גדול מדי (מקסימום 100MB)' });
+      return res.status(400).json({ 
+        error: 'הקובץ גדול מדי (מקסימום 200MB)',
+        code: 'FILE_TOO_LARGE',
+        maxSize: '200MB'
+      });
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ error: 'יותר מדי קבצים' });
+      return res.status(400).json({ 
+        error: 'יותר מדי קבצים (מקסימום קובץ אחד)',
+        code: 'TOO_MANY_FILES',
+        maxFiles: 1
+      });
     }
     if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({ error: 'שדה לא צפוי' });
+      return res.status(400).json({ 
+        error: 'שדה לא צפוי',
+        code: 'UNEXPECTED_FIELD'
+      });
     }
-    if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ error: 'יותר מדי קבצים' });
-    }
+    return res.status(400).json({ 
+      error: 'שגיאה בהעלאת קובץ',
+      code: error.code,
+      message: error.message
+    });
   }
   
-  // שגיאה כללית
-  const errorMessage = error.message || 'שגיאה בהעלאת קובץ';
-  console.error('❌ שגיאה כללית:', errorMessage);
-  res.status(400).json({ error: errorMessage });
+  // שגיאות אחרות
+  return res.status(400).json({ 
+    error: 'שגיאה בהעלאת קובץ',
+    message: error.message
+  });
 };
 
 // נתונים זמניים לפרויקטים
@@ -505,21 +538,43 @@ async function createStemsFromDemucs(fileId, outputDir) {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   console.log('🏥 Health check request from:', req.headers.origin);
+  console.log('🌐 Request headers:', req.headers);
+  console.log('📊 Server status: Running');
+  console.log('💾 Memory usage:', process.memoryUsage());
+  console.log('⏰ Uptime:', process.uptime());
+  
   res.json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     server: 'KR-STUDIO CompleteAI Backend',
-    version: '1.0.0'
+    version: '1.0.0',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
 // Serve React app
 app.get('*', (req, res) => {
+  console.log('📄 Serving React app for:', req.path);
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('❌ Server error:', error);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: error.message,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 שרת פועל על פורט ${PORT}`);
+  console.log(`🌐 Server URL: http://localhost:${PORT}`);
   console.log(`📁 תיקיית העלאות: ${path.join(__dirname, 'uploads')}`);
   console.log(`🎵 תיקיית הפרדות: ${path.join(__dirname, 'separated')}`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`💾 Memory: ${JSON.stringify(process.memoryUsage())}`);
 }); 

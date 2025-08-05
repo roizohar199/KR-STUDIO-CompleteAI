@@ -75,12 +75,16 @@ const AudioSeparation = () => {
   // בדיקת חיבור לשרת
   const checkServerConnection = async () => {
     try {
+      console.log('🔍 בודק חיבור לשרת...');
       await healthCheck();
       setServerConnected(true);
       console.log('✅ שרת מחובר');
     } catch (error) {
       setServerConnected(false);
       console.log('❌ שרת לא מחובר:', error.message);
+      
+      // הצגת הודעת שגיאה למשתמש
+      setError(`לא ניתן להתחבר לשרת: ${error.message}`);
     }
   };
 
@@ -89,12 +93,13 @@ const AudioSeparation = () => {
     if (!serverConnected) return;
     
     try {
+      console.log('📋 טוען פרויקטים...');
       const projectsList = await getProjects();
       setProjects(projectsList);
-      console.log('📋 פרויקטים נטענו:', projectsList);
+      console.log('✅ פרויקטים נטענו:', projectsList);
     } catch (error) {
-      console.error('❌ Error loading projects:', error);
-      setError('Error loading projects');
+      console.error('❌ שגיאה בטעינת פרויקטים:', error);
+      setError(`שגיאה בטעינת פרויקטים: ${error.message}`);
     }
   };
 
@@ -109,7 +114,13 @@ const AudioSeparation = () => {
       setIsProcessing(true);
       setProgress(0);
 
-      console.log('📁 Uploading file:', file.name);
+      console.log('📁 מעלה קובץ:', file.name, 'גודל:', file.size);
+      
+      // בדיקת גודל הקובץ
+      const maxSize = 200 * 1024 * 1024; // 200MB
+      if (file.size > maxSize) {
+        throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 200MB`);
+      }
       
       const result = await uploadAudio(file);
       setUploadedFile(result.file);
@@ -123,16 +134,17 @@ const AudioSeparation = () => {
       setProcessingStep('naming');
       
     } catch (error) {
-      console.error('❌ Upload error:', error);
-      setError('Error uploading file');
+      console.error('❌ שגיאה בהעלאה:', error);
+      setError(`שגיאה בהעלאה: ${error.message}`);
       setIsProcessing(false);
+      setProcessingStep(null);
     }
   };
 
   // התחלת הפרדה
   const startSeparation = async () => {
     if (!uploadedFile || !projectName.trim()) {
-      setError('Please enter a project name');
+      setError('אנא הכנס שם לפרויקט');
       return;
     }
 
@@ -160,12 +172,15 @@ const AudioSeparation = () => {
         
         // טעינה מחדש של פרויקטים
         await loadProjects();
+      } else {
+        throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
       }
       
     } catch (error) {
-      console.error('❌ Separation error:', error);
-      setError('Error separating file');
+      console.error('❌ שגיאה בהפרדה:', error);
+      setError(`שגיאה בהפרדה: ${error.message}`);
       setIsProcessing(false);
+      setProcessingStep(null);
     }
   };
 
@@ -173,6 +188,7 @@ const AudioSeparation = () => {
   const startProgressPolling = (fileId) => {
     const interval = setInterval(async () => {
       try {
+        console.log('📊 בודק התקדמות עבור:', fileId);
         const progressData = await getSeparationProgress(fileId);
         
         setProgress(progressData.progress);
@@ -187,21 +203,32 @@ const AudioSeparation = () => {
           clearInterval(interval);
           setIsProcessing(false);
           setProgress(100);
+          setProcessingStep('completed');
           
           // טעינה מחדש של פרויקטים
           await loadProjects();
           
         } else if (progressData.status === 'failed') {
-          console.error('❌ Separation failed:', progressData.error);
-          setError('Separation failed: ' + progressData.error);
+          console.error('❌ הפרדה נכשלה:', progressData.error);
+          setError(`הפרדה נכשלה: ${progressData.error}`);
           clearInterval(interval);
           setIsProcessing(false);
+          setProcessingStep('failed');
         }
         
       } catch (error) {
         console.error('❌ שגיאה בקבלת התקדמות:', error);
+        
+        // בדיקה אם השגיאה היא בגלל חיבור
+        if (error.message.includes('Failed to fetch') || error.message.includes('timeout')) {
+          setError('איבדנו חיבור לשרת - נסה לרענן את הדף');
+        } else {
+          setError(`שגיאה בקבלת התקדמות: ${error.message}`);
+        }
+        
         clearInterval(interval);
         setIsProcessing(false);
+        setProcessingStep('failed');
       }
     }, 2000); // בדיקה כל 2 שניות
     
@@ -229,19 +256,21 @@ const AudioSeparation = () => {
       await loadAudioFiles(fullProject);
       
     } catch (error) {
-      console.error('❌ Error selecting project:', error);
-      setError('Error loading project');
+      console.error('❌ שגיאה בבחירת פרויקט:', error);
+      setError(`שגיאה בטעינת פרויקט: ${error.message}`);
     }
   };
 
   // טעינת קבצי אודיו
   const loadAudioFiles = async (project) => {
     if (!project.separatedTracks) {
-      console.log('❌ No STEMS files for project');
+      console.log('❌ אין קבצי STEMS לפרויקט');
+      setError('אין קבצי STEMS לפרויקט זה');
       return;
     }
 
     try {
+      console.log('🎵 טוען קבצי אודיו...');
       const audioFiles = {};
       const stems = ['vocals', 'drums', 'bass', 'guitar', 'other'];
       
@@ -252,186 +281,256 @@ const AudioSeparation = () => {
             const audio = new Audio(audioUrl);
             
             audio.addEventListener('loadeddata', () => {
-              console.log(`✅ ${stem} loaded`);
+              console.log(`✅ ${stem} נטען`);
             });
             
             audio.addEventListener('error', (e) => {
-              console.log(`⚠️ ${stem} not available`);
+              console.error(`❌ שגיאה בטעינת ${stem}:`, e);
             });
             
             audioFiles[stem] = audio;
           }
         } catch (error) {
-          console.log(`⚠️ Error loading ${stem}:`, error);
+          console.error(`❌ שגיאה בטעינת ${stem}:`, error);
         }
       }
       
       setAudioFiles(audioFiles);
-      setVolumeLevels({
-        vocals: 1,
-        drums: 1,
-        bass: 1,
-        guitar: 1,
-        other: 1
-      });
-      setMutedTracks({
-        vocals: false,
-        drums: false,
-        bass: false,
-        guitar: false,
-        other: false
-      });
+      console.log('✅ כל קבצי האודיו נטענו');
       
     } catch (error) {
-      console.error('❌ Error loading audio files:', error);
+      console.error('❌ שגיאה בטעינת קבצי אודיו:', error);
+      setError(`שגיאה בטעינת קבצי אודיו: ${error.message}`);
     }
   };
 
-  // הורדת stem
+  // הורדת ערוץ
   const downloadTrack = async (trackName) => {
     if (!selectedProject) return;
     
     try {
+      console.log('📥 מוריד ערוץ:', trackName);
       await downloadStem(selectedProject.id, trackName);
-      console.log('✅ Stem downloaded:', trackName);
+      console.log('✅ ערוץ הורד:', trackName);
     } catch (error) {
-      console.error('❌ Error downloading stem:', error);
-      setError('Error downloading file');
+      console.error('❌ שגיאה בהורדת ערוץ:', error);
+      setError(`שגיאה בהורדת ערוץ: ${error.message}`);
     }
   };
 
   // מחיקת פרויקט
   const deleteProject = async (projectId) => {
     try {
+      console.log('🗑️ מוחק פרויקט:', projectId);
       await deleteProject(projectId);
-      console.log('✅ Project deleted:', projectId);
+      console.log('✅ פרויקט נמחק:', projectId);
       
       // טעינה מחדש של פרויקטים
       await loadProjects();
       
-      // אם הפרויקט שנמחק היה נבחר, נקה בחירה
+      // אם הפרויקט שנמחק היה נבחר, נקה את הבחירה
       if (selectedProject && selectedProject.id === projectId) {
         setSelectedProject(null);
         setAudioFiles({});
       }
       
     } catch (error) {
-      console.error('❌ Error deleting project:', error);
-      setError('Error deleting project');
+      console.error('❌ שגיאה במחיקת פרויקט:', error);
+      setError(`שגיאה במחיקת פרויקט: ${error.message}`);
     }
   };
 
-  // שליטה בעוצמה
+  // שינוי עוצמה
   const handleVolumeChange = (trackName, newVolume) => {
-    setVolumeLevels(prev => ({
-      ...prev,
-      [trackName]: newVolume
-    }));
-    
-    if (audioFiles[trackName]) {
-      audioFiles[trackName].volume = newVolume;
+    try {
+      setVolumeLevels(prev => ({
+        ...prev,
+        [trackName]: newVolume
+      }));
+      
+      // עדכון עוצמה בקבצי אודיו
+      if (audioFiles[trackName]) {
+        audioFiles[trackName].volume = newVolume;
+      }
+      
+      console.log(`🔊 עוצמה של ${trackName} שונתה ל-${newVolume}`);
+    } catch (error) {
+      console.error('❌ שגיאה בשינוי עוצמה:', error);
     }
   };
 
-  // שליטה ב-Mute
+  // הפעלה/כיבוי ערוץ
   const toggleMute = (trackName) => {
-    setMutedTracks(prev => ({
-      ...prev,
-      [trackName]: !prev[trackName]
-    }));
-    
-    if (audioFiles[trackName]) {
-      audioFiles[trackName].muted = !mutedTracks[trackName];
+    try {
+      setMutedTracks(prev => ({
+        ...prev,
+        [trackName]: !prev[trackName]
+      }));
+      
+      console.log(`${trackName} ${mutedTracks[trackName] ? 'הופעל' : 'כובה'}`);
+    } catch (error) {
+      console.error('❌ שגיאה בהפעלה/כיבוי ערוץ:', error);
     }
   };
 
   // עצירת כל הערוצים
   const stopAllTracks = () => {
-    Object.values(audioFiles).forEach(audio => {
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    });
-    setPlayingTrack(null);
+    try {
+      Object.values(audioFiles).forEach(audio => {
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+      setPlayingTrack(null);
+      console.log('⏹️ כל הערוצים נעצרו');
+    } catch (error) {
+      console.error('❌ שגיאה בעצירת ערוצים:', error);
+    }
   };
 
   // הפעלה/עצירה של ערוץ
   const togglePlay = (trackName) => {
-    const audio = audioFiles[trackName];
-    if (!audio) return;
-
-    if (playingTrack === trackName) {
-      audio.pause();
-      setPlayingTrack(null);
-    } else {
-      stopAllTracks();
-      audio.play();
-      setPlayingTrack(trackName);
+    try {
+      const audio = audioFiles[trackName];
+      if (!audio) return;
+      
+      if (playingTrack === trackName) {
+        audio.pause();
+        setPlayingTrack(null);
+        console.log(`⏸️ ${trackName} נעצר`);
+      } else {
+        // עצירת כל הערוצים האחרים
+        stopAllTracks();
+        
+        // הפעלת הערוץ הנוכחי
+        audio.play();
+        setPlayingTrack(trackName);
+        console.log(`▶️ ${trackName} מופעל`);
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בהפעלה/עצירה של ערוץ:', error);
+      setError(`שגיאה בהפעלה/עצירה של ערוץ: ${error.message}`);
     }
   };
 
-  // הפעלה/עצירה של master
+  // הפעלה/עצירה של כל הערוצים
   const toggleMasterPlay = () => {
-    if (playingTrack) {
-      stopAllTracks();
-    } else {
-      // הפעלת כל הערוצים
-      Object.keys(audioFiles).forEach(trackName => {
-        const audio = audioFiles[trackName];
-        if (audio && !mutedTracks[trackName]) {
-          audio.play();
-        }
-      });
-      setPlayingTrack('master');
+    try {
+      if (playingTrack) {
+        stopAllTracks();
+        console.log('⏸️ כל הערוצים נעצרו');
+      } else {
+        // הפעלת כל הערוצים
+        Object.entries(audioFiles).forEach(([trackName, audio]) => {
+          if (audio && !mutedTracks[trackName]) {
+            audio.play();
+          }
+        });
+        setPlayingTrack('all');
+        console.log('▶️ כל הערוצים מופעלים');
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בהפעלה/עצירה של כל הערוצים:', error);
+      setError(`שגיאה בהפעלה/עצירה של כל הערוצים: ${error.message}`);
     }
   };
 
   // Navigation
   const handleStudioClick = () => {
-    setCurrentView('studio');
-    setShowUploadForm(false);
-  };
-
-  const handleUploadClick = () => {
-    setCurrentView('upload');
-    setShowUploadForm(true);
-  };
-
-  const handleNewProjectClick = () => {
-    setCurrentView('upload');
-    setShowUploadForm(true);
-    setUploadedFile(null);
-    setProjectName('');
-    setError(null);
-  };
-
-  // Drag & Drop
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('audio/')) {
-        const event = { target: { files: [file] } };
-        handleFileUpload(event);
-      }
+    try {
+      setCurrentView('studio');
+      console.log('🎵 מעבר לסטודיו');
+    } catch (error) {
+      console.error('❌ שגיאה במעבר לסטודיו:', error);
     }
   };
 
+  const handleUploadClick = () => {
+    try {
+      setCurrentView('upload');
+      console.log('📁 מעבר להעלאה');
+    } catch (error) {
+      console.error('❌ שגיאה במעבר להעלאה:', error);
+    }
+  };
+
+  const handleNewProjectClick = () => {
+    try {
+      setCurrentView('upload');
+      setSelectedFile(null);
+      setUploadedFile(null);
+      setProjectName('');
+      setError(null);
+      console.log('🆕 פרויקט חדש');
+    } catch (error) {
+      console.error('❌ שגיאה ביצירת פרויקט חדש:', error);
+    }
+  };
+
+  // טיפול ב-drop
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    
+    if (files.length > 0) {
+      const file = files[0];
+      console.log('📁 קובץ נשלף:', file.name);
+      handleFileInput(file);
+    }
+  };
+
+  // טיפול בבחירת קובץ
   const handleFileInput = (file) => {
-    // Create a mock event object for handleFileUpload
-    const mockEvent = { target: { files: [file] } };
-    handleFileUpload(mockEvent);
+    if (!file) return;
+    
+    try {
+      console.log('📁 קובץ נבחר:', file.name, 'גודל:', file.size);
+      
+      // בדיקת גודל הקובץ
+      const maxSize = 200 * 1024 * 1024; // 200MB
+      if (file.size > maxSize) {
+        setError(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 200MB`);
+        return;
+      }
+      
+      // בדיקת סוג הקובץ
+      const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/flac', 'audio/m4a', 'audio/aac'];
+      const allowedExtensions = /\.(mp3|wav|flac|m4a|aac)$/i;
+      
+      if (!allowedTypes.includes(file.type) && !allowedExtensions.test(file.name)) {
+        setError('סוג קובץ לא נתמך. רק קבצי אודיו נתמכים (MP3, WAV, FLAC, M4A, AAC)');
+        return;
+      }
+      
+      setSelectedFile(file);
+      console.log('✅ קובץ תקין:', file.name);
+      
+    } catch (error) {
+      console.error('❌ שגיאה בבחירת קובץ:', error);
+      setError(`שגיאה בבחירת קובץ: ${error.message}`);
+    }
   };
 
   // Utility functions
+  // בדיקת פרויקטים מופרדים
   const hasSeparatedProjects = () => {
-    return projects.length > 0;
+    try {
+      return projects.length > 0;
+    } catch (error) {
+      console.error('❌ שגיאה בבדיקת פרויקטים:', error);
+      return false;
+    }
   };
 
+  // קבלת מספר פרויקטים מופרדים
   const getSeparatedProjectsCount = () => {
-    return projects.length;
+    try {
+      return projects.length;
+    } catch (error) {
+      console.error('❌ שגיאה בקבלת מספר פרויקטים:', error);
+      return 0;
+    }
   };
 
   // Render functions
