@@ -7,7 +7,7 @@ export default function ProcessingStatus({ step, progress, error, fileName }) {
 
   useEffect(() => {
     let interval;
-    if (step === 'processing' || step === 'separating') {
+    if (step === 'uploading' || step === 'separating' || step === 'processing') {
       interval = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);

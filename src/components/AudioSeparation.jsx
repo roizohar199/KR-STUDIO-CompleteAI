@@ -109,12 +109,15 @@ const AudioSeparation = () => {
     if (!file) return;
 
     try {
+      console.log('🚀 ===== התחלת תהליך העלאה והפרדה =====');
+      console.log('📁 קובץ נבחר:', file.name, 'גודל:', file.size, 'bytes');
+      
       setError(null);
       setProcessingStep('uploading');
       setIsProcessing(true);
       setProgress(0);
 
-      console.log('📁 מעלה קובץ:', file.name, 'גודל:', file.size);
+      console.log('📤 מתחיל העלאה לשרת...');
       
       // בדיקת גודל הקובץ
       const maxSize = 200 * 1024 * 1024; // 200MB
@@ -122,19 +125,66 @@ const AudioSeparation = () => {
         throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 200MB`);
       }
       
+      console.log('✅ גודל קובץ תקין, מתחיל העלאה...');
       const result = await uploadAudio(file);
+      console.log('📤 תוצאת uploadAudio:', result);
+      
       setUploadedFile(result.file);
       setSelectedFile(file);
       setProgress(50);
       
-      console.log('✅ קובץ הועלה:', result);
+      console.log('✅ קובץ הועלה בהצלחה!');
+      console.log('📁 fileId:', result.file.id);
+      console.log('📁 שם קובץ:', result.file.name);
+      console.log('📁 גודל קובץ:', result.file.size);
       
-      // מעבר לטופס שם פרויקט
-      setShowUploadForm(true);
-      setProcessingStep('naming');
+      // התחלת הפרדה אוטומטית
+      console.log('🎵 ===== מתחיל תהליך הפרדה =====');
+      setProcessingStep('separating');
+      setProgress(50);
+      
+      // יצירת שם פרויקט אוטומטי
+      const autoProjectName = file.name.replace(/\.[^/.]+$/, '') + '_' + Date.now();
+      setProjectName(autoProjectName);
+      
+      console.log('🎵 שם פרויקט אוטומטי:', autoProjectName);
+      console.log('🎵 fileId לפרדה:', result.file.id);
+      
+      // התחלת הפרדה
+      console.log('📤 שולח בקשת הפרדה לשרת...');
+      const separationResult = await separateAudio(result.file.id, autoProjectName);
+      
+      console.log('🎵 תוצאת הפרדה מהשרת:', separationResult);
+      
+      if (separationResult.success) {
+        console.log('✅ הפרדה החלה בהצלחה!');
+        console.log('🔄 מתחיל polling להתקדמות...');
+        
+        // התחלת polling להתקדמות
+        startProgressPolling(result.file.id);
+        
+        console.log('📱 מעבר למסך הסטודיו...');
+        // מעבר למסך הסטודיו
+        setCurrentView('studio');
+        setShowUploadForm(false);
+        setUploadedFile(null);
+        setProjectName('');
+        
+        console.log('📋 טוען פרויקטים מחדש...');
+        // טעינה מחדש של פרויקטים
+        await loadProjects();
+        
+        console.log('✅ ===== תהליך העלאה והפרדה הושלם בהצלחה =====');
+      } else {
+        console.error('❌ הפרדה נכשלה - תשובה לא תקינה מהשרת');
+        throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
+      }
       
     } catch (error) {
-      console.error('❌ שגיאה בהעלאה:', error);
+      console.error('❌ ===== שגיאה בתהליך העלאה/הפרדה =====');
+      console.error('❌ פרטי השגיאה:', error);
+      console.error('❌ הודעת שגיאה:', error.message);
+      console.error('❌ Stack trace:', error.stack);
       setError(`שגיאה בהעלאה: ${error.message}`);
       setIsProcessing(false);
       setProcessingStep(null);
@@ -186,53 +236,86 @@ const AudioSeparation = () => {
 
   // Polling להתקדמות
   const startProgressPolling = (fileId) => {
+    console.log('🔄 ===== מתחיל polling להתקדמות =====');
+    console.log('🔄 fileId:', fileId);
+    console.log('🔄 מתחיל בדיקות כל 2 שניות...');
+    
     const interval = setInterval(async () => {
       try {
-        console.log('📊 בודק התקדמות עבור:', fileId);
+        console.log('📊 ===== בדיקת התקדמות =====');
+        console.log('📊 fileId:', fileId);
+        console.log('📊 זמן בדיקה:', new Date().toLocaleTimeString());
+        
         const progressData = await getSeparationProgress(fileId);
+        
+        console.log('📊 נתוני התקדמות מהשרת:', progressData);
+        console.log('📊 התקדמות:', progressData.progress + '%');
+        console.log('📊 סטטוס:', progressData.status);
+        console.log('📊 הודעה:', progressData.message);
         
         setProgress(progressData.progress);
         
         // עדכון הודעות מפורטות
         if (progressData.message) {
-          console.log('📊 התקדמות:', progressData.message);
+          console.log('📊 הודעת התקדמות:', progressData.message);
         }
         
         if (progressData.status === 'completed') {
-          console.log('✅ הפרדה הושלמה');
+          console.log('✅ ===== הפרדה הושלמה בהצלחה! =====');
+          console.log('✅ fileId:', fileId);
+          console.log('✅ זמן סיום:', new Date().toLocaleTimeString());
+          
           clearInterval(interval);
           setIsProcessing(false);
           setProgress(100);
           setProcessingStep('completed');
           
+          console.log('📋 טוען פרויקטים מחדש...');
           // טעינה מחדש של פרויקטים
           await loadProjects();
           
+          console.log('✅ ===== תהליך polling הסתיים בהצלחה =====');
+          
         } else if (progressData.status === 'failed') {
-          console.error('❌ הפרדה נכשלה:', progressData.error);
+          console.error('❌ ===== הפרדה נכשלה =====');
+          console.error('❌ fileId:', fileId);
+          console.error('❌ שגיאה:', progressData.error);
+          console.error('❌ זמן כשל:', new Date().toLocaleTimeString());
+          
           setError(`הפרדה נכשלה: ${progressData.error}`);
           clearInterval(interval);
           setIsProcessing(false);
           setProcessingStep('failed');
+          
+          console.error('❌ ===== תהליך polling הסתיים בכשל =====');
         }
         
       } catch (error) {
-        console.error('❌ שגיאה בקבלת התקדמות:', error);
+        console.error('❌ ===== שגיאה בקבלת התקדמות =====');
+        console.error('❌ fileId:', fileId);
+        console.error('❌ זמן שגיאה:', new Date().toLocaleTimeString());
+        console.error('❌ פרטי השגיאה:', error);
+        console.error('❌ הודעת שגיאה:', error.message);
         
         // בדיקה אם השגיאה היא בגלל חיבור
         if (error.message.includes('Failed to fetch') || error.message.includes('timeout')) {
+          console.error('❌ בעיית חיבור לשרת');
           setError('איבדנו חיבור לשרת - נסה לרענן את הדף');
         } else {
+          console.error('❌ שגיאה אחרת');
           setError(`שגיאה בקבלת התקדמות: ${error.message}`);
         }
         
         clearInterval(interval);
         setIsProcessing(false);
         setProcessingStep('failed');
+        
+        console.error('❌ ===== תהליך polling הסתיים בשגיאה =====');
       }
     }, 2000); // בדיקה כל 2 שניות
     
     setPollingInterval(interval);
+    console.log('🔄 polling interval נוצר:', interval);
   };
 
   // ניקוי polling
@@ -481,7 +564,7 @@ const AudioSeparation = () => {
   };
 
   // טיפול בבחירת קובץ
-  const handleFileInput = (file) => {
+  const handleFileInput = async (file) => {
     if (!file) return;
     
     try {
@@ -505,6 +588,10 @@ const AudioSeparation = () => {
       
       setSelectedFile(file);
       console.log('✅ קובץ תקין:', file.name);
+      
+      // התחלת העלאה אוטומטית
+      console.log('🚀 מתחיל העלאה אוטומטית...');
+      await handleFileUpload({ target: { files: [file] } });
       
     } catch (error) {
       console.error('❌ שגיאה בבחירת קובץ:', error);
@@ -548,45 +635,18 @@ const AudioSeparation = () => {
             <p className="text-gray-400">Professional Audio Separator</p>
           </div>
           
-          {!uploadedFile ? (
-            <div className="space-y-4">
-              <UploadZone 
-                onFileSelect={handleFileInput}
-                onDrop={handleDrop}
-              />
-              
-              {error && (
-                <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
-                  {error}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-green-900/50 border border-green-500 text-green-300 px-4 py-3 rounded-lg">
-                ✅ File uploaded: {uploadedFile.name}
+          <div className="space-y-4">
+            <UploadZone 
+              onFileSelect={handleFileInput}
+              onDrop={handleDrop}
+            />
+            
+            {error && (
+              <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
+                {error}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-300">Project Name</label>
-                <input
-                  type="text"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Enter project name"
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
-                />
-              </div>
-              
-              <button
-                onClick={startSeparation}
-                disabled={isProcessing || !projectName.trim()}
-                className="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-purple-600 hover:to-blue-700 disabled:opacity-50 transition-all duration-300"
-              >
-                {isProcessing ? 'Processing...' : 'Start Separation'}
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );

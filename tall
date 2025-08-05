@@ -1,0 +1,5 @@
+[33m9401d0b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m שיפורי CORS, טיפול בשגיאות, תמיכה בקבצים גדולים, לוגים משופרים
+[33m56c6084[m תיקון cache ו-build filter
+[33m95db450[m העברת vite ל-dependencies לתקון build
+[33me1e937b[m תיקון build - הוספת vite ו-build dependencies
+[33me2fcfa0[m עדכון package-lock.json

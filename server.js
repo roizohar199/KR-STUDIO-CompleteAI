@@ -221,7 +221,10 @@ app.get('/api/health', (req, res) => {
 // Audio separation endpoints
 app.post('/api/upload', upload.single('audio'), async (req, res) => {
   try {
-    console.log('📁 התחלת העלאה:', req.file ? req.file.originalname : 'לא קובץ');
+    console.log('📁 ===== התחלת העלאה =====');
+    console.log('📁 קובץ:', req.file ? req.file.originalname : 'לא קובץ');
+    console.log('📁 גודל:', req.file ? req.file.size : 'לא ידוע');
+    console.log('📁 סוג:', req.file ? req.file.mimetype : 'לא ידוע');
     
     if (!req.file) {
       console.log('❌ לא נבחר קובץ');
@@ -249,19 +252,28 @@ app.post('/api/upload', upload.single('audio'), async (req, res) => {
 
     projects.set(fileId, projectData);
 
-    console.log(`📁 קובץ הועלה: ${req.file.originalname} -> ${fileId}`);
+    console.log(`✅ קובץ הועלה בהצלחה!`);
+    console.log(`📁 שם מקורי: ${req.file.originalname}`);
+    console.log(`📁 fileId: ${fileId}`);
     console.log(`📁 נתיב קובץ: ${req.file.path}`);
     console.log(`📁 גודל קובץ: ${req.file.size} bytes`);
+    console.log(`📁 פרויקט נוצר:`, projectData);
     
-    res.json({ 
+    const response = { 
       file: { 
         id: fileId, 
         name: req.file.originalname,
         size: req.file.size 
       } 
-    });
+    };
+    
+    console.log('📁 תשובת העלאה:', response);
+    console.log('✅ ===== העלאה הושלמה בהצלחה =====');
+    
+    res.json(response);
   } catch (error) {
-    console.error('❌ שגיאה בהעלאה:', error);
+    console.error('❌ ===== שגיאה בהעלאה =====');
+    console.error('❌ פרטי השגיאה:', error);
     console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ error: error.message });
   }
@@ -271,15 +283,25 @@ app.post('/api/separate', async (req, res) => {
   try {
     const { fileId, projectName } = req.body;
     
+    console.log('🎵 ===== התחלת הפרדה =====');
+    console.log('🎵 fileId:', fileId);
+    console.log('🎵 שם פרויקט:', projectName);
+    console.log('🎵 זמן התחלה:', new Date().toLocaleTimeString());
+    
     if (!fileId || !projects.has(fileId)) {
+      console.log('❌ קובץ לא נמצא:', fileId);
+      console.log('❌ פרויקטים קיימים:', Array.from(projects.keys()));
       return res.status(404).json({ error: 'קובץ לא נמצא' });
     }
 
     const project = projects.get(fileId);
+    console.log('📁 פרויקט נמצא:', project);
+    
     const outputDir = path.join(__dirname, 'separated', fileId);
 
     // יצירת תיקיית פלט
     await fs.ensureDir(outputDir);
+    console.log('📁 תיקיית פלט נוצרה:', outputDir);
 
     // עדכון סטטוס הפרויקט
     project.status = 'processing';
@@ -287,6 +309,9 @@ app.post('/api/separate', async (req, res) => {
     project.outputDir = outputDir;
     project.progress = 0;
     project.startedAt = new Date().toISOString();
+
+    console.log('🎵 מתחיל Demucs עם נתיב:', project.originalPath);
+    console.log('🎵 תיקיית פלט:', outputDir);
 
     // הפעלת Demucs
     const demucsProcess = spawn(
@@ -302,6 +327,9 @@ app.post('/api/separate', async (req, res) => {
       { cwd: __dirname }
     );
 
+    console.log('🎵 תהליך Demucs התחיל');
+    console.log('🎵 PID:', demucsProcess.pid);
+
     // מעקב אחר התקדמות אמיתית
     let progress = 0;
     let processingStage = 'initializing';
@@ -312,6 +340,8 @@ app.post('/api/separate', async (req, res) => {
         const increment = Math.random() * 2 + 0.5; // 0.5-2.5 אחוזים
         progress += increment;
         project.progress = Math.min(progress, 85);
+        
+        console.log('📊 התקדמות:', project.progress.toFixed(1) + '%');
         
         // הודעות מפורטות לפי התקדמות
         if (progress < 15) {
@@ -330,7 +360,7 @@ app.post('/api/separate', async (req, res) => {
 
     demucsProcess.stdout.on('data', (data) => {
       const output = data.toString();
-      console.log(`🎵 Demucs: ${output}`);
+      console.log(`🎵 Demucs stdout: ${output}`);
       
       // מעקב אחר התקדמות אמיתית לפי הפלט של Demucs
       if (output.includes('Loading model')) {
@@ -350,7 +380,7 @@ app.post('/api/separate', async (req, res) => {
 
     demucsProcess.stderr.on('data', (data) => {
       const error = data.toString();
-      console.log(`⚠️ Demucs Error: ${error}`);
+      console.log(`⚠️ Demucs stderr: ${error}`);
       
       // עדכון הודעה אם יש שגיאה
       if (error.includes('CUDA') || error.includes('GPU')) {
@@ -361,23 +391,32 @@ app.post('/api/separate', async (req, res) => {
     demucsProcess.on('close', async (code) => {
       clearInterval(progressInterval);
       
+      console.log('🎵 Demucs הסתיים עם קוד:', code);
+      console.log('🎵 זמן סיום:', new Date().toLocaleTimeString());
+      
       if (code === 0) {
         project.status = 'completed';
         project.progress = 100;
         project.completedAt = new Date().toISOString();
         
+        console.log('✅ Demucs הושלם בהצלחה, יוצר STEMS...');
         // יצירת קבצי STEMS
         await createStemsFromDemucs(fileId, outputDir);
         
-        console.log(`✅ הפרדה הושלמה: ${fileId}`);
+        console.log(`✅ הפרדה הושלמה בהצלחה: ${fileId}`);
+        console.log('✅ ===== הפרדה הושלמה בהצלחה =====');
       } else {
         project.status = 'failed';
         project.error = `Demucs failed with code ${code}`;
         console.error(`❌ הפרדה נכשלה: ${fileId}`);
+        console.error('❌ ===== הפרדה נכשלה =====');
       }
     });
 
     separationProcesses.set(fileId, demucsProcess);
+    
+    console.log('✅ הפרדה החלה בהצלחה');
+    console.log('✅ ===== תהליך הפרדה התחיל =====');
     
     res.json({ 
       success: true, 
@@ -386,7 +425,9 @@ app.post('/api/separate', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('שגיאה בהפרדה:', error);
+    console.error('❌ ===== שגיאה בהפרדה =====');
+    console.error('❌ פרטי השגיאה:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ error: error.message });
   }
 });
@@ -395,16 +436,28 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   const { fileId } = req.params;
   const project = projects.get(fileId);
   
+  console.log('📊 ===== בקשת התקדמות =====');
+  console.log('📊 fileId:', fileId);
+  console.log('📊 זמן בקשת התקדמות:', new Date().toLocaleTimeString());
+  console.log('📁 פרויקט:', project);
+  
   if (!project) {
+    console.log('❌ פרויקט לא נמצא:', fileId);
+    console.log('❌ פרויקטים קיימים:', Array.from(projects.keys()));
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
-  res.json({
+  const response = {
     progress: project.progress || 0,
     status: project.status,
     error: project.error,
     message: project.message || 'מעבד...'
-  });
+  };
+  
+  console.log('📊 תשובת התקדמות:', response);
+  console.log('📊 ===== תשובת התקדמות נשלחה =====');
+  
+  res.json(response);
 });
 
 app.get('/api/projects', (req, res) => {

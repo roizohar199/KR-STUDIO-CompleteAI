@@ -10,6 +10,7 @@ const apiCall = async (endpoint, options = {}) => {
   try {
     console.log('[API] קריאה לשרת:', endpoint, options);
     const url = `${API_BASE_URL}${endpoint}`;
+    console.log('[API] URL מלא:', url);
     
     const fetchOptions = {
       headers: {
@@ -21,7 +22,12 @@ const apiCall = async (endpoint, options = {}) => {
       signal: AbortSignal.timeout(300000), // 5 דקות timeout
     };
     
+    console.log('[API] fetch options:', fetchOptions);
+    
     const response = await fetch(url, fetchOptions);
+    
+    console.log('[API] response status:', response.status);
+    console.log('[API] response headers:', response.headers);
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Network error' }));
@@ -50,7 +56,10 @@ const apiCall = async (endpoint, options = {}) => {
 // Upload audio file
 export const uploadAudio = async (file) => {
   try {
-    console.log('📁 מעלה קובץ:', file.name, 'גודל:', file.size);
+    console.log('📤 ===== התחלת העלאה =====');
+    console.log('📤 שם קובץ:', file.name);
+    console.log('📤 גודל קובץ:', file.size, 'bytes');
+    console.log('📤 סוג קובץ:', file.type);
     
     // בדיקת גודל הקובץ
     const maxSize = 200 * 1024 * 1024; // 200MB
@@ -58,14 +67,20 @@ export const uploadAudio = async (file) => {
       throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 200MB`);
     }
     
+    console.log('✅ גודל קובץ תקין, יוצר FormData...');
     const formData = new FormData();
     formData.append('audio', file);
 
+    console.log('📤 שולח בקשת העלאה לשרת...');
+    console.log('📤 URL:', `${API_BASE_URL}/upload`);
+    
     const response = await fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
       body: formData,
       signal: AbortSignal.timeout(600000), // 10 דקות timeout להעלאה
     });
+
+    console.log('📤 תשובה מהשרת:', response.status, response.statusText);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Upload failed' }));
@@ -74,16 +89,23 @@ export const uploadAudio = async (file) => {
     }
 
     const result = await response.json();
-    console.log('✅ קובץ הועלה בהצלחה:', result);
+    console.log('✅ קובץ הועלה בהצלחה!');
+    console.log('✅ תוצאת העלאה:', result);
+    console.log('✅ fileId:', result.file.id);
+    console.log('✅ ===== העלאה הושלמה בהצלחה =====');
     return result;
   } catch (error) {
-    console.error('❌ שגיאה בהעלאה:', error);
+    console.error('❌ ===== שגיאה בהעלאה =====');
+    console.error('❌ פרטי השגיאה:', error);
+    console.error('❌ הודעת שגיאה:', error.message);
     
     // טיפול בשגיאות ספציפיות
     if (error.name === 'AbortError') {
+      console.error('❌ timeout בהעלאה');
       throw new Error('העלאה נכשלה - timeout (10 דקות)');
     }
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      console.error('❌ בעיית חיבור לשרת');
       throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
     }
     
@@ -94,17 +116,30 @@ export const uploadAudio = async (file) => {
 // Separate audio with Demucs
 export const separateAudio = async (fileId, projectName) => {
   try {
-    console.log('🎵 מתחיל הפרדה עם Demucs:', fileId, projectName);
+    console.log('🎵 ===== התחלת הפרדה =====');
+    console.log('🎵 fileId:', fileId);
+    console.log('🎵 שם פרויקט:', projectName);
+    console.log('🎵 API_BASE_URL:', API_BASE_URL);
     
+    const requestBody = { fileId, projectName };
+    console.log('🎵 request body:', requestBody);
+    
+    console.log('📤 שולח בקשת הפרדה לשרת...');
     const result = await apiCall('/separate', {
       method: 'POST',
-      body: JSON.stringify({ fileId, projectName }),
+      body: JSON.stringify(requestBody),
     });
     
-    console.log('✅ הפרדה החלה:', result);
+    console.log('✅ הפרדה החלה בהצלחה!');
+    console.log('✅ תוצאת הפרדה:', result);
+    console.log('✅ ===== הפרדה הושלמה בהצלחה =====');
     return result;
   } catch (error) {
-    console.error('❌ שגיאה בהפרדה:', error);
+    console.error('❌ ===== שגיאה בהפרדה =====');
+    console.error('❌ fileId:', fileId);
+    console.error('❌ שם פרויקט:', projectName);
+    console.error('❌ פרטי השגיאה:', error);
+    console.error('❌ הודעת שגיאה:', error.message);
     throw error;
   }
 };
@@ -112,11 +147,22 @@ export const separateAudio = async (fileId, projectName) => {
 // Get separation progress with polling
 export const getSeparationProgress = async (fileId) => {
   try {
+    console.log('📊 ===== בדיקת התקדמות =====');
+    console.log('📊 fileId:', fileId);
+    console.log('📊 URL:', `${API_BASE_URL}/separate/${fileId}/progress`);
+    
     const result = await apiCall(`/separate/${fileId}/progress`);
-    console.log('📊 התקדמות הפרדה:', result);
+    console.log('📊 תשובת התקדמות מהשרת:', result);
+    console.log('📊 התקדמות:', result.progress + '%');
+    console.log('📊 סטטוס:', result.status);
+    console.log('📊 הודעה:', result.message);
+    console.log('📊 ===== בדיקת התקדמות הושלמה =====');
     return result;
   } catch (error) {
-    console.error('❌ שגיאה בקבלת התקדמות:', error);
+    console.error('❌ ===== שגיאה בקבלת התקדמות =====');
+    console.error('❌ fileId:', fileId);
+    console.error('❌ פרטי השגיאה:', error);
+    console.error('❌ הודעת שגיאה:', error.message);
     throw error;
   }
 };
