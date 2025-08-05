@@ -31,10 +31,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware
+// CORS middleware - הגדרה אחת בלבד
 app.use(cors({
   origin: function (origin, callback) {
-    // רשימת דומיינים מותרים
+    console.log(`🌐 CORS Request from ${origin}`);
+    
     const allowedOrigins = [
       'https://mixifyai.k-rstudio.com',
       'https://kr-studio-completeai.onrender.com',
@@ -45,8 +46,8 @@ app.use(cors({
       'https://www.k-rstudio.com'
     ];
     
-    // בדיקה אם הדומיין מותר או אם זה request ללא origin (כמו Postman)
     if (!origin || allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS allowed for: ${origin}`);
       callback(null, true);
     } else {
       console.log(`🚫 CORS blocked: ${origin}`);
@@ -65,22 +66,786 @@ app.use(express.static('dist'));
 // Handle preflight requests
 app.options('*', cors());
 
-// CORS logging middleware
+// Logging middleware for all requests
 app.use((req, res, next) => {
-  console.log(`🌐 CORS Request: ${req.method} ${req.path} from ${req.headers.origin}`);
+  console.log(`🌐 ===== Request =====`);
+  console.log(`🌐 Method: ${req.method}`);
+  console.log(`🌐 URL: ${req.url}`);
+  console.log(`🌐 Origin: ${req.headers.origin}`);
+  console.log(`🌐 User-Agent: ${req.headers['user-agent']}`);
+  console.log(`🌐 Content-Type: ${req.headers['content-type']}`);
+  console.log(`🌐 Content-Length: ${req.headers['content-length']}`);
   
-  // הוספת headers נוספים ל-CORS
-  if (req.headers.origin) {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
+  // Log response headers
+  const originalSend = res.send;
+  const originalJson = res.json;
+  
+  res.send = function(data) {
+    console.log(`🌐 ===== Response =====`);
+    console.log(`🌐 Status: ${res.statusCode}`);
+    console.log(`🌐 Headers:`, res.getHeaders());
+    console.log(`🌐 Data:`, data);
+    return originalSend.call(this, data);
+  };
+  
+  res.json = function(data) {
+    console.log(`🌐 ===== JSON Response =====`);
+    console.log(`🌐 Status: ${res.statusCode}`);
+    console.log(`🌐 Headers:`, res.getHeaders());
+    console.log(`🌐 Data:`, data);
+    return originalJson.call(this, data);
+  };
+  
+  const originalDownload = res.download;
+  res.download = function(path, filename, callback) {
+    console.log(`🌐 ===== Download Response =====`);
+    console.log(`🌐 Status: ${res.statusCode}`);
+    console.log(`🌐 Headers:`, res.getHeaders());
+    console.log(`🌐 Path:`, path);
+    console.log(`🌐 Filename:`, filename);
+    return originalDownload.call(this, path, filename, callback);
+  };
+  
+  const originalStatus = res.status;
+  res.status = function(code) {
+    console.log(`🌐 ===== Status Response =====`);
+    console.log(`🌐 Status Code: ${code}`);
+    console.log(`🌐 Previous Status: ${res.statusCode}`);
+    return originalStatus.call(this, code);
+  };
+  
+  // Log when response ends
+  res.on('finish', () => {
+    console.log(`🌐 ===== Response Finished =====`);
+    console.log(`🌐 Final Status: ${res.statusCode}`);
+    console.log(`🌐 Final Headers:`, res.getHeaders());
+  });
+  
+  // Log errors
+  res.on('error', (error) => {
+    console.error(`🌐 ===== Response Error =====`);
+    console.error(`🌐 Error:`, error);
+    console.error(`🌐 Status: ${res.statusCode}`);
+  });
+  
+  // Log close
+  res.on('close', () => {
+    console.log(`🌐 ===== Response Closed =====`);
+    console.log(`🌐 Status: ${res.statusCode}`);
+  });
+  
+  // Log timeout
+  res.on('timeout', () => {
+    console.log(`🌐 ===== Response Timeout =====`);
+    console.log(`🌐 Status: ${res.statusCode}`);
+  });
+  
+  // Log request timeout
+  req.on('timeout', () => {
+    console.log(`🌐 ===== Request Timeout =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request error
+  req.on('error', (error) => {
+    console.error(`🌐 ===== Request Error =====`);
+    console.error(`🌐 Error:`, error);
+    console.error(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request close
+  req.on('close', () => {
+    console.log(`🌐 ===== Request Closed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request end
+  req.on('end', () => {
+    console.log(`🌐 ===== Request Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request data
+  let dataChunks = [];
+  req.on('data', (chunk) => {
+    dataChunks.push(chunk);
+    console.log(`🌐 ===== Request Data Chunk =====`);
+    console.log(`🌐 Chunk size: ${chunk.length} bytes`);
+    console.log(`🌐 Total data size: ${dataChunks.reduce((acc, chunk) => acc + chunk.length, 0)} bytes`);
+  });
+  
+  // Log request readable
+  req.on('readable', () => {
+    console.log(`🌐 ===== Request Readable =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request pause
+  req.on('pause', () => {
+    console.log(`🌐 ===== Request Paused =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request resume
+  req.on('resume', () => {
+    console.log(`🌐 ===== Request Resumed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request drain
+  req.on('drain', () => {
+    console.log(`🌐 ===== Request Drained =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request pipe
+  req.on('pipe', (src) => {
+    console.log(`🌐 ===== Request Piped =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Source:`, src);
+  });
+  
+  // Log request unpipe
+  req.on('unpipe', (src) => {
+    console.log(`🌐 ===== Request Unpiped =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Source:`, src);
+  });
+  
+  // Log request unshift
+  req.on('unshift', (chunk) => {
+    console.log(`🌐 ===== Request Unshifted =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Chunk size: ${chunk.length} bytes`);
+  });
+  
+  // Log request wrap
+  req.on('wrap', (stream) => {
+    console.log(`🌐 ===== Request Wrapped =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Stream:`, stream);
+  });
+  
+  // Log request destroy
+  req.on('destroy', () => {
+    console.log(`🌐 ===== Request Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+  });
+  
+  // Log request readableLength
+  if (req.readableLength !== undefined) {
+    console.log(`🌐 ===== Request Readable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable length: ${req.readableLength} bytes`);
   }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   
-  // טיפול ב-preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
+  // Log request readableHighWaterMark
+  if (req.readableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Readable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable high water mark: ${req.readableHighWaterMark} bytes`);
+  }
+  
+  // Log request readableObjectMode
+  if (req.readableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Readable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable object mode: ${req.readableObjectMode}`);
+  }
+  
+  // Log request readableFlowing
+  if (req.readableFlowing !== undefined) {
+    console.log(`🌐 ===== Request Readable Flowing =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable flowing: ${req.readableFlowing}`);
+  }
+  
+  // Log request readableEncoding
+  if (req.readableEncoding !== undefined) {
+    console.log(`🌐 ===== Request Readable Encoding =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable encoding: ${req.readableEncoding}`);
+  }
+  
+  // Log request readableEnded
+  if (req.readableEnded !== undefined) {
+    console.log(`🌐 ===== Request Readable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable ended: ${req.readableEnded}`);
+  }
+  
+  // Log request readableDestroyed
+  if (req.readableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Readable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable destroyed: ${req.readableDestroyed}`);
+  }
+  
+  // Log request readable
+  if (req.readable !== undefined) {
+    console.log(`🌐 ===== Request Readable =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Readable: ${req.readable}`);
+  }
+  
+  // Log request destroyed
+  if (req.destroyed !== undefined) {
+    console.log(`🌐 ===== Request Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Destroyed: ${req.destroyed}`);
+  }
+  
+  // Log request corked
+  if (req.corked !== undefined) {
+    console.log(`🌐 ===== Request Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Corked: ${req.corked}`);
+  }
+  
+  // Log request cork
+  if (req.cork !== undefined) {
+    console.log(`🌐 ===== Request Cork =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Cork: ${req.cork}`);
+  }
+  
+  // Log request uncork
+  if (req.uncork !== undefined) {
+    console.log(`🌐 ===== Request Uncork =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Uncork: ${req.uncork}`);
+  }
+  
+  // Log request writable
+  if (req.writable !== undefined) {
+    console.log(`🌐 ===== Request Writable =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable: ${req.writable}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
+  }
+  
+  // Log request writableDestroyed
+  if (req.writableDestroyed !== undefined) {
+    console.log(`🌐 ===== Request Writable Destroyed =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
+  }
+  
+  // Log request writableFinished
+  if (req.writableFinished !== undefined) {
+    console.log(`🌐 ===== Request Writable Finished =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable finished: ${req.writableFinished}`);
+  }
+  
+  // Log request writableLength
+  if (req.writableLength !== undefined) {
+    console.log(`🌐 ===== Request Writable Length =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
+  }
+  
+  // Log request writableHighWaterMark
+  if (req.writableHighWaterMark !== undefined) {
+    console.log(`🌐 ===== Request Writable High Water Mark =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
+  }
+  
+  // Log request writableObjectMode
+  if (req.writableObjectMode !== undefined) {
+    console.log(`🌐 ===== Request Writable Object Mode =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
+  }
+  
+  // Log request writableCorked
+  if (req.writableCorked !== undefined) {
+    console.log(`🌐 ===== Request Writable Corked =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable corked: ${req.writableCorked}`);
+  }
+  
+  // Log request writableEnded
+  if (req.writableEnded !== undefined) {
+    console.log(`🌐 ===== Request Writable Ended =====`);
+    console.log(`🌐 URL: ${req.url}`);
+    console.log(`🌐 Writable ended: ${req.writableEnded}`);
   }
   
   next();
@@ -90,10 +855,17 @@ app.use((req, res, next) => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'uploads');
+    console.log('📁 ===== Multer Destination =====');
+    console.log('📁 Upload directory:', uploadDir);
+    console.log('📁 File:', file.originalname);
+    console.log('📁 MIME type:', file.mimetype);
     fs.ensureDirSync(uploadDir);
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
+    console.log('📁 ===== Multer Filename =====');
+    console.log('📁 Original filename:', file.originalname);
+    
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const extension = path.extname(file.originalname).toLowerCase();
     
@@ -104,7 +876,9 @@ const storage = multer.diskStorage({
       .substring(0, 50); // הגבלת אורך
     
     const filename = `audio_${cleanName}_${uniqueSuffix}${extension}`;
-    console.log('📁 שם קובץ חדש:', filename);
+    console.log('📁 New filename:', filename);
+    console.log('📁 Extension:', extension);
+    console.log('📁 Clean name:', cleanName);
     cb(null, filename);
   }
 });
@@ -112,7 +886,10 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    console.log('🔍 בדיקת קובץ:', file.originalname, file.mimetype);
+    console.log('🔍 ===== Multer FileFilter =====');
+    console.log('🔍 File:', file.originalname);
+    console.log('🔍 MIME type:', file.mimetype);
+    console.log('🔍 Size:', file.size);
     
     // בדיקה יותר גמישה של MIME types
     const allowedMimeTypes = [
@@ -134,25 +911,25 @@ const upload = multer({
     const extname = allowedExtensions.test(file.originalname);
     const mimetype = allowedMimeTypes.includes(file.mimetype);
     
-    console.log('🔍 בדיקת סיומת:', extname, 'עבור:', file.originalname);
-    console.log('🔍 בדיקת MIME type:', file.mimetype, '->', mimetype);
+    console.log('🔍 Extension check:', extname, 'for:', file.originalname);
+    console.log('🔍 MIME type check:', file.mimetype, '->', mimetype);
     
     // אם יש MIME type תקין או סיומת תקינה - קבל את הקובץ
     if (mimetype || extname) {
-      console.log('✅ קובץ אודיו תקין:', file.originalname);
+      console.log('✅ Valid audio file:', file.originalname);
       return cb(null, true);
     } else {
       // בדיקה נוספת - אולי הקובץ תקין אבל עם תווים מיוחדים
       const cleanName = file.originalname.replace(/[^\w\s-]/g, '');
       const cleanExtname = allowedExtensions.test(cleanName);
       
-      console.log('🔍 בדיקה נוספת עם שם נקי:', cleanName, '->', cleanExtname);
+      console.log('🔍 Additional check with clean name:', cleanName, '->', cleanExtname);
       
       if (cleanExtname) {
-        console.log('✅ קובץ אודיו תקין (אחרי ניקוי):', file.originalname);
+        console.log('✅ Valid audio file (after cleaning):', file.originalname);
         return cb(null, true);
       } else {
-        console.log('❌ קובץ לא נתמך:', file.originalname, file.mimetype);
+        console.log('❌ Unsupported file:', file.originalname, file.mimetype);
         cb(new Error(`רק קבצי אודיו נתמכים. קובץ: ${file.originalname}, MIME: ${file.mimetype}`));
       }
     }
@@ -164,15 +941,20 @@ const upload = multer({
   }
 });
 
+console.log('📁 ===== Multer Configuration =====');
+console.log('📁 File size limit: 200MB');
+console.log('📁 Files limit: 1');
+console.log('📁 Field size limit: 10MB');
+
 // Middleware לטיפול בשגיאות Multer
 const handleMulterError = (error, req, res, next) => {
-  console.error('❌ שגיאת Multer:', error);
-  console.error('❌ פרטי שגיאה:', {
-    code: error.code,
-    field: error.field,
-    message: error.message,
-    stack: error.stack
-  });
+  console.error('❌ ===== שגיאת Multer =====');
+  console.error('❌ Error:', error);
+  console.error('❌ Code:', error.code);
+  console.error('❌ Field:', error.field);
+  console.error('❌ Message:', error.message);
+  console.error('❌ Stack:', error.stack);
+  console.error('❌ Request headers:', req.headers);
   
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -213,15 +995,13 @@ const handleMulterError = (error, req, res, next) => {
 const projects = new Map();
 const separationProcesses = new Map();
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+
 
 // Audio separation endpoints
-app.post('/api/upload', upload.single('audio'), async (req, res) => {
+app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
   try {
     console.log('📁 ===== התחלת העלאה =====');
+    console.log('📁 Headers:', req.headers);
     console.log('📁 קובץ:', req.file ? req.file.originalname : 'לא קובץ');
     console.log('📁 גודל:', req.file ? req.file.size : 'לא ידוע');
     console.log('📁 סוג:', req.file ? req.file.mimetype : 'לא ידוע');
@@ -284,6 +1064,8 @@ app.post('/api/separate', async (req, res) => {
     const { fileId, projectName } = req.body;
     
     console.log('🎵 ===== התחלת הפרדה =====');
+    console.log('🎵 Headers:', req.headers);
+    console.log('🎵 Body:', req.body);
     console.log('🎵 fileId:', fileId);
     console.log('🎵 שם פרויקט:', projectName);
     console.log('🎵 זמן התחלה:', new Date().toLocaleTimeString());
@@ -437,6 +1219,7 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   const project = projects.get(fileId);
   
   console.log('📊 ===== בקשת התקדמות =====');
+  console.log('📊 Headers:', req.headers);
   console.log('📊 fileId:', fileId);
   console.log('📊 זמן בקשת התקדמות:', new Date().toLocaleTimeString());
   console.log('📁 פרויקט:', project);
@@ -461,6 +1244,10 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
 });
 
 app.get('/api/projects', (req, res) => {
+  console.log('📋 ===== בקשת פרויקטים =====');
+  console.log('📋 Headers:', req.headers);
+  console.log('📋 פרויקטים קיימים:', Array.from(projects.keys()));
+  
   const projectsList = Array.from(projects.values()).map(project => ({
     id: project.id,
     name: project.projectName || 'פרויקט ללא שם',
@@ -470,6 +1257,7 @@ app.get('/api/projects', (req, res) => {
     stems: project.stems ? Object.keys(project.stems) : []
   }));
   
+  console.log('📋 תשובת פרויקטים:', projectsList);
   res.json(projectsList);
 });
 
@@ -477,10 +1265,17 @@ app.get('/api/projects/:id', (req, res) => {
   const { id } = req.params;
   const project = projects.get(id);
   
+  console.log('📁 ===== בקשת פרויקט =====');
+  console.log('📁 Headers:', req.headers);
+  console.log('📁 ID:', id);
+  console.log('📁 פרויקט:', project);
+  
   if (!project) {
+    console.log('❌ פרויקט לא נמצא:', id);
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
+  console.log('✅ פרויקט נמצא ונשלח');
   res.json(project);
 });
 
@@ -488,16 +1283,26 @@ app.get('/api/projects/:id/download/:stem', (req, res) => {
   const { id, stem } = req.params;
   const project = projects.get(id);
   
+  console.log('⬇️ ===== בקשת הורדה =====');
+  console.log('⬇️ Headers:', req.headers);
+  console.log('⬇️ ID:', id);
+  console.log('⬇️ Stem:', stem);
+  console.log('⬇️ פרויקט:', project);
+  
   if (!project || !project.stemsDir) {
+    console.log('❌ פרויקט או תיקיית stems לא נמצאו');
     return res.status(404).json({ error: 'קובץ לא נמצא' });
   }
   
   const filePath = path.join(project.stemsDir, `${stem}.mp3`);
+  console.log('⬇️ נתיב קובץ:', filePath);
   
   if (!fs.existsSync(filePath)) {
+    console.log('❌ קובץ לא קיים:', filePath);
     return res.status(404).json({ error: 'קובץ לא נמצא' });
   }
   
+  console.log('✅ קובץ נמצא ונשלח להורדה');
   res.download(filePath);
 });
 
@@ -505,7 +1310,13 @@ app.delete('/api/projects/:id', async (req, res) => {
   const { id } = req.params;
   const project = projects.get(id);
   
+  console.log('🗑️ ===== בקשת מחיקה =====');
+  console.log('🗑️ Headers:', req.headers);
+  console.log('🗑️ ID:', id);
+  console.log('🗑️ פרויקט:', project);
+  
   if (!project) {
+    console.log('❌ פרויקט לא נמצא:', id);
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
@@ -513,16 +1324,19 @@ app.delete('/api/projects/:id', async (req, res) => {
     // עצירת תהליך הפרדה אם רץ
     const process = separationProcesses.get(id);
     if (process) {
+      console.log('🛑 עוצר תהליך הפרדה');
       process.kill();
       separationProcesses.delete(id);
     }
     
     // מחיקת קבצים
     if (project.originalPath) {
+      console.log('🗑️ מוחק קובץ מקורי:', project.originalPath);
       await fs.remove(project.originalPath);
     }
     
     if (project.outputDir) {
+      console.log('🗑️ מוחק תיקיית פלט:', project.outputDir);
       await fs.remove(project.outputDir);
     }
     
@@ -590,13 +1404,14 @@ async function createStemsFromDemucs(fileId, outputDir) {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  console.log('🏥 Health check request from:', req.headers.origin);
-  console.log('🌐 Request headers:', req.headers);
-  console.log('📊 Server status: Running');
+  console.log('🏥 ===== Health check =====');
+  console.log('🏥 Headers:', req.headers);
+  console.log('🏥 Origin:', req.headers.origin);
+  console.log('🏥 Server status: Running');
   console.log('💾 Memory usage:', process.memoryUsage());
   console.log('⏰ Uptime:', process.uptime());
   
-  res.json({ 
+  const response = { 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     server: 'KR-STUDIO CompleteAI Backend',
@@ -604,18 +1419,31 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     environment: process.env.NODE_ENV || 'development'
-  });
+  };
+  
+  console.log('🏥 Health response:', response);
+  res.json(response);
 });
 
 // Serve React app
 app.get('*', (req, res) => {
-  console.log('📄 Serving React app for:', req.path);
+  console.log('📄 ===== Serving React app =====');
+  console.log('📄 Path:', req.path);
+  console.log('📄 Headers:', req.headers);
+  console.log('📄 File path:', path.join(__dirname, 'dist', 'index.html'));
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('❌ Server error:', error);
+  console.error('❌ ===== Server error =====');
+  console.error('❌ Error:', error);
+  console.error('❌ Message:', error.message);
+  console.error('❌ Stack:', error.stack);
+  console.error('❌ Request URL:', req.url);
+  console.error('❌ Request method:', req.method);
+  console.error('❌ Request headers:', req.headers);
+  
   res.status(500).json({ 
     error: 'Internal server error',
     message: error.message,
@@ -624,10 +1452,12 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 שרת פועל על פורט ${PORT}`);
+  console.log(`🚀 ===== שרת התחיל =====`);
+  console.log(`🚀 Port: ${PORT}`);
   console.log(`🌐 Server URL: http://localhost:${PORT}`);
-  console.log(`📁 תיקיית העלאות: ${path.join(__dirname, 'uploads')}`);
-  console.log(`🎵 תיקיית הפרדות: ${path.join(__dirname, 'separated')}`);
+  console.log(`📁 Uploads directory: ${path.join(__dirname, 'uploads')}`);
+  console.log(`🎵 Separated directory: ${path.join(__dirname, 'separated')}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`💾 Memory: ${JSON.stringify(process.memoryUsage())}`);
+  console.log(`✅ ===== שרת מוכן =====`);
 }); 
