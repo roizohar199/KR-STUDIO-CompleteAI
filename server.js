@@ -14,105 +14,68 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // הגדרת CORS עם חבילת cors הסטנדרטית
+// אפשרות לחזור ל-origin: '*' זמנית אם יש בעיות
+const USE_WILDCARD_CORS = false; // שנה ל-true אם יש בעיות CORS
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    console.log('🌐 CORS Origin check:', origin);
-    
-    // רשימת origins מורשים
-    const allowedOrigins = [
-      'https://mixifyai.k-rstudio.com',
-      'https://kr-studio-completeai.onrender.com',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'https://k-rstudio.com',
-      'https://www.k-rstudio.com',
-      'https://mixifyai.k-rstudio.com:443',
-      'https://mixifyai.k-rstudio.com:80'
-    ];
-    
-    // תמיד לאפשר בקשות ללא origin (כמו Postman או curl)
-    if (!origin) {
-      console.log('✅ CORS allowed for: no origin');
-      return callback(null, true);
-    }
-    
-    // בדיקה אם ה-origin מורשה
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ CORS allowed for:', origin);
-      return callback(null, true);
-    }
-    
-    // בדיקה נוספת - אולי זה subdomain
-    const originHost = new URL(origin).hostname;
-    const allowedHosts = [
-      'mixifyai.k-rstudio.com',
-      'kr-studio-completeai.onrender.com',
-      'k-rstudio.com',
-      'www.k-rstudio.com'
-    ];
-    
-    if (allowedHosts.some(host => originHost === host || originHost.endsWith('.' + host))) {
-      console.log('✅ CORS allowed for subdomain:', origin);
-      return callback(null, true);
-    }
-    
-    console.log('🚫 CORS blocked for:', origin);
-    console.log('🚫 Origin host:', originHost);
-    console.log('🚫 Allowed hosts:', allowedHosts.join(', '));
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
+  origin: USE_WILDCARD_CORS ? '*' : [
+    'https://mixifyai.k-rstudio.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
     'X-Requested-With', 
     'Origin', 
-    'Accept', 
-    'Access-Control-Allow-Origin', 
-    'Access-Control-Allow-Headers', 
-    'Access-Control-Allow-Methods', 
-    'Access-Control-Allow-Credentials'
+    'Accept'
   ],
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  credentials: false // לא יכול להיות true עם origin: '*'
 };
 
 // הפעלת CORS לפני כל ה-routes
 app.use(cors(corsOptions));
 
-// Middleware נוסף לוודא CORS headers נשלחים תמיד
+// Middleware נוסף לבדיקת CORS ו-logging
 app.use((req, res, next) => {
-  console.log('🌐 ===== CORS Middleware =====');
-  console.log('🌐 Origin:', req.headers.origin);
-  console.log('🌐 Method:', req.method);
-  console.log('🌐 URL:', req.url);
+  console.log('🌐 ===== CORS Check =====');
+  console.log('🌐 Request Origin:', req.headers.origin);
+  console.log('🌐 Request Method:', req.method);
+  console.log('🌐 Request URL:', req.url);
+  console.log('🌐 Allowed Origins:', corsOptions.origin);
+  console.log('🌐 USE_WILDCARD_CORS:', USE_WILDCARD_CORS);
   
-  // הגדרת CORS headers לכל התשובות
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    console.log('🌐 Set Access-Control-Allow-Origin:', origin);
-  } else {
-    // אם אין origin, עדיין נגדיר CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    console.log('🌐 Set Access-Control-Allow-Origin: * (no origin)');
+  // בדיקה אם ה-origin מורשה
+  const requestOrigin = req.headers.origin;
+  const isOriginAllowed = Array.isArray(corsOptions.origin) 
+    ? corsOptions.origin.includes(requestOrigin)
+    : corsOptions.origin === '*' || corsOptions.origin === requestOrigin;
+  
+  console.log('🌐 Is Origin Allowed:', isOriginAllowed);
+  
+  // אם ה-origin לא מורשה, נסה לזהות את הבעיה
+  if (!isOriginAllowed && requestOrigin) {
+    console.log('❌ CORS Error: Origin not allowed');
+    console.log('❌ Request Origin:', requestOrigin);
+    console.log('❌ Allowed Origins:', corsOptions.origin);
+    console.log('❌ Suggestion: Add this origin to the allowed list or set USE_WILDCARD_CORS = true');
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
   
-  console.log('🌐 CORS headers set for:', req.url);
-  
-  // טיפול מיוחד בבקשות OPTIONS
+  // אם זה OPTIONS request (preflight)
   if (req.method === 'OPTIONS') {
-    console.log('🌐 ===== OPTIONS Request Handled =====');
-    console.log('🌐 Preflight request detected');
+    console.log('🌐 ===== Preflight Request =====');
     console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
     console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
+    console.log('🌐 Origin:', req.headers.origin);
+    console.log('🌐 Host:', req.headers.host);
+    console.log('🌐 User-Agent:', req.headers['user-agent']);
     
-    // שליחת תשובה מיידית לבקשות OPTIONS
+    // שליחת תשובה מיידית ל-preflight - לא מגדירים headers נוספים
+    // כי ה-cors() middleware כבר מטפל בזה
     res.status(200).end();
     return;
   }
@@ -596,7 +559,18 @@ const handleMulterError = (error, req, res, next) => {
 const projects = new Map();
 const separationProcesses = new Map();
 
-
+// טיפול ב-OPTIONS ממש לפני כל Route אחר
+// זה מבטיח שכל OPTIONS /api/... יחזיר 200 עם הכותרות הנכונות
+app.options('*', (req, res) => {
+  console.log('🌐 ===== OPTIONS Handler =====');
+  console.log('🌐 Request URL:', req.url);
+  console.log('🌐 Request Origin:', req.headers.origin);
+  console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
+  console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
+  
+  // ה-cors() middleware כבר מטפל בכותרות, אנחנו רק שולחים 200
+  res.status(200).end();
+});
 
 // Audio separation endpoints
 app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
