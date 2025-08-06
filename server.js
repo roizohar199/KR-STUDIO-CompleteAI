@@ -107,27 +107,7 @@ app.use(express.static('dist'));
 // Handle preflight requests
 app.options('*', cors());
 
-// Additional CORS headers middleware
-app.use((req, res, next) => {
-  // הוספת CORS headers לכל תשובה
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
-  
-  // טיפול בבקשות OPTIONS
-  if (req.method === 'OPTIONS') {
-    console.log('🌐 ===== OPTIONS Request =====');
-    console.log('🌐 Origin:', req.headers.origin);
-    console.log('🌐 Method:', req.method);
-    console.log('🌐 Headers:', req.headers);
-    res.status(200).end();
-    return;
-  }
-  
-  next();
-});
+// Additional CORS headers middleware - הסרתי את זה כי יש כבר CORS middleware בתחילת הקובץ
 
 // Logging middleware for all requests
 app.use((req, res, next) => {
@@ -585,26 +565,7 @@ const separationProcesses = new Map();
 
 
 // Audio separation endpoints
-app.post('/api/upload', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות העלאה
-  console.log('📤 ===== Upload Request CORS =====');
-  console.log('📤 Origin:', req.headers.origin);
-  console.log('📤 Method:', req.method);
-  console.log('📤 Content-Type:', req.headers['content-type']);
-  
-  // הוספת CORS headers ספציפיים להעלאה
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('📤 OPTIONS request for upload - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, upload.single('audio'), handleMulterError, async (req, res) => {
+app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
   try {
     console.log('📁 ===== התחלת העלאה =====');
     console.log('📁 Headers:', req.headers);
@@ -665,25 +626,7 @@ app.post('/api/upload', (req, res, next) => {
   }
 });
 
-app.post('/api/separate', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות הפרדה
-  console.log('🎵 ===== Separate Request CORS =====');
-  console.log('🎵 Origin:', req.headers.origin);
-  console.log('🎵 Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים להפרדה
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('🎵 OPTIONS request for separate - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, async (req, res) => {
+app.post('/api/separate', async (req, res) => {
   try {
     const { fileId, projectName } = req.body;
     
@@ -838,25 +781,7 @@ app.post('/api/separate', (req, res, next) => {
   }
 });
 
-app.get('/api/separate/:fileId/progress', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות התקדמות
-  console.log('📊 ===== Progress Request CORS =====');
-  console.log('📊 Origin:', req.headers.origin);
-  console.log('📊 Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים להתקדמות
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('📊 OPTIONS request for progress - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, (req, res) => {
+app.get('/api/separate/:fileId/progress', (req, res) => {
   const { fileId } = req.params;
   const project = projects.get(fileId);
   
@@ -885,25 +810,7 @@ app.get('/api/separate/:fileId/progress', (req, res, next) => {
   res.json(response);
 });
 
-app.get('/api/projects', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות פרויקטים
-  console.log('📋 ===== Projects Request CORS =====');
-  console.log('📋 Origin:', req.headers.origin);
-  console.log('📋 Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים לפרויקטים
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('📋 OPTIONS request for projects - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, (req, res) => {
+app.get('/api/projects', (req, res) => {
   console.log('📋 ===== בקשת פרויקטים =====');
   console.log('📋 Headers:', req.headers);
   console.log('📋 פרויקטים קיימים:', Array.from(projects.keys()));
@@ -921,25 +828,7 @@ app.get('/api/projects', (req, res, next) => {
   res.json(projectsList);
 });
 
-app.get('/api/projects/:id', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות פרויקט ספציפי
-  console.log('📁 ===== Project Request CORS =====');
-  console.log('📁 Origin:', req.headers.origin);
-  console.log('📁 Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים לפרויקט
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('📁 OPTIONS request for project - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, (req, res) => {
+app.get('/api/projects/:id', (req, res) => {
   const { id } = req.params;
   const project = projects.get(id);
   
@@ -957,25 +846,7 @@ app.get('/api/projects/:id', (req, res, next) => {
   res.json(project);
 });
 
-app.get('/api/projects/:id/download/:stem', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות הורדה
-  console.log('⬇️ ===== Download Request CORS =====');
-  console.log('⬇️ Origin:', req.headers.origin);
-  console.log('⬇️ Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים להורדה
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('⬇️ OPTIONS request for download - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, (req, res) => {
+app.get('/api/projects/:id/download/:stem', (req, res) => {
   const { id, stem } = req.params;
   const project = projects.get(id);
   
@@ -1002,25 +873,7 @@ app.get('/api/projects/:id/download/:stem', (req, res, next) => {
   res.download(filePath);
 });
 
-app.delete('/api/projects/:id', (req, res, next) => {
-  // טיפול מיוחד ב-CORS לבקשות מחיקה
-  console.log('🗑️ ===== Delete Request CORS =====');
-  console.log('🗑️ Origin:', req.headers.origin);
-  console.log('🗑️ Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים למחיקה
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('🗑️ OPTIONS request for delete - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, async (req, res) => {
+app.delete('/api/projects/:id', async (req, res) => {
   const { id } = req.params;
   const project = projects.get(id);
   
@@ -1117,25 +970,7 @@ async function createStemsFromDemucs(fileId, outputDir) {
 
 
 // Health check endpoint
-app.get('/api/health', (req, res, next) => {
-  // טיפול מיוחד ב-CORS ל-health check
-  console.log('🏥 ===== Health Check CORS =====');
-  console.log('🏥 Origin:', req.headers.origin);
-  console.log('🏥 Method:', req.method);
-  
-  // הוספת CORS headers ספציפיים ל-health check
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('🏥 OPTIONS request for health check - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, (req, res) => {
+app.get('/api/health', (req, res) => {
   console.log('🏥 ===== Health check =====');
   console.log('🏥 Headers:', req.headers);
   console.log('🏥 Origin:', req.headers.origin);
@@ -1158,26 +993,7 @@ app.get('/api/health', (req, res, next) => {
 });
 
 // Serve React app
-app.get('*', (req, res, next) => {
-  // טיפול מיוחד ב-CORS ל-React app
-  console.log('📄 ===== React App CORS =====');
-  console.log('📄 Origin:', req.headers.origin);
-  console.log('📄 Method:', req.method);
-  console.log('📄 Path:', req.path);
-  
-  // הוספת CORS headers ספציפיים ל-React app
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('📄 OPTIONS request for React app - returning 200');
-    return res.status(200).end();
-  }
-  
-  next();
-}, (req, res) => {
+app.get('*', (req, res) => {
   console.log('📄 ===== Serving React app =====');
   console.log('📄 Path:', req.path);
   console.log('📄 Headers:', req.headers);
@@ -1187,12 +1003,6 @@ app.get('*', (req, res, next) => {
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  // הוספת CORS headers גם לשגיאות
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
   console.error('❌ ===== Server error =====');
   console.error('❌ Error:', error);
   console.error('❌ Message:', error.message);
