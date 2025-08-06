@@ -1683,20 +1683,6 @@ app.use((error, req, res, next) => {
     timestamp: new Date().toISOString()
   });
 });
-  console.error('❌ ===== Server error =====');
-  console.error('❌ Error:', error);
-  console.error('❌ Message:', error.message);
-  console.error('❌ Stack:', error.stack);
-  console.error('❌ Request URL:', req.url);
-  console.error('❌ Request method:', req.method);
-  console.error('❌ Request headers:', req.headers);
-  
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: error.message,
-    timestamp: new Date().toISOString()
-  });
-});
 
 app.listen(PORT, () => {
   console.log(`🚀 ===== שרת התחיל =====`);
