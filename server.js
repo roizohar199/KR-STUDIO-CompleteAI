@@ -93,6 +93,10 @@ app.use((req, res, next) => {
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     console.log('🌐 Set Access-Control-Allow-Origin:', origin);
+  } else {
+    // אם אין origin, עדיין נגדיר CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    console.log('🌐 Set Access-Control-Allow-Origin: * (no origin)');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
@@ -100,6 +104,18 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Max-Age', '86400');
   
   console.log('🌐 CORS headers set for:', req.url);
+  
+  // טיפול מיוחד בבקשות OPTIONS
+  if (req.method === 'OPTIONS') {
+    console.log('🌐 ===== OPTIONS Request Handled =====');
+    console.log('🌐 Preflight request detected');
+    console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
+    console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
+    
+    // שליחת תשובה מיידית לבקשות OPTIONS
+    res.status(200).end();
+    return;
+  }
   
   next();
 });
@@ -124,34 +140,8 @@ app.use((req, res, next) => {
 
 app.use(express.static('dist'));
 
-// Handle preflight requests for all API routes
-app.options('*', (req, res) => {
-  console.log('🌐 ===== Preflight OPTIONS Request =====');
-  console.log('🌐 URL:', req.url);
-  console.log('🌐 Method:', req.method);
-  console.log('🌐 Origin:', req.headers.origin);
-  console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
-  console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
-  
-  // הגדרת CORS headers לבקשות preflight
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    console.log('🌐 Set Access-Control-Allow-Origin for preflight:', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
-  console.log('🌐 ===== Preflight Response Headers =====');
-  console.log('🌐 Access-Control-Allow-Origin:', res.getHeader('Access-Control-Allow-Origin'));
-  console.log('🌐 Access-Control-Allow-Methods:', res.getHeader('Access-Control-Allow-Methods'));
-  console.log('🌐 Access-Control-Allow-Headers:', res.getHeader('Access-Control-Allow-Headers'));
-  console.log('🌐 Access-Control-Allow-Credentials:', res.getHeader('Access-Control-Allow-Credentials'));
-  
-  res.status(200).end();
-});
+// Handle preflight requests for all API routes - removed duplicate handler
+// OPTIONS requests are now handled in the CORS middleware above
 
 // Logging middleware for all requests
 app.use((req, res, next) => {
@@ -613,13 +603,14 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
   try {
     console.log('📁 ===== התחלת העלאה =====');
     console.log('📁 Headers:', req.headers);
+    console.log('📁 Origin:', req.headers.origin);
     console.log('📁 קובץ:', req.file ? req.file.originalname : 'לא קובץ');
     console.log('📁 גודל:', req.file ? req.file.size : 'לא ידוע');
     console.log('📁 סוג:', req.file ? req.file.mimetype : 'לא ידוע');
     
     if (!req.file) {
       console.log('❌ לא נבחר קובץ');
-          return res.status(400).json({ error: 'לא נבחר קובץ' });
+      return res.status(400).json({ error: 'לא נבחר קובץ' });
     }
 
     // יצירת תיקיית uploads אם לא קיימת
@@ -651,17 +642,21 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
     console.log(`📁 פרויקט נוצר:`, projectData);
     
     const response = { 
+      success: true,
       file: { 
         id: fileId, 
         name: req.file.originalname,
         size: req.file.size 
-      } 
+      },
+      message: 'הקובץ הועלה בהצלחה',
+      nextStep: 'separation'
     };
     
     console.log('📁 תשובת העלאה:', response);
     console.log('✅ ===== העלאה הושלמה בהצלחה =====');
     
-    res.json(response);
+    // שליחת תשובה מיידית עם CORS headers
+    res.status(200).json(response);
   } catch (error) {
     console.error('❌ ===== שגיאה בהעלאה =====');
     console.error('❌ פרטי השגיאה:', error);
@@ -1097,10 +1092,12 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ===== שרת התחיל =====`);
   console.log(`🚀 Port: ${PORT}`);
+  console.log(`🚀 Host: 0.0.0.0 (all interfaces)`);
   console.log(`🌐 Server URL: http://localhost:${PORT}`);
+  console.log(`🌐 External URL: http://0.0.0.0:${PORT}`);
   console.log(`📁 Uploads directory: ${path.join(__dirname, 'uploads')}`);
   console.log(`🎵 Separated directory: ${path.join(__dirname, 'separated')}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
