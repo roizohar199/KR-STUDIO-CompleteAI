@@ -74,6 +74,20 @@ app.use((req, res, next) => {
     console.log('🌐 Origin:', req.headers.origin);
     console.log('🌐 Method:', req.method);
     console.log('🌐 Headers:', req.headers);
+    console.log('🌐 Requested URL:', req.url);
+    
+    // הגדרת headers נוספים לבקשות OPTIONS
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    console.log('🌐 ===== OPTIONS Response Headers =====');
+    console.log('🌐 Access-Control-Allow-Origin:', res.getHeader('Access-Control-Allow-Origin'));
+    console.log('🌐 Access-Control-Allow-Methods:', res.getHeader('Access-Control-Allow-Methods'));
+    console.log('🌐 Access-Control-Allow-Headers:', res.getHeader('Access-Control-Allow-Headers'));
+    console.log('🌐 Access-Control-Allow-Credentials:', res.getHeader('Access-Control-Allow-Credentials'));
+    
     res.status(200).end();
     return;
   }
@@ -99,11 +113,59 @@ app.use((req, res, next) => {
   next();
 });
 
+// Preflight middleware - מוסיף CORS headers לכל התשובות
+app.use((req, res, next) => {
+  console.log('🌐 ===== Preflight Middleware =====');
+  console.log('🌐 Method:', req.method);
+  console.log('🌐 URL:', req.url);
+  console.log('🌐 Origin:', req.headers.origin);
+  
+  // הגדרת CORS headers לכל התשובות
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  console.log('🌐 CORS headers set for:', req.url);
+  
+  next();
+});
+
 app.use(express.static('dist'));
 
-// Handle preflight requests - הסרתי את זה כי יש כבר CORS middleware ידני
+// Handle preflight requests for all API routes
+app.options('*', (req, res) => {
+  console.log('🌐 ===== Preflight OPTIONS Request =====');
+  console.log('🌐 URL:', req.url);
+  console.log('🌐 Method:', req.method);
+  console.log('🌐 Origin:', req.headers.origin);
+  console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
+  console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
+  
+  // הגדרת CORS headers לבקשות preflight
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  console.log('🌐 ===== Preflight Response Headers =====');
+  console.log('🌐 Access-Control-Allow-Origin:', res.getHeader('Access-Control-Allow-Origin'));
+  console.log('🌐 Access-Control-Allow-Methods:', res.getHeader('Access-Control-Allow-Methods'));
+  console.log('🌐 Access-Control-Allow-Headers:', res.getHeader('Access-Control-Allow-Headers'));
+  console.log('🌐 Access-Control-Allow-Credentials:', res.getHeader('Access-Control-Allow-Credentials'));
+  
+  res.status(200).end();
+});
 
-// Additional CORS headers middleware - הסרתי את זה כי יש כבר CORS middleware בתחילת הקובץ
+
 
 // Logging middleware for all requests
 app.use((req, res, next) => {
@@ -1212,6 +1274,29 @@ app.use((error, req, res, next) => {
   res.status(500).json({ 
     error: 'Internal server error',
     message: error.message,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler - מוסיף CORS headers גם לתשובות 404
+app.use((req, res) => {
+  console.log('❌ ===== 404 Not Found =====');
+  console.log('❌ URL:', req.url);
+  console.log('❌ Method:', req.method);
+  console.log('❌ Origin:', req.headers.origin);
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  res.status(404).json({ 
+    error: 'Not found',
+    message: `Route ${req.url} not found`,
     timestamp: new Date().toISOString()
   });
 });
