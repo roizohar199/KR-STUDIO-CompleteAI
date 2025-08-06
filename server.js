@@ -13,6 +13,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
+// זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
+
 // הגדרת CORS עם חבילת cors הסטנדרטית
 // אפשרות לחזור ל-origin: '*' זמנית אם יש בעיות
 const USE_WILDCARD_CORS = false; // שנה ל-true אם יש בעיות CORS
@@ -31,54 +34,26 @@ const corsOptions = {
     'Authorization', 
     'X-Requested-With', 
     'Origin', 
-    'Accept'
+    'Accept',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
   ],
   optionsSuccessStatus: 200,
-  credentials: false // לא יכול להיות true עם origin: '*'
+  credentials: false, // לא יכול להיות true עם origin: '*'
+  preflightContinue: false, // מטפל ב-OPTIONS אוטומטית
+  maxAge: 86400 // Cache preflight requests for 24 hours
 };
 
-// הפעלת CORS לפני כל ה-routes
+// הפעלת CORS לפני כל ה-routes - זה חייב להיות הראשון
 app.use(cors(corsOptions));
 
-// Middleware נוסף לבדיקת CORS ו-logging
+// Logging middleware for CORS requests - מופעל אחרי CORS middleware
 app.use((req, res, next) => {
-  console.log('🌐 ===== CORS Check =====');
-  console.log('🌐 Request Origin:', req.headers.origin);
-  console.log('🌐 Request Method:', req.method);
-  console.log('🌐 Request URL:', req.url);
-  console.log('🌐 Allowed Origins:', corsOptions.origin);
-  console.log('🌐 USE_WILDCARD_CORS:', USE_WILDCARD_CORS);
-  
-  // בדיקה אם ה-origin מורשה
-  const requestOrigin = req.headers.origin;
-  const isOriginAllowed = Array.isArray(corsOptions.origin) 
-    ? corsOptions.origin.includes(requestOrigin)
-    : corsOptions.origin === '*' || corsOptions.origin === requestOrigin;
-  
-  console.log('🌐 Is Origin Allowed:', isOriginAllowed);
-  
-  // אם ה-origin לא מורשה, נסה לזהות את הבעיה
-  if (!isOriginAllowed && requestOrigin) {
-    console.log('❌ CORS Error: Origin not allowed');
-    console.log('❌ Request Origin:', requestOrigin);
-    console.log('❌ Allowed Origins:', corsOptions.origin);
-    console.log('❌ Suggestion: Add this origin to the allowed list or set USE_WILDCARD_CORS = true');
-  }
-  
-  // אם זה OPTIONS request (preflight)
-  if (req.method === 'OPTIONS') {
-    console.log('🌐 ===== Preflight Request =====');
-    console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
-    console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
-    console.log('🌐 Origin:', req.headers.origin);
-    console.log('🌐 Host:', req.headers.host);
-    console.log('🌐 User-Agent:', req.headers['user-agent']);
-    
-    // שליחת תשובה מיידית ל-preflight - לא מגדירים headers נוספים
-    // כי ה-cors() middleware כבר מטפל בזה
-    res.status(200).end();
-    return;
-  }
+  console.log('🌐 ===== Request =====');
+  console.log('🌐 Method:', req.method);
+  console.log('🌐 URL:', req.url);
+  console.log('🌐 Origin:', req.headers.origin);
+  console.log('🌐 User-Agent:', req.headers['user-agent']);
   
   next();
 });
@@ -559,18 +534,7 @@ const handleMulterError = (error, req, res, next) => {
 const projects = new Map();
 const separationProcesses = new Map();
 
-// טיפול ב-OPTIONS ממש לפני כל Route אחר
-// זה מבטיח שכל OPTIONS /api/... יחזיר 200 עם הכותרות הנכונות
-app.options('*', (req, res) => {
-  console.log('🌐 ===== OPTIONS Handler =====');
-  console.log('🌐 Request URL:', req.url);
-  console.log('🌐 Request Origin:', req.headers.origin);
-  console.log('🌐 Access-Control-Request-Method:', req.headers['access-control-request-method']);
-  console.log('🌐 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
-  
-  // ה-cors() middleware כבר מטפל בכותרות, אנחנו רק שולחים 200
-  res.status(200).end();
-});
+// ה-CORS middleware מטפל ב-OPTIONS אוטומטית - לא צריך handler נוסף
 
 // Audio separation endpoints
 app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
@@ -1052,7 +1016,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler - מוסיף CORS headers גם לתשובות 404
+// 404 handler
 app.use((req, res) => {
   console.log('❌ ===== 404 Not Found =====');
   console.log('❌ URL:', req.url);
