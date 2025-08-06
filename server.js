@@ -16,18 +16,40 @@ const PORT = process.env.PORT || 10000;
 // ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
 // זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
 
-// הגדרת CORS עם חבילת cors הסטנדרטית
-// אפשרות לחזור ל-origin: '*' זמנית אם יש בעיות
-const USE_WILDCARD_CORS = false; // שנה ל-true אם יש בעיות CORS
+// ⚠️ ריכוז CORS middleware ו-app.options לפני כל דבר אחר
+// זה מבטיח שכל preflight OPTIONS יקבל את ה-Access-Control-Allow-Origin header
 
+// הגדרת CORS עם תמיכה מלאה ב-Render Load Balancer
 const corsOptions = {
-  origin: USE_WILDCARD_CORS ? '*' : [
-    'https://mixifyai.k-rstudio.com',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:3000'
-  ],
+  origin: function (origin, callback) {
+    // תמיכה ב-Health Checks של Render (ללא Origin)
+    if (!origin) {
+      console.log('🔄 ===== Health Check Request (No Origin) =====');
+      return callback(null, true);
+    }
+    
+    // רשימת Origins מותרים
+    const allowedOrigins = [
+      'https://mixifyai.k-rstudio.com',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+      // Render domains
+      'https://kr-studio-completeai.onrender.com',
+      'https://kr-studio-completeai-backend.onrender.com'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ ===== Origin Allowed =====');
+      console.log('✅ Origin:', origin);
+      return callback(null, true);
+    } else {
+      console.log('❌ ===== Origin Blocked =====');
+      console.log('❌ Origin:', origin);
+      return callback(null, false);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
   allowedHeaders: [
     'Content-Type', 
@@ -36,16 +58,46 @@ const corsOptions = {
     'Origin', 
     'Accept',
     'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
+    'Access-Control-Request-Headers',
+    'User-Agent',
+    'X-Forwarded-For',
+    'X-Forwarded-Proto'
   ],
   optionsSuccessStatus: 200,
-  credentials: false, // לא יכול להיות true עם origin: '*'
-  preflightContinue: false, // מטפל ב-OPTIONS אוטומטית
+  credentials: false,
+  preflightContinue: true, // מאפשר לנו לטפל ב-OPTIONS ידנית
   maxAge: 86400 // Cache preflight requests for 24 hours
 };
 
-// הפעלת CORS לפני כל ה-routes - זה חייב להיות הראשון
+// ריכוז CORS middleware לפני כל דבר אחר
 app.use(cors(corsOptions));
+
+// ריכוז app.options('*', ...) לפני כל דבר אחר
+app.options('*', (req, res) => {
+  console.log('🔄 ===== Preflight OPTIONS Request =====');
+  console.log('🔄 Method:', req.method);
+  console.log('🔄 URL:', req.url);
+  console.log('🔄 Origin:', req.headers.origin || 'No Origin (Health Check)');
+  console.log('🔄 Access-Control-Request-Method:', req.headers['access-control-request-method']);
+  console.log('🔄 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
+  
+  // הגדרת CORS headers ידנית - תמיכה ב-Health Checks ללא Origin
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
+  res.header('Access-Control-Max-Age', '86400'); // 24 שעות
+  res.header('Access-Control-Allow-Credentials', 'false');
+  
+  console.log('🔄 Preflight headers set for origin:', origin);
+  console.log('🔄 Sending 200 OK for preflight');
+  
+  // שליחת תשובה מיידית ל-preflight
+  return res.status(200).end();
+});
+
+// Middleware ידני לטיפול ב-preflight requests - הוסר כפילות
+// OPTIONS requests מטופלים ב-middleware הכללי למעלה
 
 // Logging middleware for CORS requests - מופעל אחרי CORS middleware
 // הוסר כפילות - יש middleware logging מורכב יותר למטה
@@ -962,14 +1014,23 @@ async function createStemsFromDemucs(fileId, outputDir) {
 
 
 
-// Health check endpoint
+// Health check endpoint - מעודכן לתמיכה ב-Render Load Balancer
 app.get('/api/health', (req, res) => {
   console.log('🏥 ===== Health check =====');
   console.log('🏥 Headers:', req.headers);
-  console.log('🏥 Origin:', req.headers.origin);
+  console.log('🏥 Origin:', req.headers.origin || 'No Origin (Render Health Check)');
+  console.log('🏥 User-Agent:', req.headers['user-agent']);
+  console.log('🏥 X-Forwarded-For:', req.headers['x-forwarded-for']);
   console.log('🏥 Server status: Running');
   console.log('💾 Memory usage:', process.memoryUsage());
   console.log('⏰ Uptime:', process.uptime());
+  
+  // הוספת CORS headers לתשובה
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
+  res.header('Access-Control-Allow-Credentials', 'false');
   
   const response = { 
     status: 'healthy', 
@@ -978,12 +1039,18 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0',
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    render: {
+      healthCheck: true,
+      loadBalancer: 'Render',
+      origin: origin
+    }
   };
   
   console.log('🏥 Health response:', response);
+  console.log('🏥 CORS headers set for origin:', origin);
   
-  res.json(response);
+  res.status(200).json(response);
 });
 
 // Serve React app
