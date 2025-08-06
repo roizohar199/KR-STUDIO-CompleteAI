@@ -13,9 +13,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// CORS middleware ידני - מופיע ממש לפני כל ה־routes
+// CORS middleware כללי - מופיע לפני כל ה־routes
 app.use((req, res, next) => {
-  console.log(`🌐 CORS Request from ${req.headers.origin}`);
+  console.log(`🌐 CORS Request from ${req.headers.origin} to ${req.path}`);
   
   const allowedOrigins = [
     'https://mixifyai.k-rstudio.com',
@@ -519,6 +519,15 @@ const handleMulterError = (error, req, res, next) => {
   console.error('❌ Stack:', error.stack);
   console.error('❌ Request headers:', req.headers);
   
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ 
@@ -571,6 +580,14 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
     
     if (!req.file) {
       console.log('❌ לא נבחר קובץ');
+      // הגדרת CORS headers מחדש לפני התשובה
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       return res.status(400).json({ error: 'לא נבחר קובץ' });
     }
 
@@ -581,6 +598,14 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
       console.log('✅ תיקיית uploads נוצרה/קיימת:', uploadDir);
     } catch (dirError) {
       console.error('❌ שגיאה ביצירת תיקיית uploads:', dirError);
+      // הגדרת CORS headers מחדש לפני התשובה
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       return res.status(500).json({ error: 'שגיאה ביצירת תיקיית העלאות' });
     }
 
@@ -613,11 +638,30 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
     console.log('📁 תשובת העלאה:', response);
     console.log('✅ ===== העלאה הושלמה בהצלחה =====');
     
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
     res.json(response);
   } catch (error) {
     console.error('❌ ===== שגיאה בהעלאה =====');
     console.error('❌ פרטי השגיאה:', error);
     console.error('❌ Stack trace:', error.stack);
+    
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
     res.status(500).json({ error: error.message });
   }
 });
@@ -631,11 +675,22 @@ app.post('/api/separate', async (req, res) => {
     console.log('🎵 Body:', req.body);
     console.log('🎵 fileId:', fileId);
     console.log('🎵 שם פרויקט:', projectName);
+    console.log('🎵 Content-Type:', req.headers['content-type']);
+    console.log('🎵 Content-Length:', req.headers['content-length']);
+    console.log('🎵 Origin:', req.headers.origin);
     console.log('🎵 זמן התחלה:', new Date().toLocaleTimeString());
     
     if (!fileId || !projects.has(fileId)) {
       console.log('❌ קובץ לא נמצא:', fileId);
       console.log('❌ פרויקטים קיימים:', Array.from(projects.keys()));
+      // הגדרת CORS headers מחדש לפני התשובה
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       return res.status(404).json({ error: 'קובץ לא נמצא' });
     }
 
@@ -762,18 +817,48 @@ app.post('/api/separate', async (req, res) => {
     
     console.log('✅ הפרדה החלה בהצלחה');
     console.log('✅ ===== תהליך הפרדה התחיל =====');
+    console.log('✅ זמן סיום:', new Date().toLocaleTimeString());
+    console.log('✅ שולח תשובה למשתמש...');
     
-    res.json({ 
+    const response = { 
       success: true, 
       projectId: fileId,
       message: 'הפרדה החלה'
-    });
+    };
+    
+    console.log('✅ תשובה נשלחת:', response);
+    
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    res.json(response);
     
   } catch (error) {
     console.error('❌ ===== שגיאה בהפרדה =====');
     console.error('❌ פרטי השגיאה:', error);
     console.error('❌ Stack trace:', error.stack);
-    res.status(500).json({ error: error.message });
+    console.error('❌ זמן שגיאה:', new Date().toLocaleTimeString());
+    console.error('❌ שולח תשובת שגיאה למשתמש...');
+    
+    const errorResponse = { error: error.message };
+    console.error('❌ תשובת שגיאה נשלחת:', errorResponse);
+    
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    res.status(500).json(errorResponse);
   }
 });
 
@@ -790,6 +875,14 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   if (!project) {
     console.log('❌ פרויקט לא נמצא:', fileId);
     console.log('❌ פרויקטים קיימים:', Array.from(projects.keys()));
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
@@ -802,6 +895,15 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   
   console.log('📊 תשובת התקדמות:', response);
   console.log('📊 ===== תשובת התקדמות נשלחה =====');
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   res.json(response);
 });
@@ -821,6 +923,16 @@ app.get('/api/projects', (req, res) => {
   }));
   
   console.log('📋 תשובת פרויקטים:', projectsList);
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   res.json(projectsList);
 });
 
@@ -835,10 +947,28 @@ app.get('/api/projects/:id', (req, res) => {
   
   if (!project) {
     console.log('❌ פרויקט לא נמצא:', id);
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
   console.log('✅ פרויקט נמצא ונשלח');
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   res.json(project);
 });
 
@@ -854,6 +984,14 @@ app.get('/api/projects/:id/download/:stem', (req, res) => {
   
   if (!project || !project.stemsDir) {
     console.log('❌ פרויקט או תיקיית stems לא נמצאו');
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(404).json({ error: 'קובץ לא נמצא' });
   }
   
@@ -862,10 +1000,28 @@ app.get('/api/projects/:id/download/:stem', (req, res) => {
   
   if (!fs.existsSync(filePath)) {
     console.log('❌ קובץ לא קיים:', filePath);
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(404).json({ error: 'קובץ לא נמצא' });
   }
   
   console.log('✅ קובץ נמצא ונשלח להורדה');
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   res.download(filePath);
 });
 
@@ -880,6 +1036,14 @@ app.delete('/api/projects/:id', async (req, res) => {
   
   if (!project) {
     console.log('❌ פרויקט לא נמצא:', id);
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
@@ -905,9 +1069,28 @@ app.delete('/api/projects/:id', async (req, res) => {
     
     projects.delete(id);
     
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
     res.json({ success: true });
   } catch (error) {
     console.error('שגיאה במחיקת פרויקט:', error);
+    
+    // הגדרת CORS headers מחדש לפני התשובה
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
     res.status(500).json({ error: error.message });
   }
 });
@@ -985,6 +1168,16 @@ app.get('/api/health', (req, res) => {
   };
   
   console.log('🏥 Health response:', response);
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   res.json(response);
 });
 
@@ -1006,6 +1199,15 @@ app.use((error, req, res, next) => {
   console.error('❌ Request URL:', req.url);
   console.error('❌ Request method:', req.method);
   console.error('❌ Request headers:', req.headers);
+  
+  // הגדרת CORS headers מחדש לפני התשובה
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   res.status(500).json({ 
     error: 'Internal server error',

@@ -23,23 +23,34 @@ const apiCall = async (endpoint, options = {}) => {
     };
     
     console.log('[API] fetch options:', fetchOptions);
+    console.log('[API] method:', fetchOptions.method);
+    console.log('[API] headers:', fetchOptions.headers);
+    console.log('[API] body:', fetchOptions.body);
     
     const response = await fetch(url, fetchOptions);
     
     console.log('[API] response status:', response.status);
+    console.log('[API] response statusText:', response.statusText);
     console.log('[API] response headers:', response.headers);
+    console.log('[API] response ok:', response.ok);
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Network error' }));
       console.error('[API] שגיאת fetch:', url, error);
+      console.error('[API] response status:', response.status);
+      console.error('[API] response statusText:', response.statusText);
       throw new Error(error.error || `HTTP ${response.status}`);
     }
     
     const data = await response.json();
     console.log('[API] תשובה מהשרת:', endpoint, data);
+    console.log('[API] סוג תשובה:', typeof data);
+    console.log('[API] האם יש success:', data && data.success);
     return data;
   } catch (err) {
     console.error('[API] שגיאה כללית ב-apiCall:', endpoint, err, err?.stack);
+    console.error('[API] שם השגיאה:', err.name);
+    console.error('[API] הודעת השגיאה:', err.message);
     
     // טיפול בשגיאות ספציפיות
     if (err.name === 'AbortError') {
@@ -179,6 +190,10 @@ export const separateAudio = async (fileId, projectName) => {
     console.log('🎵 request body:', requestBody);
     
     console.log('📤 שולח בקשת הפרדה לשרת...');
+    console.log('📤 URL:', `${API_BASE_URL}/separate`);
+    console.log('📤 method: POST');
+    console.log('📤 headers: Content-Type: application/json');
+    
     const result = await apiCall('/separate', {
       method: 'POST',
       body: JSON.stringify(requestBody),
@@ -186,6 +201,8 @@ export const separateAudio = async (fileId, projectName) => {
     
     console.log('✅ הפרדה החלה בהצלחה!');
     console.log('✅ תוצאת הפרדה:', result);
+    console.log('✅ סוג תוצאה:', typeof result);
+    console.log('✅ האם יש success:', result && result.success);
     console.log('✅ ===== הפרדה הושלמה בהצלחה =====');
     return result;
   } catch (error) {
@@ -194,6 +211,7 @@ export const separateAudio = async (fileId, projectName) => {
     console.error('❌ שם פרויקט:', projectName);
     console.error('❌ פרטי השגיאה:', error);
     console.error('❌ הודעת שגיאה:', error.message);
+    console.error('❌ Stack trace:', error.stack);
     throw error;
   }
 };

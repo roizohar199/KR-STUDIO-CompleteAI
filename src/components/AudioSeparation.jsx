@@ -195,32 +195,41 @@ const AudioSeparation = () => {
       
       // התחלת הפרדה
       console.log('📤 שולח בקשת הפרדה לשרת...');
-      const separationResult = await separateAudio(result.file.id, autoProjectName);
-      
-      console.log('🎵 תוצאת הפרדה מהשרת:', separationResult);
-      
-      if (separationResult.success) {
-        console.log('✅ הפרדה החלה בהצלחה!');
-        console.log('🔄 מתחיל polling להתקדמות...');
+      try {
+        const separationResult = await separateAudio(result.file.id, autoProjectName);
         
-        // התחלת polling להתקדמות
-        startProgressPolling(result.file.id);
+        console.log('🎵 תוצאת הפרדה מהשרת:', separationResult);
         
-        console.log('📱 מעבר למסך הסטודיו...');
-        // מעבר למסך הסטודיו
-        setCurrentView('studio');
-        setShowUploadForm(false);
-        setUploadedFile(null);
-        setProjectName('');
-        
-        console.log('📋 טוען פרויקטים מחדש...');
-        // טעינה מחדש של פרויקטים
-        await loadProjects();
-        
-        console.log('✅ ===== תהליך העלאה והפרדה הושלם בהצלחה =====');
-      } else {
-        console.error('❌ הפרדה נכשלה - תשובה לא תקינה מהשרת');
-        throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
+        if (separationResult && separationResult.success) {
+          console.log('✅ הפרדה החלה בהצלחה!');
+          console.log('🔄 מתחיל polling להתקדמות...');
+          
+          // התחלת polling להתקדמות
+          startProgressPolling(result.file.id);
+          
+          console.log('📱 מעבר למסך הסטודיו...');
+          // מעבר למסך הסטודיו
+          setCurrentView('studio');
+          setShowUploadForm(false);
+          setUploadedFile(null);
+          setProjectName('');
+          
+          console.log('📋 טוען פרויקטים מחדש...');
+          // טעינה מחדש של פרויקטים
+          await loadProjects();
+          
+          console.log('✅ ===== תהליך העלאה והפרדה הושלם בהצלחה =====');
+        } else {
+          console.error('❌ הפרדה נכשלה - תשובה לא תקינה מהשרת');
+          console.error('❌ separationResult:', separationResult);
+          throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
+        }
+      } catch (separationError) {
+        console.error('❌ ===== שגיאה בהפרדה =====');
+        console.error('❌ פרטי השגיאה:', separationError);
+        console.error('❌ הודעת שגיאה:', separationError.message);
+        console.error('❌ Stack trace:', separationError.stack);
+        throw separationError;
       }
       
     } catch (error) {
