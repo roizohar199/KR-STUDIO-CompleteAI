@@ -24,7 +24,6 @@ const corsOptions = {
   origin: function (origin, callback) {
     // תמיכה ב-Health Checks של Render (ללא Origin)
     if (!origin) {
-      console.log('🔄 ===== Health Check Request (No Origin) =====');
       return callback(null, true);
     }
     
@@ -41,12 +40,8 @@ const corsOptions = {
     ];
     
     if (allowedOrigins.includes(origin)) {
-      console.log('✅ ===== Origin Allowed =====');
-      console.log('✅ Origin:', origin);
       return callback(null, true);
     } else {
-      console.log('❌ ===== Origin Blocked =====');
-      console.log('❌ Origin:', origin);
       return callback(null, false);
     }
   },
@@ -74,13 +69,6 @@ app.use(cors(corsOptions));
 
 // ריכוז app.options('*', ...) לפני כל דבר אחר
 app.options('*', (req, res) => {
-  console.log('🔄 ===== Preflight OPTIONS Request =====');
-  console.log('🔄 Method:', req.method);
-  console.log('🔄 URL:', req.url);
-  console.log('🔄 Origin:', req.headers.origin || 'No Origin (Health Check)');
-  console.log('🔄 Access-Control-Request-Method:', req.headers['access-control-request-method']);
-  console.log('🔄 Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
-  
   // הגדרת CORS headers ידנית - תמיכה ב-Health Checks ללא Origin
   const origin = req.headers.origin || '*';
   res.header('Access-Control-Allow-Origin', origin);
@@ -88,9 +76,6 @@ app.options('*', (req, res) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
   res.header('Access-Control-Max-Age', '86400'); // 24 שעות
   res.header('Access-Control-Allow-Credentials', 'false');
-  
-  console.log('🔄 Preflight headers set for origin:', origin);
-  console.log('🔄 Sending 200 OK for preflight');
   
   // שליחת תשובה מיידית ל-preflight
   return res.status(200).end();
@@ -199,237 +184,12 @@ app.use((req, res, next) => {
     console.log(`🌐 Status: ${res.statusCode}`);
   });
   
-  // Log request timeout
-  req.on('timeout', () => {
-    console.log(`🌐 ===== Request Timeout =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request error
+    // Log request error only
   req.on('error', (error) => {
     console.error(`🌐 ===== Request Error =====`);
     console.error(`🌐 Error:`, error);
     console.error(`🌐 URL: ${req.url}`);
   });
-  
-  // Log request close
-  req.on('close', () => {
-    console.log(`🌐 ===== Request Closed =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request end
-  req.on('end', () => {
-    console.log(`🌐 ===== Request Ended =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request data
-  let dataChunks = [];
-  req.on('data', (chunk) => {
-    dataChunks.push(chunk);
-    console.log(`🌐 ===== Request Data Chunk =====`);
-    console.log(`🌐 Chunk size: ${chunk.length} bytes`);
-    console.log(`🌐 Total data size: ${dataChunks.reduce((acc, chunk) => acc + chunk.length, 0)} bytes`);
-  });
-  
-  // Log request readable
-  req.on('readable', () => {
-    console.log(`🌐 ===== Request Readable =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request pause
-  req.on('pause', () => {
-    console.log(`🌐 ===== Request Paused =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request resume
-  req.on('resume', () => {
-    console.log(`🌐 ===== Request Resumed =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request drain
-  req.on('drain', () => {
-    console.log(`🌐 ===== Request Drained =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request pipe
-  req.on('pipe', (src) => {
-    console.log(`🌐 ===== Request Piped =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Source:`, src);
-  });
-  
-  // Log request unpipe
-  req.on('unpipe', (src) => {
-    console.log(`🌐 ===== Request Unpiped =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Source:`, src);
-  });
-  
-  // Log request unshift
-  req.on('unshift', (chunk) => {
-    console.log(`🌐 ===== Request Unshifted =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Chunk size: ${chunk.length} bytes`);
-  });
-  
-  // Log request wrap
-  req.on('wrap', (stream) => {
-    console.log(`🌐 ===== Request Wrapped =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Stream:`, stream);
-  });
-  
-  // Log request destroy
-  req.on('destroy', () => {
-    console.log(`🌐 ===== Request Destroyed =====`);
-    console.log(`🌐 URL: ${req.url}`);
-  });
-  
-  // Log request readableLength
-  if (req.readableLength !== undefined) {
-    console.log(`🌐 ===== Request Readable Length =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable length: ${req.readableLength} bytes`);
-  }
-  
-  // Log request readableHighWaterMark
-  if (req.readableHighWaterMark !== undefined) {
-    console.log(`🌐 ===== Request Readable High Water Mark =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable high water mark: ${req.readableHighWaterMark} bytes`);
-  }
-  
-  // Log request readableObjectMode
-  if (req.readableObjectMode !== undefined) {
-    console.log(`🌐 ===== Request Readable Object Mode =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable object mode: ${req.readableObjectMode}`);
-  }
-  
-  // Log request readableFlowing
-  if (req.readableFlowing !== undefined) {
-    console.log(`🌐 ===== Request Readable Flowing =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable flowing: ${req.readableFlowing}`);
-  }
-  
-  // Log request readableEncoding
-  if (req.readableEncoding !== undefined) {
-    console.log(`🌐 ===== Request Readable Encoding =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable encoding: ${req.readableEncoding}`);
-  }
-  
-  // Log request readableEnded
-  if (req.readableEnded !== undefined) {
-    console.log(`🌐 ===== Request Readable Ended =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable ended: ${req.readableEnded}`);
-  }
-  
-  // Log request readableDestroyed
-  if (req.readableDestroyed !== undefined) {
-    console.log(`🌐 ===== Request Readable Destroyed =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable destroyed: ${req.readableDestroyed}`);
-  }
-  
-  // Log request readable
-  if (req.readable !== undefined) {
-    console.log(`🌐 ===== Request Readable =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Readable: ${req.readable}`);
-  }
-  
-  // Log request destroyed
-  if (req.destroyed !== undefined) {
-    console.log(`🌐 ===== Request Destroyed =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Destroyed: ${req.destroyed}`);
-  }
-  
-  // Log request corked
-  if (req.corked !== undefined) {
-    console.log(`🌐 ===== Request Corked =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Corked: ${req.corked}`);
-  }
-  
-  // Log request cork
-  if (req.cork !== undefined) {
-    console.log(`🌐 ===== Request Cork =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Cork: ${req.cork}`);
-  }
-  
-  // Log request uncork
-  if (req.uncork !== undefined) {
-    console.log(`🌐 ===== Request Uncork =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Uncork: ${req.uncork}`);
-  }
-  
-  // Log request writable
-  if (req.writable !== undefined) {
-    console.log(`🌐 ===== Request Writable =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable: ${req.writable}`);
-  }
-  
-  // Log request writableLength
-  if (req.writableLength !== undefined) {
-    console.log(`🌐 ===== Request Writable Length =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable length: ${req.writableLength} bytes`);
-  }
-  
-  // Log request writableHighWaterMark
-  if (req.writableHighWaterMark !== undefined) {
-    console.log(`🌐 ===== Request Writable High Water Mark =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable high water mark: ${req.writableHighWaterMark} bytes`);
-  }
-  
-  // Log request writableObjectMode
-  if (req.writableObjectMode !== undefined) {
-    console.log(`🌐 ===== Request Writable Object Mode =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable object mode: ${req.writableObjectMode}`);
-  }
-  
-  // Log request writableCorked
-  if (req.writableCorked !== undefined) {
-    console.log(`🌐 ===== Request Writable Corked =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable corked: ${req.writableCorked}`);
-  }
-  
-  // Log request writableEnded
-  if (req.writableEnded !== undefined) {
-    console.log(`🌐 ===== Request Writable Ended =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable ended: ${req.writableEnded}`);
-  }
-  
-  // Log request writableDestroyed
-  if (req.writableDestroyed !== undefined) {
-    console.log(`🌐 ===== Request Writable Destroyed =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable destroyed: ${req.writableDestroyed}`);
-  }
-  
-  // Log request writableFinished
-  if (req.writableFinished !== undefined) {
-    console.log(`🌐 ===== Request Writable Finished =====`);
-    console.log(`🌐 URL: ${req.url}`);
-    console.log(`🌐 Writable finished: ${req.writableFinished}`);
-  }
   
   next();
 });
@@ -438,17 +198,10 @@ app.use((req, res, next) => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'uploads');
-    console.log('📁 ===== Multer Destination =====');
-    console.log('📁 Upload directory:', uploadDir);
-    console.log('📁 File:', file.originalname);
-    console.log('📁 MIME type:', file.mimetype);
     fs.ensureDirSync(uploadDir);
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    console.log('📁 ===== Multer Filename =====');
-    console.log('📁 Original filename:', file.originalname);
-    
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const extension = path.extname(file.originalname).toLowerCase();
     
@@ -459,9 +212,6 @@ const storage = multer.diskStorage({
       .substring(0, 50); // הגבלת אורך
     
     const filename = `audio_${cleanName}_${uniqueSuffix}${extension}`;
-    console.log('📁 New filename:', filename);
-    console.log('📁 Extension:', extension);
-    console.log('📁 Clean name:', cleanName);
     cb(null, filename);
   }
 });
@@ -469,11 +219,6 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    console.log('🔍 ===== Multer FileFilter =====');
-    console.log('🔍 File:', file.originalname);
-    console.log('🔍 MIME type:', file.mimetype);
-    console.log('🔍 Size:', file.size);
-    
     // בדיקה יותר גמישה של MIME types
     const allowedMimeTypes = [
       'audio/mpeg',
@@ -494,25 +239,17 @@ const upload = multer({
     const extname = allowedExtensions.test(file.originalname);
     const mimetype = allowedMimeTypes.includes(file.mimetype);
     
-    console.log('🔍 Extension check:', extname, 'for:', file.originalname);
-    console.log('🔍 MIME type check:', file.mimetype, '->', mimetype);
-    
     // אם יש MIME type תקין או סיומת תקינה - קבל את הקובץ
     if (mimetype || extname) {
-      console.log('✅ Valid audio file:', file.originalname);
       return cb(null, true);
     } else {
       // בדיקה נוספת - אולי הקובץ תקין אבל עם תווים מיוחדים
       const cleanName = file.originalname.replace(/[^\w\s-]/g, '');
       const cleanExtname = allowedExtensions.test(cleanName);
       
-      console.log('🔍 Additional check with clean name:', cleanName, '->', cleanExtname);
-      
       if (cleanExtname) {
-        console.log('✅ Valid audio file (after cleaning):', file.originalname);
         return cb(null, true);
       } else {
-        console.log('❌ Unsupported file:', file.originalname, file.mimetype);
         cb(new Error(`רק קבצי אודיו נתמכים. קובץ: ${file.originalname}, MIME: ${file.mimetype}`));
       }
     }
@@ -524,20 +261,12 @@ const upload = multer({
   }
 });
 
-console.log('📁 ===== Multer Configuration =====');
-console.log('📁 File size limit: 200MB');
-console.log('📁 Files limit: 1');
-console.log('📁 Field size limit: 10MB');
+
 
 // Middleware לטיפול בשגיאות Multer
 const handleMulterError = (error, req, res, next) => {
   console.error('❌ ===== שגיאת Multer =====');
-  console.error('❌ Error:', error);
-  console.error('❌ Code:', error.code);
-  console.error('❌ Field:', error.field);
-  console.error('❌ Message:', error.message);
-  console.error('❌ Stack:', error.stack);
-  console.error('❌ Request headers:', req.headers);
+  console.error('❌ Error:', error.message);
   
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -583,15 +312,7 @@ const separationProcesses = new Map();
 // Audio separation endpoints
 app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, res) => {
   try {
-    console.log('📁 ===== התחלת העלאה =====');
-    console.log('📁 Headers:', req.headers);
-    console.log('📁 Origin:', req.headers.origin);
-    console.log('📁 קובץ:', req.file ? req.file.originalname : 'לא קובץ');
-    console.log('📁 גודל:', req.file ? req.file.size : 'לא ידוע');
-    console.log('📁 סוג:', req.file ? req.file.mimetype : 'לא ידוע');
-    
     if (!req.file) {
-      console.log('❌ לא נבחר קובץ');
       return res.status(400).json({ error: 'לא נבחר קובץ' });
     }
 
@@ -599,7 +320,6 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
     const uploadDir = path.join(__dirname, 'uploads');
     try {
       await fs.ensureDir(uploadDir);
-      console.log('✅ תיקיית uploads נוצרה/קיימת:', uploadDir);
     } catch (dirError) {
       console.error('❌ שגיאה ביצירת תיקיית uploads:', dirError);
       return res.status(500).json({ error: 'שגיאה ביצירת תיקיית העלאות' });
@@ -615,13 +335,6 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
     };
 
     projects.set(fileId, projectData);
-
-    console.log(`✅ קובץ הועלה בהצלחה!`);
-    console.log(`📁 שם מקורי: ${req.file.originalname}`);
-    console.log(`📁 fileId: ${fileId}`);
-    console.log(`📁 נתיב קובץ: ${req.file.path}`);
-    console.log(`📁 גודל קובץ: ${req.file.size} bytes`);
-    console.log(`📁 פרויקט נוצר:`, projectData);
     
     const response = { 
       success: true,
@@ -634,15 +347,11 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
       nextStep: 'separation'
     };
     
-    console.log('📁 תשובת העלאה:', response);
-    console.log('✅ ===== העלאה הושלמה בהצלחה =====');
-    
     // שליחת תשובה מיידית עם CORS headers
     res.status(200).json(response);
   } catch (error) {
     console.error('❌ ===== שגיאה בהעלאה =====');
     console.error('❌ פרטי השגיאה:', error);
-    console.error('❌ Stack trace:', error.stack);
     
     res.status(500).json({ error: error.message });
   }
@@ -650,36 +359,27 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
 
 app.post('/api/separate', async (req, res) => {
   try {
-    console.log('🎵 ===== התחלת הפרדה =====');
-    console.log('🎵 זמן בקשת הפרדה:', new Date().toLocaleTimeString());
-    console.log('🎵 Headers:', req.headers);
-    console.log('🎵 Body:', req.body);
-    console.log('🎵 Content-Type:', req.headers['content-type']);
-    console.log('🎵 Content-Length:', req.headers['content-length']);
-    console.log('🎵 Origin:', req.headers.origin);
-    console.log('🎵 Method:', req.method);
-    console.log('🎵 URL:', req.url);
-    
     const { fileId, projectName } = req.body;
+    
+    console.log('🎵 ===== התחלת הפרדה =====');
     console.log('🎵 fileId:', fileId);
-    console.log('🎵 שם פרויקט:', projectName);
-    console.log('🎵 סוג fileId:', typeof fileId);
-    console.log('🎵 סוג projectName:', typeof projectName);
+    console.log('🎵 projectName:', projectName);
+    console.log('🎵 זמן התחלה:', new Date().toLocaleTimeString());
     
     if (!fileId || !projects.has(fileId)) {
       console.log('❌ קובץ לא נמצא:', fileId);
-      console.log('❌ פרויקטים קיימים:', Array.from(projects.keys()));
       return res.status(404).json({ error: 'קובץ לא נמצא' });
     }
 
     const project = projects.get(fileId);
-    console.log('📁 פרויקט נמצא:', project);
-    
     const outputDir = path.join(__dirname, 'separated', fileId);
+
+    console.log('🎵 פרויקט נמצא:', project);
+    console.log('🎵 תיקיית פלט:', outputDir);
 
     // יצירת תיקיית פלט
     await fs.ensureDir(outputDir);
-    console.log('📁 תיקיית פלט נוצרה:', outputDir);
+    console.log('✅ תיקיית פלט נוצרה');
 
     // עדכון סטטוס הפרויקט
     project.status = 'processing';
@@ -688,7 +388,8 @@ app.post('/api/separate', async (req, res) => {
     project.progress = 0;
     project.startedAt = new Date().toISOString();
 
-    console.log('🎵 מתחיל Demucs עם נתיב:', project.originalPath);
+    console.log('🎵 מתחיל Demucs...');
+    console.log('🎵 נתיב קובץ:', project.originalPath);
     console.log('🎵 תיקיית פלט:', outputDir);
 
     // הפעלת Demucs
@@ -705,12 +406,11 @@ app.post('/api/separate', async (req, res) => {
       { cwd: __dirname }
     );
 
-    console.log('🎵 תהליך Demucs התחיל');
+    console.log('✅ תהליך Demucs התחיל');
     console.log('🎵 PID:', demucsProcess.pid);
 
     // מעקב אחר התקדמות אמיתית
     let progress = 0;
-    let processingStage = 'initializing';
     
     const progressInterval = setInterval(() => {
       // התקדמות איטית יותר וריאליסטית
@@ -719,7 +419,7 @@ app.post('/api/separate', async (req, res) => {
         progress += increment;
         project.progress = Math.min(progress, 85);
         
-        console.log('📊 התקדמות:', project.progress.toFixed(1) + '%');
+        console.log('📊 התקדמות מעודכנת:', project.progress + '%');
         
         // הודעות מפורטות לפי התקדמות
         if (progress < 15) {
@@ -738,65 +438,67 @@ app.post('/api/separate', async (req, res) => {
 
     demucsProcess.stdout.on('data', (data) => {
       const output = data.toString();
-      console.log(`🎵 Demucs stdout: ${output}`);
+      console.log('🎵 Demucs stdout:', output);
       
       // מעקב אחר התקדמות אמיתית לפי הפלט של Demucs
       if (output.includes('Loading model')) {
         project.message = 'טוען מודל AI...';
         project.progress = Math.max(project.progress, 10);
+        console.log('📊 טוען מודל AI - התקדמות:', project.progress + '%');
       } else if (output.includes('Separating')) {
         project.message = 'מפריד ערוצים...';
         project.progress = Math.max(project.progress, 30);
+        console.log('📊 מפריד ערוצים - התקדמות:', project.progress + '%');
       } else if (output.includes('Saving')) {
         project.message = 'שומר קבצים...';
         project.progress = Math.max(project.progress, 70);
+        console.log('📊 שומר קבצים - התקדמות:', project.progress + '%');
       } else if (output.includes('Done')) {
         project.message = 'מסיים עיבוד...';
         project.progress = Math.max(project.progress, 90);
+        console.log('📊 מסיים עיבוד - התקדמות:', project.progress + '%');
       }
     });
 
     demucsProcess.stderr.on('data', (data) => {
       const error = data.toString();
-      console.log(`⚠️ Demucs stderr: ${error}`);
+      console.log('❌ Demucs stderr:', error);
       
       // עדכון הודעה אם יש שגיאה
       if (error.includes('CUDA') || error.includes('GPU')) {
         project.message = 'משתמש ב-CPU לעיבוד...';
+        console.log('📊 משתמש ב-CPU לעיבוד');
       }
     });
 
     demucsProcess.on('close', async (code) => {
+      console.log('🎵 Demucs process closed with code:', code);
       clearInterval(progressInterval);
       
-      console.log('🎵 Demucs הסתיים עם קוד:', code);
-      console.log('🎵 זמן סיום:', new Date().toLocaleTimeString());
-      
       if (code === 0) {
+        console.log('✅ Demucs הושלם בהצלחה');
         project.status = 'completed';
         project.progress = 100;
         project.completedAt = new Date().toISOString();
         
-        console.log('✅ Demucs הושלם בהצלחה, יוצר STEMS...');
         // יצירת קבצי STEMS
+        console.log('🎵 יוצר קבצי STEMS...');
         await createStemsFromDemucs(fileId, outputDir);
-        
-        console.log(`✅ הפרדה הושלמה בהצלחה: ${fileId}`);
-        console.log('✅ ===== הפרדה הושלמה בהצלחה =====');
+        console.log('✅ קבצי STEMS נוצרו');
       } else {
+        console.error('❌ Demucs נכשל עם קוד:', code);
         project.status = 'failed';
         project.error = `Demucs failed with code ${code}`;
-        console.error(`❌ הפרדה נכשלה: ${fileId}`);
-        console.error('❌ ===== הפרדה נכשלה =====');
       }
     });
 
+    demucsProcess.on('error', (error) => {
+      console.error('❌ Demucs process error:', error);
+      project.status = 'failed';
+      project.error = `Demucs process error: ${error.message}`;
+    });
+
     separationProcesses.set(fileId, demucsProcess);
-    
-    console.log('✅ הפרדה החלה בהצלחה');
-    console.log('✅ ===== תהליך הפרדה התחיל =====');
-    console.log('✅ זמן סיום:', new Date().toLocaleTimeString());
-    console.log('✅ שולח תשובה למשתמש...');
     
     const response = { 
       success: true, 
@@ -838,11 +540,31 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
     return res.status(404).json({ error: 'פרויקט לא נמצא' });
   }
   
+  // בדיקה אם התהליך עדיין רץ
+  const process = separationProcesses.get(fileId);
+  if (process) {
+    console.log('🔄 תהליך Demucs עדיין רץ, PID:', process.pid);
+    
+    // בדיקה אם התהליך עדיין חי
+    try {
+      process.kill(0); // בדיקה אם התהליך חי (לא הורג אותו)
+      console.log('✅ תהליך Demucs חי');
+    } catch (error) {
+      console.log('❌ תהליך Demucs מת:', error.message);
+      project.status = 'failed';
+      project.error = 'תהליך Demucs נעצר';
+    }
+  } else {
+    console.log('❌ תהליך Demucs לא נמצא');
+  }
+  
   const response = {
     progress: project.progress || 0,
     status: project.status,
     error: project.error,
-    message: project.message || 'מעבד...'
+    message: project.message || 'מעבד...',
+    startedAt: project.startedAt,
+    completedAt: project.completedAt
   };
   
   console.log('📊 תשובת התקדמות:', response);
@@ -1016,15 +738,6 @@ async function createStemsFromDemucs(fileId, outputDir) {
 
 // Health check endpoint - מעודכן לתמיכה ב-Render Load Balancer
 app.get('/api/health', (req, res) => {
-  console.log('🏥 ===== Health check =====');
-  console.log('🏥 Headers:', req.headers);
-  console.log('🏥 Origin:', req.headers.origin || 'No Origin (Render Health Check)');
-  console.log('🏥 User-Agent:', req.headers['user-agent']);
-  console.log('🏥 X-Forwarded-For:', req.headers['x-forwarded-for']);
-  console.log('🏥 Server status: Running');
-  console.log('💾 Memory usage:', process.memoryUsage());
-  console.log('⏰ Uptime:', process.uptime());
-  
   // הוספת CORS headers לתשובה
   const origin = req.headers.origin || '*';
   res.header('Access-Control-Allow-Origin', origin);
@@ -1047,10 +760,77 @@ app.get('/api/health', (req, res) => {
     }
   };
   
-  console.log('🏥 Health response:', response);
-  console.log('🏥 CORS headers set for origin:', origin);
-  
   res.status(200).json(response);
+});
+
+// בדיקת Demucs
+app.get('/api/test-demucs', async (req, res) => {
+  try {
+    console.log('🔍 ===== בדיקת Demucs =====');
+    
+    // בדיקה אם Python מותקן
+    const pythonCheck = spawn('python', ['--version']);
+    let pythonVersion = '';
+    
+    pythonCheck.stdout.on('data', (data) => {
+      pythonVersion = data.toString().trim();
+      console.log('🐍 Python version:', pythonVersion);
+    });
+    
+    await new Promise((resolve, reject) => {
+      pythonCheck.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error('Python לא מותקן'));
+        }
+      });
+    });
+    
+    // בדיקה אם Demucs מותקן
+    const demucsCheck = spawn('python', ['-m', 'demucs', '--help']);
+    let demucsAvailable = false;
+    
+    demucsCheck.stdout.on('data', (data) => {
+      console.log('🎵 Demucs help:', data.toString());
+      demucsAvailable = true;
+    });
+    
+    demucsCheck.stderr.on('data', (data) => {
+      console.log('❌ Demucs error:', data.toString());
+    });
+    
+    await new Promise((resolve, reject) => {
+      demucsCheck.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error('Demucs לא מותקן'));
+        }
+      });
+    });
+    
+    const response = {
+      success: true,
+      python: pythonVersion,
+      demucs: demucsAvailable ? 'installed' : 'not installed',
+      message: 'Demucs זמין לשימוש'
+    };
+    
+    console.log('✅ Demucs check successful:', response);
+    res.json(response);
+    
+  } catch (error) {
+    console.error('❌ Demucs check failed:', error);
+    
+    const response = {
+      success: false,
+      error: error.message,
+      message: 'Demucs לא זמין'
+    };
+    
+    res.status(500).json(response);
+  }
 });
 
 // Serve React app

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Pause, Download, Trash2, Music, Mic, Volume2, CircleDot, Zap, FileAudio, BarChart3, VolumeX, AlertCircle, Plus, Grid, List } from 'lucide-react';
+import { Upload, Play, Pause, Download, Trash2, Music, Mic, Volume2, CircleDot, Zap, FileAudio, BarChart3, VolumeX, AlertCircle, Plus, Grid, List, Wifi, WifiOff } from 'lucide-react';
 import { useTranslation } from '../lib/translations';
 
 // Import API functions
@@ -11,7 +11,8 @@ import {
   getProject, 
   deleteProject,
   downloadStem,
-  healthCheck 
+  healthCheck,
+  testServerConnection 
 } from '../api/client';
 
 // Import new components
@@ -45,6 +46,8 @@ const AudioSeparation = () => {
   const [globalError, setGlobalError] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
   const [uploadController, setUploadController] = useState(null);
+  const [serverStatus, setServerStatus] = useState('checking'); // 'checking', 'connected', 'disconnected'
+  const [connectionTest, setConnectionTest] = useState(null);
   const fileInputRef = useRef();
   const audioContextRef = useRef();
   const t = useTranslation();
@@ -70,23 +73,49 @@ const AudioSeparation = () => {
 
   // טעינת פרויקטים קיימים
   useEffect(() => {
-    loadProjects();
+    if (serverConnected) {
+      loadProjects();
+    }
   }, [serverConnected]);
 
   // בדיקת חיבור לשרת
   const checkServerConnection = async () => {
     try {
       console.log('🔍 בודק חיבור לשרת...');
-      await healthCheck();
-      setServerConnected(true);
-      console.log('✅ שרת מחובר');
+      setServerStatus('checking');
+      
+      const testResult = await testServerConnection();
+      
+      if (testResult.success) {
+        setServerConnected(true);
+        setServerStatus('connected');
+        setConnectionTest(testResult);
+        console.log('✅ שרת מחובר ועובד:', testResult);
+      } else {
+        setServerConnected(false);
+        setServerStatus('disconnected');
+        setConnectionTest(testResult);
+        console.log('❌ שרת לא מחובר:', testResult);
+        
+        // הצגת הודעת שגיאה למשתמש
+        setError(`לא ניתן להתחבר לשרת: ${testResult.error}`);
+      }
     } catch (error) {
       setServerConnected(false);
-      console.log('❌ שרת לא מחובר:', error.message);
+      setServerStatus('disconnected');
+      setConnectionTest({ success: false, error: error.message });
+      console.log('❌ שגיאה בבדיקת חיבור לשרת:', error.message);
       
       // הצגת הודעת שגיאה למשתמש
-      setError(`לא ניתן להתחבר לשרת: ${error.message}`);
+      setError(`שגיאה בבדיקת חיבור לשרת: ${error.message}`);
     }
+  };
+
+  // בדיקה חוזרת של חיבור לשרת
+  const retryConnection = async () => {
+    console.log('🔄 מנסה חיבור חוזר לשרת...');
+    setError(null);
+    await checkServerConnection();
   };
 
   // טעינת פרויקטים
@@ -108,6 +137,12 @@ const AudioSeparation = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    // בדיקה אם השרת מחובר
+    if (!serverConnected) {
+      setError('השרת לא מחובר. אנא בדוק את החיבור ונסה שוב.');
+      return;
+    }
 
     try {
       console.log('🚀 ===== התחלת תהליך העלאה והפרדה =====');
@@ -321,6 +356,7 @@ const AudioSeparation = () => {
         console.log('📊 ===== בדיקת התקדמות =====');
         console.log('📊 fileId:', fileId);
         console.log('📊 זמן בדיקה:', new Date().toLocaleTimeString());
+        console.log('📊 מספר ניסיון:', Math.floor((Date.now() - startTime) / 2000));
         
         const progressData = await getSeparationProgress(fileId);
         
@@ -328,6 +364,7 @@ const AudioSeparation = () => {
         console.log('📊 התקדמות:', progressData.progress + '%');
         console.log('📊 סטטוס:', progressData.status);
         console.log('📊 הודעה:', progressData.message);
+        console.log('📊 שגיאה:', progressData.error);
         
         setProgress(progressData.progress);
         
@@ -364,6 +401,13 @@ const AudioSeparation = () => {
           setProcessingStep('failed');
           
           console.error('❌ ===== תהליך polling הסתיים בכשל =====');
+        } else if (progressData.status === 'processing' || progressData.status === 'separating') {
+          console.log('🔄 עדיין מעבד... התקדמות:', progressData.progress + '%');
+          
+          // בדיקה אם ההתקדמות תקועה
+          if (progressData.progress > 0 && progressData.progress < 100) {
+            console.log('🔄 התקדמות תקועה ב-', progressData.progress + '%');
+          }
         }
         
       } catch (error) {
@@ -372,6 +416,7 @@ const AudioSeparation = () => {
         console.error('❌ זמן שגיאה:', new Date().toLocaleTimeString());
         console.error('❌ פרטי השגיאה:', error);
         console.error('❌ הודעת שגיאה:', error.message);
+        console.error('❌ Stack trace:', error.stack);
         
         // בדיקה אם השגיאה היא בגלל חיבור
         if (error.message.includes('Failed to fetch') || error.message.includes('timeout')) {
@@ -392,6 +437,9 @@ const AudioSeparation = () => {
     
     setPollingInterval(interval);
     console.log('🔄 polling interval נוצר:', interval);
+    
+    // שמירת זמן התחלה
+    const startTime = Date.now();
   };
 
   // ניקוי polling
@@ -728,6 +776,43 @@ const AudioSeparation = () => {
   };
 
   // Render functions
+  const renderConnectionStatus = () => {
+    if (serverStatus === 'checking') {
+      return (
+        <div className="fixed top-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          בודק חיבור לשרת...
+        </div>
+      );
+    }
+    
+    if (serverStatus === 'disconnected') {
+      return (
+        <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
+          <WifiOff className="w-4 h-4" />
+          שרת לא מחובר
+          <button 
+            onClick={retryConnection}
+            className="ml-2 bg-red-700 hover:bg-red-800 px-2 py-1 rounded text-sm"
+          >
+            נסה שוב
+          </button>
+        </div>
+      );
+    }
+    
+    if (serverStatus === 'connected') {
+      return (
+        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
+          <Wifi className="w-4 h-4" />
+          שרת מחובר
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   const renderUploadForm = () => {
     if (!showUploadForm) return null;
 
@@ -742,10 +827,30 @@ const AudioSeparation = () => {
             <p className="text-gray-400">Professional Audio Separator</p>
           </div>
           
+          {/* Connection Status */}
+          {serverStatus === 'disconnected' && (
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-500 text-red-300 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <WifiOff className="w-4 h-4" />
+                <span className="font-semibold">שרת לא מחובר</span>
+              </div>
+              <p className="text-sm mb-3">
+                {connectionTest?.error || 'לא ניתן להתחבר לשרת'}
+              </p>
+              <button 
+                onClick={retryConnection}
+                className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+              >
+                נסה חיבור חוזר
+              </button>
+            </div>
+          )}
+          
           <div className="space-y-4">
             <UploadZone 
               onFileSelect={handleFileInput}
               onDrop={handleDrop}
+              disabled={serverStatus !== 'connected'}
             />
             
             {error && (
@@ -866,6 +971,7 @@ const AudioSeparation = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      {renderConnectionStatus()}
       {renderProcessingStatus()}
       
       {currentView === 'upload' ? renderUploadForm() : renderStudio()}

@@ -344,6 +344,38 @@ export const healthCheck = async () => {
   }
 };
 
+// בדיקה נוספת של חיבור לשרת
+export const testServerConnection = async () => {
+  try {
+    console.log('🔍 ===== בדיקת חיבור לשרת =====');
+    console.log('🔍 URL:', API_BASE_URL);
+    
+    // בדיקה ראשונית
+    const healthResult = await healthCheck();
+    console.log('✅ בדיקת בריאות הצליחה:', healthResult);
+    
+    // בדיקת פרויקטים
+    const projects = await getProjects();
+    console.log('✅ קבלת פרויקטים הצליחה:', projects);
+    
+    return {
+      success: true,
+      health: healthResult,
+      projects: projects,
+      message: 'השרת זמין ועובד כראוי'
+    };
+  } catch (error) {
+    console.error('❌ ===== בדיקת חיבור נכשלה =====');
+    console.error('❌ שגיאה:', error.message);
+    
+    return {
+      success: false,
+      error: error.message,
+      message: 'השרת לא זמין או לא מגיב'
+    };
+  }
+};
+
 // AudioProject class for better organization
 export class AudioProject {
   static async list(sortBy = '-createdAt') {
