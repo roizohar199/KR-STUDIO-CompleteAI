@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Music, FileAudio, Zap, CheckCircle, AlertCircle, Clock, Download, Settings, RefreshCw } from "lucide-react";
+import { Music, FileAudio, Zap, CheckCircle, AlertCircle, Clock, Download, Settings, RefreshCw, X } from "lucide-react";
 
-export default function ProcessingStatus({ step, progress, error, fileName, onRetry }) {
+export default function ProcessingStatus({ step, progress, error, fileName, onRetry, onCancel }) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(null);
 
@@ -232,6 +232,19 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
             <p className="text-blue-400 text-sm">
               💡 טיפ: תהליך ההפרדה יכול לקחת 2-5 דקות בהתאם לאורך הקובץ
             </p>
+          </div>
+        )}
+
+        {/* Cancel Button - רק בשלב העלאה */}
+        {step === 'uploading' && onCancel && (
+          <div className="mt-6">
+            <button
+              onClick={onCancel}
+              className="bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-all duration-300 flex items-center gap-2 mx-auto"
+            >
+              <X className="w-4 h-4" />
+              בטל העלאה
+            </button>
           </div>
         )}
       </div>

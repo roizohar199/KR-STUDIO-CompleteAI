@@ -44,6 +44,7 @@ const AudioSeparation = () => {
   const [error, setError] = useState(null);
   const [globalError, setGlobalError] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
+  const [uploadController, setUploadController] = useState(null);
   const fileInputRef = useRef();
   const audioContextRef = useRef();
   const t = useTranslation();
@@ -127,7 +128,10 @@ const AudioSeparation = () => {
       
       console.log('✅ גודל קובץ תקין, מתחיל העלאה...');
       
-      // ניסיון העלאה עם retry
+      // הודעה למשתמש
+      console.log('📤 מתחיל העלאה לשרת...');
+      
+      // ניסיון העלאה עם retry ומעקב התקדמות
       let result;
       let retryCount = 0;
       const maxRetries = 3;
@@ -135,7 +139,20 @@ const AudioSeparation = () => {
       while (retryCount < maxRetries) {
         try {
           console.log(`📤 ניסיון העלאה ${retryCount + 1}/${maxRetries}...`);
-          result = await uploadAudio(file);
+          
+          // יצירת AbortController לביטול העלאה
+          const controller = { xhr: null };
+          setUploadController(controller);
+          
+          // העלאה עם מעקב התקדמות
+          result = await uploadAudio(file, (progress) => {
+            console.log(`📤 התקדמות העלאה: ${progress}%`);
+            setProgress(progress);
+          }, controller);
+          
+          // ניקוי ה-controller
+          setUploadController(null);
+          
           break; // אם הצליח, צא מהלולאה
         } catch (uploadError) {
           retryCount++;
@@ -144,6 +161,9 @@ const AudioSeparation = () => {
           if (retryCount >= maxRetries) {
             throw new Error(`העלאה נכשלה אחרי ${maxRetries} ניסיונות: ${uploadError.message}`);
           }
+          
+          // איפוס התקדמות לפני ניסיון נוסף
+          setProgress(0);
           
           // המתנה לפני ניסיון נוסף
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -154,7 +174,7 @@ const AudioSeparation = () => {
       
       setUploadedFile(result.file);
       setSelectedFile(file);
-      setProgress(50);
+      setProgress(100); // עדכון ל-100% כאשר ההעלאה מסתיימת
       
       console.log('✅ קובץ הועלה בהצלחה!');
       console.log('📁 fileId:', result.file.id);
@@ -164,7 +184,7 @@ const AudioSeparation = () => {
       // התחלת הפרדה אוטומטית
       console.log('🎵 ===== מתחיל תהליך הפרדה =====');
       setProcessingStep('separating');
-      setProgress(50);
+      setProgress(0); // איפוס התקדמות לתחילת הפרדה
       
       // יצירת שם פרויקט אוטומטי
       const autoProjectName = file.name.replace(/\.[^/.]+$/, '') + '_' + Date.now();
@@ -361,6 +381,37 @@ const AudioSeparation = () => {
       }
     };
   }, [pollingInterval]);
+
+  // ניקוי העלאה בעת עזיבת הקומפוננטה
+  useEffect(() => {
+    return () => {
+      if (uploadController && uploadController.xhr) {
+        uploadController.xhr.abort();
+      }
+    };
+  }, [uploadController]);
+
+  // ביטול העלאה
+  const cancelUpload = () => {
+    try {
+      console.log('❌ מבטל העלאה...');
+      
+      if (uploadController && uploadController.xhr) {
+        uploadController.xhr.abort();
+        console.log('✅ העלאה בוטלה');
+      }
+      
+      setUploadController(null);
+      setIsProcessing(false);
+      setProcessingStep(null);
+      setProgress(0);
+      setError(null);
+      
+      console.log('✅ מצב העלאה אופס');
+    } catch (error) {
+      console.error('❌ שגיאה בביטול העלאה:', error);
+    }
+  };
 
   // בחירת פרויקט
   const selectProject = async (project) => {
@@ -624,7 +675,7 @@ const AudioSeparation = () => {
       setSelectedFile(file);
       console.log('✅ קובץ תקין:', file.name);
       
-      // התחלת העלאה אוטומטית
+      // התחלת העלאה אוטומטית עם מעקב התקדמות
       console.log('🚀 מתחיל העלאה אוטומטית...');
       await handleFileUpload({ target: { files: [file] } });
       
@@ -710,6 +761,7 @@ const AudioSeparation = () => {
         error={error}
         fileName={uploadedFile?.name || 'קובץ אודיו'}
         onRetry={handleRetry}
+        onCancel={cancelUpload}
       />
     );
   };

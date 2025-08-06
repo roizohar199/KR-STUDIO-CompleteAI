@@ -53,8 +53,8 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-// Upload audio file
-export const uploadAudio = async (file) => {
+// Upload audio file with progress tracking
+export const uploadAudio = async (file, onProgress = null, abortController = null) => {
   try {
     console.log('📤 ===== התחלת העלאה =====');
     console.log('📤 שם קובץ:', file.name);
@@ -74,42 +74,76 @@ export const uploadAudio = async (file) => {
     console.log('📤 שולח בקשת העלאה לשרת...');
     console.log('📤 URL:', `${API_BASE_URL}/upload`);
     
-    // יצירת AbortController עם timeout ארוך יותר
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 900000); // 15 דקות timeout
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/upload`, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-        // הוספת headers נוספים
-        headers: {
-          'Accept': 'application/json',
-        },
+    // שימוש ב-XMLHttpRequest לתמיכה בהתקדמות
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      // הגדרת timeout
+      xhr.timeout = 900000; // 15 דקות
+      
+      // מעקב אחר התקדמות
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          console.log(`📤 התקדמות העלאה: ${percentComplete}%`);
+          onProgress(percentComplete);
+        }
       });
-
-      clearTimeout(timeoutId);
-      console.log('📤 תשובה מהשרת:', response.status, response.statusText);
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-        console.error('❌ שגיאה בהעלאה:', error);
-        throw new Error(error.error || `HTTP ${response.status}`);
+      
+      // טיפול בתשובה
+      xhr.addEventListener('load', () => {
+        console.log('📤 תשובה מהשרת:', xhr.status, xhr.statusText);
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const result = JSON.parse(xhr.responseText);
+            console.log('✅ קובץ הועלה בהצלחה!');
+            console.log('✅ תוצאת העלאה:', result);
+            console.log('✅ fileId:', result.file.id);
+            console.log('✅ ===== העלאה הושלמה בהצלחה =====');
+            resolve(result);
+          } catch (parseError) {
+            console.error('❌ שגיאה בפענוח תשובה:', parseError);
+            reject(new Error('תשובה לא תקינה מהשרת'));
+          }
+        } else {
+          console.error('❌ שגיאה בהעלאה:', xhr.status, xhr.statusText);
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new Error(error.error || `HTTP ${xhr.status}`));
+          } catch {
+            reject(new Error(`HTTP ${xhr.status}`));
+          }
+        }
+      });
+      
+      // טיפול בשגיאות
+      xhr.addEventListener('error', () => {
+        console.error('❌ שגיאת רשת בהעלאה');
+        reject(new Error('שגיאת רשת - בדוק את החיבור לאינטרנט'));
+      });
+      
+      xhr.addEventListener('timeout', () => {
+        console.error('❌ timeout בהעלאה');
+        reject(new Error('העלאה נכשלה - timeout (15 דקות). נסה שוב או בדוק את החיבור לאינטרנט'));
+      });
+      
+      xhr.addEventListener('abort', () => {
+        console.error('❌ העלאה בוטלה');
+        reject(new Error('העלאה בוטלה'));
+      });
+      
+      // שליחת הבקשה
+      xhr.open('POST', `${API_BASE_URL}/upload`);
+      xhr.setRequestHeader('Accept', 'application/json');
+      xhr.send(formData);
+      
+      // אם יש AbortController, שמור את ה-XHR כדי שנוכל לבטל
+      if (abortController) {
+        abortController.xhr = xhr;
       }
-
-      const result = await response.json();
-      console.log('✅ קובץ הועלה בהצלחה!');
-      console.log('✅ תוצאת העלאה:', result);
-      console.log('✅ fileId:', result.file.id);
-      console.log('✅ ===== העלאה הושלמה בהצלחה =====');
-      return result;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      throw fetchError;
-    }
+    });
+    
   } catch (error) {
     console.error('❌ ===== שגיאה בהעלאה =====');
     console.error('❌ פרטי השגיאה:', error);
