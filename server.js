@@ -13,76 +13,73 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// CORS middleware - הגדרה משופרת - מופיע ממש בתחילת הקובץ
-app.use(cors({
-  origin: function (origin, callback) {
-    console.log(`🌐 CORS Request from ${origin}`);
-    
-    const allowedOrigins = [
-      'https://mixifyai.k-rstudio.com',
-      'https://kr-studio-completeai.onrender.com',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'https://k-rstudio.com',
-      'https://www.k-rstudio.com',
-      'https://mixifyai.k-rstudio.com:443',
-      'https://mixifyai.k-rstudio.com:80'
-    ];
-    
-    // תמיד לאפשר בקשות ללא origin (כמו Postman או curl)
-    if (!origin) {
-      console.log(`✅ CORS allowed for: ${origin} (no origin)`);
-      return callback(null, true);
-    }
-    
+// CORS middleware ידני - מופיע ממש לפני כל ה־routes
+app.use((req, res, next) => {
+  console.log(`🌐 CORS Request from ${req.headers.origin}`);
+  
+  const allowedOrigins = [
+    'https://mixifyai.k-rstudio.com',
+    'https://kr-studio-completeai.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'https://k-rstudio.com',
+    'https://www.k-rstudio.com',
+    'https://mixifyai.k-rstudio.com:443',
+    'https://mixifyai.k-rstudio.com:80'
+  ];
+  
+  const origin = req.headers.origin;
+  
+  // תמיד לאפשר בקשות ללא origin (כמו Postman או curl)
+  if (!origin) {
+    console.log(`✅ CORS allowed for: ${origin} (no origin)`);
+    res.header('Access-Control-Allow-Origin', '*');
+  } else {
     // בדיקה אם ה-origin מורשה
     if (allowedOrigins.includes(origin)) {
       console.log(`✅ CORS allowed for: ${origin}`);
-      return callback(null, true);
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // בדיקה נוספת - אולי זה subdomain
+      const originHost = new URL(origin).hostname;
+      const allowedHosts = [
+        'mixifyai.k-rstudio.com',
+        'kr-studio-completeai.onrender.com',
+        'k-rstudio.com',
+        'www.k-rstudio.com'
+      ];
+      
+      if (allowedHosts.some(host => originHost === host || originHost.endsWith('.' + host))) {
+        console.log(`✅ CORS allowed for subdomain: ${origin}`);
+        res.header('Access-Control-Allow-Origin', origin);
+      } else {
+        console.log(`🚫 CORS blocked: ${origin}`);
+        console.log(`🚫 Origin host: ${originHost}`);
+        console.log(`🚫 Allowed hosts: ${allowedHosts.join(', ')}`);
+        res.header('Access-Control-Allow-Origin', 'null');
+      }
     }
-    
-    // בדיקה נוספת - אולי זה subdomain
-    const originHost = new URL(origin).hostname;
-    const allowedHosts = [
-      'mixifyai.k-rstudio.com',
-      'kr-studio-completeai.onrender.com',
-      'k-rstudio.com',
-      'www.k-rstudio.com'
-    ];
-    
-    if (allowedHosts.some(host => originHost === host || originHost.endsWith('.' + host))) {
-      console.log(`✅ CORS allowed for subdomain: ${origin}`);
-      return callback(null, true);
-    }
-    
-    console.log(`🚫 CORS blocked: ${origin}`);
-    console.log(`🚫 Origin host: ${originHost}`);
-    console.log(`🚫 Allowed hosts: ${allowedHosts.join(', ')}`);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Origin', 
-    'Accept',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Credentials'
-  ],
-  exposedHeaders: [
-    'Content-Length',
-    'Content-Type',
-    'Content-Disposition'
-  ],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  maxAge: 86400 // 24 שעות
-}));
+  }
+  
+  // הגדרת headers נוספים
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  // טיפול בבקשות OPTIONS
+  if (req.method === 'OPTIONS') {
+    console.log('🌐 ===== OPTIONS Request =====');
+    console.log('🌐 Origin:', req.headers.origin);
+    console.log('🌐 Method:', req.method);
+    console.log('🌐 Headers:', req.headers);
+    res.status(200).end();
+    return;
+  }
+  
+  next();
+});
 
 // הגדרות נוספות לשרת
 app.use(express.json({ limit: '100mb' }));
@@ -104,8 +101,7 @@ app.use((req, res, next) => {
 
 app.use(express.static('dist'));
 
-// Handle preflight requests
-app.options('*', cors());
+// Handle preflight requests - הסרתי את זה כי יש כבר CORS middleware ידני
 
 // Additional CORS headers middleware - הסרתי את זה כי יש כבר CORS middleware בתחילת הקובץ
 
