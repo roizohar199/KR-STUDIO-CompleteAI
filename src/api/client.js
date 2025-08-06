@@ -26,8 +26,12 @@ const apiCall = async (endpoint, options = {}) => {
     console.log('[API] method:', fetchOptions.method);
     console.log('[API] headers:', fetchOptions.headers);
     console.log('[API] body:', fetchOptions.body);
+    console.log('[API] body type:', typeof fetchOptions.body);
+    console.log('[API] body length:', fetchOptions.body ? fetchOptions.body.length : 'N/A');
     
+    console.log('[API] לפני fetch...');
     const response = await fetch(url, fetchOptions);
+    console.log('[API] אחרי fetch...');
     
     console.log('[API] response status:', response.status);
     console.log('[API] response statusText:', response.statusText);
@@ -42,7 +46,9 @@ const apiCall = async (endpoint, options = {}) => {
       throw new Error(error.error || `HTTP ${response.status}`);
     }
     
+    console.log('[API] לפני response.json()...');
     const data = await response.json();
+    console.log('[API] אחרי response.json()...');
     console.log('[API] תשובה מהשרת:', endpoint, data);
     console.log('[API] סוג תשובה:', typeof data);
     console.log('[API] האם יש success:', data && data.success);
@@ -51,6 +57,7 @@ const apiCall = async (endpoint, options = {}) => {
     console.error('[API] שגיאה כללית ב-apiCall:', endpoint, err, err?.stack);
     console.error('[API] שם השגיאה:', err.name);
     console.error('[API] הודעת השגיאה:', err.message);
+    console.error('[API] סוג השגיאה:', typeof err);
     
     // טיפול בשגיאות ספציפיות
     if (err.name === 'AbortError') {
@@ -185,19 +192,24 @@ export const separateAudio = async (fileId, projectName) => {
     console.log('🎵 fileId:', fileId);
     console.log('🎵 שם פרויקט:', projectName);
     console.log('🎵 API_BASE_URL:', API_BASE_URL);
+    console.log('🎵 סוג fileId:', typeof fileId);
+    console.log('🎵 סוג projectName:', typeof projectName);
     
     const requestBody = { fileId, projectName };
     console.log('🎵 request body:', requestBody);
+    console.log('🎵 JSON stringified body:', JSON.stringify(requestBody));
     
     console.log('📤 שולח בקשת הפרדה לשרת...');
     console.log('📤 URL:', `${API_BASE_URL}/separate`);
     console.log('📤 method: POST');
     console.log('📤 headers: Content-Type: application/json');
     
+    console.log('🎵 לפני קריאה ל-apiCall...');
     const result = await apiCall('/separate', {
       method: 'POST',
       body: JSON.stringify(requestBody),
     });
+    console.log('🎵 אחרי קריאה ל-apiCall...');
     
     console.log('✅ הפרדה החלה בהצלחה!');
     console.log('✅ תוצאת הפרדה:', result);
@@ -212,6 +224,8 @@ export const separateAudio = async (fileId, projectName) => {
     console.error('❌ פרטי השגיאה:', error);
     console.error('❌ הודעת שגיאה:', error.message);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ שם השגיאה:', error.name);
+    console.error('❌ סוג השגיאה:', typeof error);
     throw error;
   }
 };

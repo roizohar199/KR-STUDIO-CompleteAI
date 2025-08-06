@@ -183,6 +183,10 @@ const AudioSeparation = () => {
       
       // התחלת הפרדה אוטומטית
       console.log('🎵 ===== מתחיל תהליך הפרדה =====');
+      console.log('🎵 בדיקת תוצאת העלאה:', result);
+      console.log('🎵 האם יש file:', !!result.file);
+      console.log('🎵 האם יש file.id:', !!result.file?.id);
+      
       setProcessingStep('separating');
       setProgress(0); // איפוס התקדמות לתחילת הפרדה
       
@@ -195,10 +199,16 @@ const AudioSeparation = () => {
       
       // התחלת הפרדה
       console.log('📤 שולח בקשת הפרדה לשרת...');
+      console.log('📤 קריאה ל-separateAudio עם פרמטרים:', { fileId: result.file.id, projectName: autoProjectName });
+      
       try {
+        console.log('🎵 לפני קריאה ל-separateAudio...');
         const separationResult = await separateAudio(result.file.id, autoProjectName);
+        console.log('🎵 אחרי קריאה ל-separateAudio...');
         
         console.log('🎵 תוצאת הפרדה מהשרת:', separationResult);
+        console.log('🎵 סוג תוצאה:', typeof separationResult);
+        console.log('🎵 האם יש success:', separationResult && separationResult.success);
         
         if (separationResult && separationResult.success) {
           console.log('✅ הפרדה החלה בהצלחה!');
@@ -222,6 +232,7 @@ const AudioSeparation = () => {
         } else {
           console.error('❌ הפרדה נכשלה - תשובה לא תקינה מהשרת');
           console.error('❌ separationResult:', separationResult);
+          console.error('❌ סוג separationResult:', typeof separationResult);
           throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
         }
       } catch (separationError) {
@@ -229,6 +240,7 @@ const AudioSeparation = () => {
         console.error('❌ פרטי השגיאה:', separationError);
         console.error('❌ הודעת שגיאה:', separationError.message);
         console.error('❌ Stack trace:', separationError.stack);
+        console.error('❌ שם השגיאה:', separationError.name);
         throw separationError;
       }
       

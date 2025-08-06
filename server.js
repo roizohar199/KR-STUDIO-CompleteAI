@@ -48,15 +48,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Logging middleware for CORS requests - מופעל אחרי CORS middleware
-app.use((req, res, next) => {
-  console.log('🌐 ===== Request =====');
-  console.log('🌐 Method:', req.method);
-  console.log('🌐 URL:', req.url);
-  console.log('🌐 Origin:', req.headers.origin);
-  console.log('🌐 User-Agent:', req.headers['user-agent']);
-  
-  next();
-});
+// הוסר כפילות - יש middleware logging מורכב יותר למטה
 
 // הגדרות נוספות לשרת
 app.use(express.json({ limit: '100mb' }));
@@ -606,17 +598,21 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
 
 app.post('/api/separate', async (req, res) => {
   try {
-    const { fileId, projectName } = req.body;
-    
     console.log('🎵 ===== התחלת הפרדה =====');
+    console.log('🎵 זמן בקשת הפרדה:', new Date().toLocaleTimeString());
     console.log('🎵 Headers:', req.headers);
     console.log('🎵 Body:', req.body);
-    console.log('🎵 fileId:', fileId);
-    console.log('🎵 שם פרויקט:', projectName);
     console.log('🎵 Content-Type:', req.headers['content-type']);
     console.log('🎵 Content-Length:', req.headers['content-length']);
     console.log('🎵 Origin:', req.headers.origin);
-    console.log('🎵 זמן התחלה:', new Date().toLocaleTimeString());
+    console.log('🎵 Method:', req.method);
+    console.log('🎵 URL:', req.url);
+    
+    const { fileId, projectName } = req.body;
+    console.log('🎵 fileId:', fileId);
+    console.log('🎵 שם פרויקט:', projectName);
+    console.log('🎵 סוג fileId:', typeof fileId);
+    console.log('🎵 סוג projectName:', typeof projectName);
     
     if (!fileId || !projects.has(fileId)) {
       console.log('❌ קובץ לא נמצא:', fileId);
