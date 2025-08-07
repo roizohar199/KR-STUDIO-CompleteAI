@@ -1,6 +1,8 @@
 // שינוי ה-API_BASE_URL כדי שהמערכת תעבוד עם השרת החדש
 // Backend עובד ב-Render
-const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
+const API_BASE_URL = typeof process !== 'undefined' && process.env && process.env.WORKER_API_URL
+  ? process.env.WORKER_API_URL
+  : 'https://kr-studio-completeai.onrender.com/api';
 
 // אם השרת רץ על דומיין אחר, שנה את זה לכתובת המלאה
 // const API_BASE_URL = 'https://your-backend-domain.com/api';

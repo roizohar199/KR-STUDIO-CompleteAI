@@ -49,16 +49,21 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // CORS middleware
 app.use((req, res, next) => {
-  const origin = req.headers.origin || '*';
-  res.header('Access-Control-Allow-Origin', origin);
+  // אפשר רק את הדומיין של הפרונט
+  const allowedOrigin = 'https://mixifyai.k-rstudio.com';
+  if (req.path.startsWith('/api/worker/')) {
+    res.header('Access-Control-Allow-Origin', allowedOrigin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
   res.header('Access-Control-Allow-Credentials', 'false');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
