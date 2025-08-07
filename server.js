@@ -110,7 +110,8 @@ const corsOptions = {
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
-      return callback(null, false);
+      console.log('❌ Origin לא מורשה:', origin);
+      return callback(new Error('Origin לא מורשה'), false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
@@ -127,24 +128,16 @@ const corsOptions = {
     'X-Forwarded-Proto'
   ],
   optionsSuccessStatus: 200,
-  credentials: false,
-  preflightContinue: true,
+  credentials: true, // שינוי ל-true לתמיכה ב-credentials
+  preflightContinue: false, // שינוי ל-false לטיפול אוטומטי ב-OPTIONS
   maxAge: 86400
 };
 
-// 1. CORS middleware ראשון
+// 1. CORS middleware ראשון - לפני כל middleware אחר
 app.use(cors(corsOptions));
 
-// 2. OPTIONS handler
-app.options('*', (req, res) => {
-  const origin = req.headers.origin || '*';
-  res.header('Access-Control-Allow-Origin', origin);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
-  res.header('Access-Control-Max-Age', '86400');
-  res.header('Access-Control-Allow-Credentials', 'false');
-  return res.status(200).end();
-});
+// 2. OPTIONS handler מפורש לכל הנתיבים
+app.options('*', cors(corsOptions));
 
 // 3. Body parsers
 app.use(express.json({ limit: '100mb' }));
@@ -1109,7 +1102,7 @@ app.get('/api/health', (req, res) => {
   res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
-  res.header('Access-Control-Allow-Credentials', 'false');
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
   const response = { 
@@ -1224,7 +1217,7 @@ app.use((error, req, res, next) => {
   res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
-  res.header('Access-Control-Allow-Credentials', 'false');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   res.status(500).json({ 
     error: 'Internal server error',
@@ -1245,7 +1238,7 @@ app.use((req, res) => {
   res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
-  res.header('Access-Control-Allow-Credentials', 'false');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   res.status(404).json({ 
     error: 'Not found',
