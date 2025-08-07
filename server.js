@@ -423,7 +423,10 @@ app.post('/api/upload', upload.single('audio'), handleMulterError, async (req, r
     console.error('❌ ===== שגיאה בהעלאה =====');
     console.error('❌ פרטי השגיאה:', error);
     
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 
@@ -438,7 +441,10 @@ app.post('/api/separate', async (req, res) => {
     
     if (!fileId || !projects.has(fileId)) {
       console.log('❌ קובץ לא נמצא:', fileId);
-      return res.status(404).json({ error: 'קובץ לא נמצא' });
+      return res.status(404).json({ 
+        success: false, 
+        error: 'קובץ לא נמצא' 
+      });
     }
 
     const project = projects.get(fileId);
@@ -641,7 +647,10 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   if (!project) {
     console.log('❌ פרויקט לא נמצא:', fileId);
     console.log('❌ פרויקטים קיימים:', Array.from(projects.keys()));
-    return res.status(404).json({ error: 'פרויקט לא נמצא' });
+    return res.status(404).json({ 
+      success: false, 
+      error: 'פרויקט לא נמצא' 
+    });
   }
   
   // בדיקה אם התהליך עדיין רץ
@@ -663,6 +672,7 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
   }
   
   const response = {
+    success: true,
     progress: project.progress || 0,
     status: project.status,
     error: project.error,
@@ -707,12 +717,18 @@ app.get('/api/projects/:id', (req, res) => {
   
   if (!project) {
     console.log('❌ פרויקט לא נמצא:', id);
-    return res.status(404).json({ error: 'פרויקט לא נמצא' });
+    return res.status(404).json({ 
+      success: false, 
+      error: 'פרויקט לא נמצא' 
+    });
   }
   
   console.log('✅ פרויקט נמצא ונשלח');
   
-  res.json(project);
+  res.json({
+    success: true,
+    project: project
+  });
 });
 
 app.get('/api/projects/:id/download/:stem', (req, res) => {
@@ -727,7 +743,10 @@ app.get('/api/projects/:id/download/:stem', (req, res) => {
   
   if (!project || !project.stemsDir) {
     console.log('❌ פרויקט או תיקיית stems לא נמצאו');
-    return res.status(404).json({ error: 'קובץ לא נמצא' });
+    return res.status(404).json({ 
+      success: false, 
+      error: 'קובץ לא נמצא' 
+    });
   }
   
   const filePath = path.join(project.stemsDir, `${stem}.mp3`);
@@ -735,7 +754,10 @@ app.get('/api/projects/:id/download/:stem', (req, res) => {
   
   if (!fs.existsSync(filePath)) {
     console.log('❌ קובץ לא קיים:', filePath);
-    return res.status(404).json({ error: 'קובץ לא נמצא' });
+    return res.status(404).json({ 
+      success: false, 
+      error: 'קובץ לא נמצא' 
+    });
   }
   
   console.log('✅ קובץ נמצא ונשלח להורדה');
@@ -754,7 +776,10 @@ app.delete('/api/projects/:id', async (req, res) => {
   
   if (!project) {
     console.log('❌ פרויקט לא נמצא:', id);
-    return res.status(404).json({ error: 'פרויקט לא נמצא' });
+    return res.status(404).json({ 
+      success: false, 
+      error: 'פרויקט לא נמצא' 
+    });
   }
   
   try {
@@ -783,7 +808,10 @@ app.delete('/api/projects/:id', async (req, res) => {
   } catch (error) {
     console.error('שגיאה במחיקת פרויקט:', error);
     
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 

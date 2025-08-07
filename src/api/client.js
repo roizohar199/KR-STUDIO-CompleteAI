@@ -52,6 +52,14 @@ const apiCall = async (endpoint, options = {}) => {
     console.log('[API] תשובה מהשרת:', endpoint, data);
     console.log('[API] סוג תשובה:', typeof data);
     console.log('[API] האם יש success:', data && data.success);
+    
+    // בדיקה אם התשובה כוללת שדה success
+    if (data && typeof data.success === 'boolean') {
+      if (!data.success) {
+        throw new Error(data.error || 'הבקשה נכשלה');
+      }
+    }
+    
     return data;
   } catch (err) {
     console.error('[API] שגיאה כללית ב-apiCall:', endpoint, err, err?.stack);
@@ -268,9 +276,10 @@ export const getProjects = async () => {
 // Get specific project
 export const getProject = async (id) => {
   try {
-    const project = await apiCall(`/projects/${id}`);
-    console.log('📁 פרויקט:', project);
-    return project;
+    const result = await apiCall(`/projects/${id}`);
+    console.log('📁 פרויקט:', result);
+    // אם התשובה כוללת project בתוך אובייקט, נחזיר את הפרויקט
+    return result.project || result;
   } catch (error) {
     console.error('❌ שגיאה בקבלת פרויקט:', error);
     return null;
