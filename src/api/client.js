@@ -80,9 +80,9 @@ export const uploadAudio = async (file, onProgress = null, abortController = nul
     console.log('📤 סוג קובץ:', file.type);
     
     // בדיקת גודל הקובץ
-    const maxSize = 200 * 1024 * 1024; // 200MB
+    const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
-      throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 200MB`);
+      throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 50MB`);
     }
     
     console.log('✅ גודל קובץ תקין, יוצר FormData...');

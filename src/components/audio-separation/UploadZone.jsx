@@ -53,10 +53,10 @@ export default function UploadZone({ onFileSelect, onDrop, disabled = false }) {
       return;
     }
 
-    // Validate file size (100MB max)
-    const maxSize = 100 * 1024 * 1024;
+    // Validate file size (50MB max)
+    const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('הקובץ גדול מדי. גודל מקסימלי: 100MB');
+      alert('הקובץ גדול מדי. גודל מקסימלי: 50MB');
       return;
     }
 
@@ -149,7 +149,7 @@ export default function UploadZone({ onFileSelect, onDrop, disabled = false }) {
           {!selectedFile && !disabled && (
             <div className="space-y-2">
               <p className="text-sm text-gray-500">Supported formats: MP3, WAV, FLAC, M4A, OGG</p>
-              <p className="text-sm text-gray-500">Max size: 100MB</p>
+              <p className="text-sm text-gray-500">Max size: 50MB</p>
             </div>
           )}
         </div>

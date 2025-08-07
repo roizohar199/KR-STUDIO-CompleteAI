@@ -232,6 +232,9 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
             <p className="text-blue-400 text-sm">
               💡 טיפ: תהליך ההפרדה יכול לקחת 2-5 דקות בהתאם לאורך הקובץ
             </p>
+            <p className="text-blue-400 text-sm mt-2">
+              🔧 הקובץ עובר אופטימיזציה לצריכת זיכרון נמוכה יותר
+            </p>
           </div>
         )}
 

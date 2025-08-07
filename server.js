@@ -13,6 +13,76 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// ניהול זיכרון - ניקוי אוטומטי
+const memoryCleanup = () => {
+  if (global.gc) {
+    global.gc();
+    console.log('🧹 ניקוי זיכרון אוטומטי');
+  }
+};
+
+// ניקוי זיכרון כל 5 דקות
+setInterval(memoryCleanup, 5 * 60 * 1000);
+
+// ניקוי קבצים ישנים כל 10 דקות
+setInterval(async () => {
+  try {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    const separatedDir = path.join(__dirname, 'separated');
+    
+    // ניקוי קבצים ישנים מ-uploads (יותר מ-שעה)
+    if (await fs.pathExists(uploadsDir)) {
+      const files = await fs.readdir(uploadsDir);
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      
+      for (const file of files) {
+        const filePath = path.join(uploadsDir, file);
+        const stats = await fs.stat(filePath);
+        
+        if (stats.mtime.getTime() < oneHourAgo) {
+          await fs.remove(filePath);
+          console.log('🗑️ נוקה קובץ ישן:', file);
+        }
+      }
+    }
+    
+    // ניקוי פרויקטים ישנים מ-separated (יותר מ-שעתיים)
+    if (await fs.pathExists(separatedDir)) {
+      const projects = await fs.readdir(separatedDir);
+      const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+      
+      for (const project of projects) {
+        const projectPath = path.join(separatedDir, project);
+        const stats = await fs.stat(projectPath);
+        
+        if (stats.mtime.getTime() < twoHoursAgo) {
+          await fs.remove(projectPath);
+          console.log('🗑️ נוקה פרויקט ישן:', project);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ שגיאה בניקוי קבצים:', error);
+  }
+}, 10 * 60 * 1000); // כל 10 דקות
+
+// ניטור זיכרון
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  console.log('📊 שימוש זיכרון:', {
+    rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
+    heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+    heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
+    external: Math.round(memUsage.external / 1024 / 1024) + 'MB'
+  });
+  
+  // אזהרה אם הזיכרון גבוה מדי
+  if (memUsage.rss > 400 * 1024 * 1024) { // 400MB
+    console.warn('⚠️ שימוש זיכרון גבוה:', Math.round(memUsage.rss / 1024 / 1024) + 'MB');
+    memoryCleanup();
+  }
+}, 30000); // כל 30 שניות
+
 // ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
 // זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
 
@@ -255,7 +325,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 200 * 1024 * 1024, // 200MB
+    fileSize: 50 * 1024 * 1024, // 50MB - הורדה מ-200MB
     files: 1,
     fieldSize: 10 * 1024 * 1024 // 10MB
   }
@@ -271,9 +341,9 @@ const handleMulterError = (error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ 
-        error: 'הקובץ גדול מדי (מקסימום 200MB)',
+        error: 'הקובץ גדול מדי (מקסימום 50MB)',
         code: 'FILE_TOO_LARGE',
-        maxSize: '200MB'
+        maxSize: '50MB'
       });
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
@@ -381,6 +451,11 @@ app.post('/api/separate', async (req, res) => {
     await fs.ensureDir(outputDir);
     console.log('✅ תיקיית פלט נוצרה');
 
+    // אופטימיזציה של הקובץ המקורי לפני ההפרדה
+    console.log('🔧 אופטימיזציה של קובץ מקורי...');
+    const optimizedPath = await optimizeInputFile(project.originalPath);
+    console.log('✅ קובץ מקורי אופטימז:', optimizedPath);
+
     // עדכון סטטוס הפרויקט
     project.status = 'processing';
     project.projectName = projectName;
@@ -392,7 +467,7 @@ app.post('/api/separate', async (req, res) => {
     console.log('🎵 נתיב קובץ:', project.originalPath);
     console.log('🎵 תיקיית פלט:', outputDir);
 
-    // הפעלת Demucs
+    // הפעלת Demucs עם אופטימיזציה לזיכרון
     const demucsProcess = spawn(
       'python',
       [
@@ -400,10 +475,29 @@ app.post('/api/separate', async (req, res) => {
         '--out', outputDir,
         '--two-stems=vocals',
         '--mp3',
-        '--mp3-bitrate', '320',
-        project.originalPath
+        '--mp3-bitrate', '192',        // הורדת ביטרייט מ-320 ל-192
+        '--mp3-rate', '44100',         // Sample rate סטנדרטי
+        '--mp3-channels', '2',         // סטריאו
+        '--cpu',                       // כפייה לשימוש ב-CPU במקום GPU
+        '--float32',                   // שימוש ב-float32 במקום float64
+        '--segment', '10',             // חלוקה לקטעים של 10 שניות
+        '--overlap', '0.1',            // חפיפה של 10% בין קטעים
+        '--shifts', '0',               // ביטול shifts לחיסכון בזיכרון
+        '--split', 'segment',          // חלוקה לפי קטעים
+        '--jobs', '1',                 // עבודה סדרתית במקום מקבילית
+        optimizedPath
       ],
-      { cwd: __dirname }
+      { 
+        cwd: __dirname,
+        env: {
+          ...process.env,
+          'OMP_NUM_THREADS': '1',     // הגבלת threads
+          'MKL_NUM_THREADS': '1',     // הגבלת threads
+          'OPENBLAS_NUM_THREADS': '1', // הגבלת threads
+          'VECLIB_MAXIMUM_THREADS': '1', // הגבלת threads
+          'NUMEXPR_NUM_THREADS': '1'  // הגבלת threads
+        }
+      }
     );
 
     console.log('✅ תהליך Demucs התחיל');
@@ -471,9 +565,19 @@ app.post('/api/separate', async (req, res) => {
       }
     });
 
+    // הגבלת זמן עיבוד ל-15 דקות
+    const timeout = setTimeout(() => {
+      console.error('⏰ Demucs timeout - יותר מ-15 דקות');
+      demucsProcess.kill('SIGTERM');
+      project.status = 'failed';
+      project.error = 'עיבוד נכשל - זמן עיבוד חריג';
+      clearInterval(progressInterval);
+    }, 15 * 60 * 1000); // 15 דקות
+
     demucsProcess.on('close', async (code) => {
       console.log('🎵 Demucs process closed with code:', code);
       clearInterval(progressInterval);
+      clearTimeout(timeout);
       
       if (code === 0) {
         console.log('✅ Demucs הושלם בהצלחה');
@@ -685,7 +789,7 @@ app.delete('/api/projects/:id', async (req, res) => {
 
 
 
-// יצירת STEMS מ-Demucs
+// יצירת STEMS מ-Demucs עם אופטימיזציה לזיכרון
 async function createStemsFromDemucs(fileId, outputDir) {
   try {
     const project = projects.get(fileId);
@@ -711,7 +815,7 @@ async function createStemsFromDemucs(fileId, outputDir) {
       bass: files.find(f => f.includes('bass'))
     };
     
-    // העתקת קבצים לתיקיית STEMS
+    // העתקת קבצים לתיקיית STEMS עם אופטימיזציה לזיכרון
     const stemsDir = path.join(outputDir, 'stems');
     await fs.ensureDir(stemsDir);
     
@@ -719,7 +823,9 @@ async function createStemsFromDemucs(fileId, outputDir) {
       if (filename) {
         const sourcePath = path.join(audioPath, filename);
         const targetPath = path.join(stemsDir, `${track}.mp3`);
-        await fs.copy(sourcePath, targetPath);
+        
+        // שימוש ב-ffmpeg עם אופטימיזציה לזיכרון
+        await optimizeAudioFile(sourcePath, targetPath);
       }
     }
     
@@ -734,6 +840,85 @@ async function createStemsFromDemucs(fileId, outputDir) {
   }
 }
 
+// פונקציה לאופטימיזציה של קובץ מקורי לפני ההפרדה
+async function optimizeInputFile(inputPath) {
+  return new Promise((resolve, reject) => {
+    const outputPath = inputPath.replace(/\.[^/.]+$/, '_optimized.mp3');
+    
+    // הגדרות אופטימיזציה לזיכרון לקובץ מקורי
+    const ffmpegArgs = [
+      '-i', inputPath,
+      '-c:a', 'libmp3lame',     // קודק MP3 יעיל
+      '-b:a', '128k',           // ביטרייט נמוך לקובץ מקורי
+      '-ar', '44100',           // Sample rate סטנדרטי
+      '-ac', '2',               // סטריאו
+      '-f', 'mp3',              // פורמט MP3
+      '-y',                     // דריסת קובץ קיים
+      outputPath
+    ];
+    
+    console.log('🔧 אופטימיזציה קובץ מקורי:', inputPath, '->', outputPath);
+    
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    ffmpegProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ אופטימיזציה קובץ מקורי הושלמה:', outputPath);
+        resolve(outputPath);
+      } else {
+        console.error('❌ שגיאה באופטימיזציה קובץ מקורי:', code);
+        // אם נכשל, נחזיר את הקובץ המקורי
+        resolve(inputPath);
+      }
+    });
+    
+    ffmpegProcess.on('error', (error) => {
+      console.error('❌ FFmpeg error:', error);
+      // אם נכשל, נחזיר את הקובץ המקורי
+      resolve(inputPath);
+    });
+  });
+}
+
+// פונקציה לאופטימיזציה של קבצי אודיו עם ffmpeg
+async function optimizeAudioFile(inputPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    // הגדרות אופטימיזציה לזיכרון
+    const ffmpegArgs = [
+      '-i', inputPath,
+      '-c:a', 'libmp3lame',     // קודק MP3 יעיל
+      '-b:a', '192k',           // ביטרייט נמוך יותר
+      '-ar', '44100',           // Sample rate סטנדרטי
+      '-ac', '2',               // סטריאו
+      '-f', 'mp3',              // פורמט MP3
+      '-y',                     // דריסת קובץ קיים
+      outputPath
+    ];
+    
+    console.log('🔧 אופטימיזציה עם ffmpeg:', inputPath, '->', outputPath);
+    
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    ffmpegProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ אופטימיזציה הושלמה:', outputPath);
+        resolve();
+      } else {
+        console.error('❌ שגיאה באופטימיזציה:', code);
+        reject(new Error(`FFmpeg failed with code ${code}`));
+      }
+    });
+    
+    ffmpegProcess.on('error', (error) => {
+      console.error('❌ FFmpeg error:', error);
+      reject(error);
+    });
+  });
+}
 
 
 // Health check endpoint - מעודכן לתמיכה ב-Render Load Balancer
