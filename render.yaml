@@ -38,14 +38,11 @@ services:
 
   - type: worker
     name: kr-studio-demucs-worker
-    env: node
-    buildCommand: npm install
-    startCommand: node --max-old-space-size=2048 demucs-worker.js
+    env: python
+    runtime: python3.12
+    buildCommand: pip install -r requirements.txt
+    startCommand: python demucs-worker.js
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NODE_OPTIONS
-        value: "--max-old-space-size=2048"
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: OMP_NUM_THREADS
