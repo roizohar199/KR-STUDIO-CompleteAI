@@ -3,10 +3,12 @@ services:
     name: kr-studio-audio-separation
     env: node
     buildCommand: npm install && npm run build
-    startCommand: node server.js
+    startCommand: node --max-old-space-size=2048 server.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=2048"
     healthCheckPath: /api/health
     healthCheckTimeout: 300
     autoDeploy: true
@@ -14,6 +16,20 @@ services:
       paths:
         - "**/*"
     # הגדרות נוספות לביצועים
-    instanceType: standard-1x
-    maxConcurrency: 10
-    maxInstances: 1 
+    instanceType: standard-2x  # הגדלת הזיכרון ל-2GB
+    maxConcurrency: 5          # הפחתת עומס
+    maxInstances: 1
+    # הגדרות נוספות לזיכרון
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: VECLIB_MAXIMUM_THREADS
+        value: "1"
+      - key: NUMEXPR_NUM_THREADS
+        value: "1" 

@@ -1,6 +1,14 @@
-demucs>=4.0.0
-torch>=1.9.0
-torchaudio>=0.9.0
-pydub>=0.25.1
-numpy>=1.21.0
-scipy>=1.7.0 
+# Demucs עם גרסאות יציבות
+demucs==4.0.0
+torch==2.0.1
+torchaudio==2.0.2
+pydub==0.25.1
+numpy==1.24.3
+scipy==1.10.1
+
+# אופטימיזציות לזיכרון
+psutil==5.9.5
+memory-profiler==0.61.0
+
+# כלים נוספים לבדיקה
+ffmpeg-python==0.2.0 

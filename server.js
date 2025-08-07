@@ -469,146 +469,71 @@ app.post('/api/separate', async (req, res) => {
     project.progress = 0;
     project.startedAt = new Date().toISOString();
 
-    console.log('🎵 מתחיל Demucs...');
-    console.log('🎵 נתיב קובץ:', project.originalPath);
+    console.log('🎵 מתחיל Demucs עם fallback...');
+    console.log('🎵 נתיב קובץ:', optimizedPath);
     console.log('🎵 תיקיית פלט:', outputDir);
 
-    // הפעלת Demucs עם אופטימיזציה לזיכרון
-    const demucsProcess = spawn(
-      'python',
-      [
-        '-m', 'demucs',
-        '--out', outputDir,
-        '--two-stems=vocals',
-        '--mp3',
-        '--mp3-bitrate', '192',        // הורדת ביטרייט מ-320 ל-192
-        '--mp3-rate', '44100',         // Sample rate סטנדרטי
-        '--mp3-channels', '2',         // סטריאו
-        '--cpu',                       // כפייה לשימוש ב-CPU במקום GPU
-        '--float32',                   // שימוש ב-float32 במקום float64
-        '--segment', '10',             // חלוקה לקטעים של 10 שניות
-        '--overlap', '0.1',            // חפיפה של 10% בין קטעים
-        '--shifts', '0',               // ביטול shifts לחיסכון בזיכרון
-        '--split', 'segment',          // חלוקה לפי קטעים
-        '--jobs', '1',                 // עבודה סדרתית במקום מקבילית
-        optimizedPath
-      ],
-      { 
-        cwd: __dirname,
-        env: {
-          ...process.env,
-          'OMP_NUM_THREADS': '1',     // הגבלת threads
-          'MKL_NUM_THREADS': '1',     // הגבלת threads
-          'OPENBLAS_NUM_THREADS': '1', // הגבלת threads
-          'VECLIB_MAXIMUM_THREADS': '1', // הגבלת threads
-          'NUMEXPR_NUM_THREADS': '1'  // הגבלת threads
+    // בדיקת מודלים זמינים
+    try {
+      await checkDemucsModels();
+    } catch (error) {
+      console.warn('⚠️ לא ניתן לבדוק מודלי Demucs:', error.message);
+    }
+
+    // חלוקת קובץ גדול אם נדרש
+    const fileChunks = await splitLargeFile(optimizedPath, 50); // 50MB מקסימום
+    console.log('📁 קבצים לעיבוד:', fileChunks.length);
+
+    // הפעלת Demucs עם fallback
+    let demucsProcess;
+    let isFallback = false;
+
+    try {
+      // ניסיון ראשון עם הפרדה מלאה
+      await runDemucsWithFallback(optimizedPath, outputDir, project);
+      
+      console.log('✅ Demucs הושלם בהצלחה');
+      project.status = 'completed';
+      project.progress = 100;
+      project.completedAt = new Date().toISOString();
+      
+      // יצירת קבצי STEMS
+      console.log('🎵 יוצר קבצי STEMS...');
+      await createStemsFromDemucs(fileId, outputDir);
+      console.log('✅ קבצי STEMS נוצרו');
+      
+    } catch (error) {
+      console.error('❌ Demucs נכשל:', error.message);
+      
+      if (error.message === 'FALLBACK_NEEDED') {
+        console.log('🔄 מנסה fallback עם מודל קל יותר...');
+        project.message = 'מנסה מודל קל יותר...';
+        project.progress = 50;
+        
+        try {
+          // ניסיון שני עם מודל קל יותר
+          await runDemucsWithFallback(optimizedPath, outputDir, project);
+          
+          console.log('✅ Demucs הושלם בהצלחה עם fallback');
+          project.status = 'completed';
+          project.progress = 100;
+          project.completedAt = new Date().toISOString();
+          
+          // יצירת קבצי STEMS
+          console.log('🎵 יוצר קבצי STEMS...');
+          await createStemsFromDemucs(fileId, outputDir);
+          console.log('✅ קבצי STEMS נוצרו');
+          
+        } catch (fallbackError) {
+          console.error('❌ גם fallback נכשל:', fallbackError.message);
+          project.status = 'failed';
+          project.error = `עיבוד נכשל: ${fallbackError.message}. נסה קובץ קטן יותר או חכה לשרת חזק יותר.`;
         }
-      }
-    );
-
-    console.log('✅ תהליך Demucs התחיל');
-    console.log('🎵 PID:', demucsProcess.pid);
-
-    // מעקב אחר התקדמות אמיתית
-    let progress = 0;
-    
-    const progressInterval = setInterval(() => {
-      // התקדמות איטית יותר וריאליסטית
-      if (progress < 85) {
-        const increment = Math.random() * 2 + 0.5; // 0.5-2.5 אחוזים
-        progress += increment;
-        project.progress = Math.min(progress, 85);
-        
-        console.log('📊 התקדמות מעודכנת:', project.progress + '%');
-        
-        // הודעות מפורטות לפי התקדמות
-        if (progress < 15) {
-          project.status = 'processing';
-          project.message = 'מנתח אודיו ומכין לעיבוד...';
-        } else if (progress < 35) {
-          project.status = 'separating';
-          project.message = 'מפריד ערוצים - ווקאל ובס...';
-        } else if (progress < 60) {
-          project.message = 'מפריד ערוצים - תופים וכלי נגינה...';
-        } else if (progress < 85) {
-          project.message = 'מסיים עיבוד ומכין קבצים...';
-        }
-      }
-    }, 3000); // כל 3 שניות
-
-    demucsProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log('🎵 Demucs stdout:', output);
-      
-      // מעקב אחר התקדמות אמיתית לפי הפלט של Demucs
-      if (output.includes('Loading model')) {
-        project.message = 'טוען מודל AI...';
-        project.progress = Math.max(project.progress, 10);
-        console.log('📊 טוען מודל AI - התקדמות:', project.progress + '%');
-      } else if (output.includes('Separating')) {
-        project.message = 'מפריד ערוצים...';
-        project.progress = Math.max(project.progress, 30);
-        console.log('📊 מפריד ערוצים - התקדמות:', project.progress + '%');
-      } else if (output.includes('Saving')) {
-        project.message = 'שומר קבצים...';
-        project.progress = Math.max(project.progress, 70);
-        console.log('📊 שומר קבצים - התקדמות:', project.progress + '%');
-      } else if (output.includes('Done')) {
-        project.message = 'מסיים עיבוד...';
-        project.progress = Math.max(project.progress, 90);
-        console.log('📊 מסיים עיבוד - התקדמות:', project.progress + '%');
-      }
-    });
-
-    demucsProcess.stderr.on('data', (data) => {
-      const error = data.toString();
-      console.log('❌ Demucs stderr:', error);
-      
-      // עדכון הודעה אם יש שגיאה
-      if (error.includes('CUDA') || error.includes('GPU')) {
-        project.message = 'משתמש ב-CPU לעיבוד...';
-        console.log('📊 משתמש ב-CPU לעיבוד');
-      }
-    });
-
-    // הגבלת זמן עיבוד ל-15 דקות
-    const timeout = setTimeout(() => {
-      console.error('⏰ Demucs timeout - יותר מ-15 דקות');
-      demucsProcess.kill('SIGTERM');
-      project.status = 'failed';
-      project.error = 'עיבוד נכשל - זמן עיבוד חריג';
-      clearInterval(progressInterval);
-    }, 15 * 60 * 1000); // 15 דקות
-
-    demucsProcess.on('close', async (code) => {
-      console.log('🎵 Demucs process closed with code:', code);
-      clearInterval(progressInterval);
-      clearTimeout(timeout);
-      
-      if (code === 0) {
-        console.log('✅ Demucs הושלם בהצלחה');
-        project.status = 'completed';
-        project.progress = 100;
-        project.completedAt = new Date().toISOString();
-        
-        // יצירת קבצי STEMS
-        console.log('🎵 יוצר קבצי STEMS...');
-        await createStemsFromDemucs(fileId, outputDir);
-        console.log('✅ קבצי STEMS נוצרו');
       } else {
-        console.error('❌ Demucs נכשל עם קוד:', code);
         project.status = 'failed';
-        project.error = `Demucs failed with code ${code}`;
+        project.error = `עיבוד נכשל: ${error.message}. נסה קובץ קטן יותר או חכה לשרת חזק יותר.`;
       }
-    });
-
-    demucsProcess.on('error', (error) => {
-      console.error('❌ Demucs process error:', error);
-      project.status = 'failed';
-      project.error = `Demucs process error: ${error.message}`;
-    });
-
-    separationProcesses.set(fileId, demucsProcess);
+    }
     
     const response = { 
       success: true, 
@@ -948,6 +873,277 @@ async function optimizeAudioFile(inputPath, outputPath) {
   });
 }
 
+// פונקציה לבדיקת זיכרון זמין
+const checkAvailableMemory = () => {
+  const memUsage = process.memoryUsage();
+  const availableMemory = process.env.NODE_OPTIONS ? 
+    parseInt(process.env.NODE_OPTIONS.match(/--max-old-space-size=(\d+)/)?.[1] || '512') * 1024 * 1024 :
+    512 * 1024 * 1024; // ברירת מחדל 512MB
+  
+  const usedMemory = memUsage.rss;
+  const freeMemory = availableMemory - usedMemory;
+  
+  console.log('📊 זיכרון זמין:', Math.round(freeMemory / 1024 / 1024) + 'MB');
+  return freeMemory;
+};
+
+// פונקציה לחלוקת קובץ גדול לחתיכות קטנות
+async function splitLargeFile(inputPath, maxSizeMB = 50) {
+  const stats = await fs.stat(inputPath);
+  const fileSizeMB = stats.size / (1024 * 1024);
+  
+  if (fileSizeMB <= maxSizeMB) {
+    console.log('📁 קובץ קטן מספיק, לא צריך לחלק:', fileSizeMB.toFixed(2) + 'MB');
+    return [inputPath];
+  }
+  
+  console.log('📁 מחלק קובץ גדול:', fileSizeMB.toFixed(2) + 'MB');
+  
+  const outputDir = path.dirname(inputPath);
+  const baseName = path.basename(inputPath, path.extname(inputPath));
+  const extension = path.extname(inputPath);
+  const chunks = [];
+  
+  // חלוקה לחתיכות של 10 דקות כל אחת
+  const segmentDuration = 600; // 10 דקות בשניות
+  
+  return new Promise((resolve, reject) => {
+    const ffmpegArgs = [
+      '-i', inputPath,
+      '-f', 'segment',
+      '-segment_time', segmentDuration.toString(),
+      '-c', 'copy',
+      '-reset_timestamps', '1',
+      path.join(outputDir, `${baseName}_chunk_%03d${extension}`)
+    ];
+    
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    ffmpegProcess.on('close', async (code) => {
+      if (code === 0) {
+        try {
+          const files = await fs.readdir(outputDir);
+          const chunkFiles = files
+            .filter(f => f.startsWith(`${baseName}_chunk_`) && f.endsWith(extension))
+            .sort()
+            .map(f => path.join(outputDir, f));
+          
+          console.log('✅ קובץ חולק ל-', chunkFiles.length, 'חתיכות');
+          resolve(chunkFiles);
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        reject(new Error(`FFmpeg failed with code ${code}`));
+      }
+    });
+    
+    ffmpegProcess.on('error', reject);
+  });
+};
+
+// פונקציה להמרת קובץ ל-WAV סטנדרטי
+async function convertToStandardWav(inputPath) {
+  const outputPath = inputPath.replace(/\.[^/.]+$/, '_standard.wav');
+  
+  return new Promise((resolve, reject) => {
+    const ffmpegArgs = [
+      '-i', inputPath,
+      '-c:a', 'pcm_s16le',    // 16-bit PCM
+      '-ar', '44100',          // 44.1 kHz
+      '-ac', '2',              // סטריאו
+      '-f', 'wav',             // פורמט WAV
+      '-y',                    // דריסת קובץ קיים
+      outputPath
+    ];
+    
+    console.log('🔄 ממיר ל-WAV סטנדרטי:', inputPath, '->', outputPath);
+    
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    ffmpegProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ המרה ל-WAV הושלמה:', outputPath);
+        resolve(outputPath);
+      } else {
+        console.error('❌ שגיאה בהמרה ל-WAV:', code);
+        // אם נכשל, נחזיר את הקובץ המקורי
+        resolve(inputPath);
+      }
+    });
+    
+    ffmpegProcess.on('error', (error) => {
+      console.error('❌ FFmpeg error בהמרה:', error);
+      // אם נכשל, נחזיר את הקובץ המקורי
+      resolve(inputPath);
+    });
+  });
+};
+
+// פונקציה לבדיקת מודלים זמינים ב-Demucs
+async function checkDemucsModels() {
+  return new Promise((resolve, reject) => {
+    const demucsCheck = spawn('python', ['-m', 'demucs', '--list-models']);
+    
+    let output = '';
+    let error = '';
+    
+    demucsCheck.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    demucsCheck.stderr.on('data', (data) => {
+      error += data.toString();
+    });
+    
+    demucsCheck.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ מודלי Demucs זמינים:', output);
+        resolve(output);
+      } else {
+        console.error('❌ שגיאה בבדיקת מודלי Demucs:', error);
+        reject(new Error(`Demucs models check failed: ${error}`));
+      }
+    });
+    
+    demucsCheck.on('error', reject);
+  });
+};
+
+// פונקציה להפרדה עם Demucs עם fallback
+async function runDemucsWithFallback(inputPath, outputDir, project) {
+  const availableMemory = checkAvailableMemory();
+  
+  // בחירת מודל לפי זיכרון זמין
+  let model = 'htdemucs'; // מודל ברירת מחדל
+  let twoStems = 'vocals';
+  
+  if (availableMemory < 200 * 1024 * 1024) { // פחות מ-200MB
+    console.log('⚠️ זיכרון נמוך, משתמש במודל קל יותר');
+    model = 'htdemucs_ft';
+    twoStems = 'vocals';
+  } else if (availableMemory > 1000 * 1024 * 1024) { // יותר מ-1GB
+    console.log('✅ זיכרון גבוה, משתמש במודל מלא');
+    model = 'htdemucs';
+    twoStems = null; // הפרדה מלאה
+  }
+  
+  // המרה ל-WAV סטנדרטי
+  const wavPath = await convertToStandardWav(inputPath);
+  
+  return new Promise((resolve, reject) => {
+    const demucsArgs = [
+      '-m', 'demucs',
+      '--out', outputDir,
+      '--model', model,
+      '--mp3',
+      '--mp3-bitrate', '192',
+      '--mp3-rate', '44100',
+      '--mp3-channels', '2',
+      '--cpu',
+      '--float32',
+      '--segment', '10',
+      '--overlap', '0.1',
+      '--shifts', '0',
+      '--split', 'segment',
+      '--jobs', '1'
+    ];
+    
+    // הוספת פרמטר two-stems רק אם נדרש
+    if (twoStems) {
+      demucsArgs.push(`--two-stems=${twoStems}`);
+    }
+    
+    demucsArgs.push(wavPath);
+    
+    console.log('🎵 הפעלת Demucs עם פרמטרים:', demucsArgs.join(' '));
+    
+    const demucsProcess = spawn('python', demucsArgs, {
+      cwd: __dirname,
+      env: {
+        ...process.env,
+        'OMP_NUM_THREADS': '1',
+        'MKL_NUM_THREADS': '1',
+        'OPENBLAS_NUM_THREADS': '1',
+        'VECLIB_MAXIMUM_THREADS': '1',
+        'NUMEXPR_NUM_THREADS': '1',
+        'PYTORCH_CUDA_ALLOC_CONF': 'max_split_size_mb:128' // הגבלת זיכרון CUDA
+      }
+    });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    demucsProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      stdout += output;
+      console.log('🎵 Demucs stdout:', output);
+      
+      // מעקב אחר התקדמות
+      if (output.includes('Loading model')) {
+        project.message = 'טוען מודל AI...';
+        project.progress = Math.max(project.progress, 10);
+      } else if (output.includes('Separating')) {
+        project.message = 'מפריד ערוצים...';
+        project.progress = Math.max(project.progress, 30);
+      } else if (output.includes('Saving')) {
+        project.message = 'שומר קבצים...';
+        project.progress = Math.max(project.progress, 70);
+      } else if (output.includes('Done')) {
+        project.message = 'מסיים עיבוד...';
+        project.progress = Math.max(project.progress, 90);
+      }
+    });
+    
+    demucsProcess.stderr.on('data', (data) => {
+      const error = data.toString();
+      stderr += error;
+      console.log('❌ Demucs stderr:', error);
+      
+      if (error.includes('CUDA') || error.includes('GPU')) {
+        project.message = 'משתמש ב-CPU לעיבוד...';
+      }
+    });
+    
+    // הגבלת זמן עיבוד ל-20 דקות
+    const timeout = setTimeout(() => {
+      console.error('⏰ Demucs timeout - יותר מ-20 דקות');
+      demucsProcess.kill('SIGTERM');
+      reject(new Error('עיבוד נכשל - זמן עיבוד חריג'));
+    }, 20 * 60 * 1000);
+    
+    demucsProcess.on('close', (code) => {
+      clearTimeout(timeout);
+      console.log('🎵 Demucs process closed with code:', code);
+      
+      if (code === 0) {
+        console.log('✅ Demucs הושלם בהצלחה');
+        resolve();
+      } else {
+        console.error('❌ Demucs נכשל עם קוד:', code);
+        console.error('❌ stderr מלא:', stderr);
+        
+        // ניסיון fallback עם מודל קל יותר
+        if (model !== 'htdemucs_ft' && code === 2) {
+          console.log('🔄 מנסה fallback עם מודל קל יותר...');
+          reject(new Error('FALLBACK_NEEDED'));
+        } else {
+          reject(new Error(`Demucs failed with code ${code}: ${stderr}`));
+        }
+      }
+    });
+    
+    demucsProcess.on('error', (error) => {
+      clearTimeout(timeout);
+      console.error('❌ Demucs process error:', error);
+      reject(error);
+    });
+  });
+};
 
 // Health check endpoint - מעודכן לתמיכה ב-Render Load Balancer
 app.get('/api/health', (req, res) => {
