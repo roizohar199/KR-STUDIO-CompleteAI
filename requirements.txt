@@ -1,10 +1,10 @@
 # Demucs עם גרסאות יציבות
 demucs==4.0.0
-torch==2.0.1
-torchaudio==2.0.2
+torch==2.7.1
+torchaudio==2.7.1
 pydub==0.25.1
-numpy==1.24.3
-scipy==1.10.1
+numpy==1.26.4
+scipy==1.13.1
 
 # אופטימיזציות לזיכרון
 psutil==5.9.5
