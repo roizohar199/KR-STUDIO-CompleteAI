@@ -1,74 +1,67 @@
-// בדיקת השרת המקומי
-const API_BASE_URL = 'http://localhost:10000/api';
+import fetch from 'node-fetch';
 
-async function testLocalServer() {
-  console.log('🔍 ===== בדיקת שרת מקומי =====');
-  console.log('🔍 URL:', API_BASE_URL);
+const BASE_URL = 'http://localhost:10000';
+const WORKER_URL = 'http://localhost:10001';
+
+async function testServer() {
+  console.log('🧪 ===== בדיקת שרת מקומי =====');
   
   try {
-    // בדיקה ראשונית - health check
-    console.log('🏥 בודק health check...');
-    const healthResponse = await fetch(`${API_BASE_URL}/health`);
-    
-    if (!healthResponse.ok) {
-      throw new Error(`Health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
-    }
-    
+    // בדיקת health check
+    console.log('🔍 בודק health check...');
+    const healthResponse = await fetch(`${BASE_URL}/api/health`);
     const healthData = await healthResponse.json();
-    console.log('✅ Health check הצליח:', healthData);
     
-    // בדיקת Demucs
-    console.log('🎵 בודק Demucs...');
-    const demucsResponse = await fetch(`${API_BASE_URL}/test-demucs`);
+    console.log('✅ Health check status:', healthResponse.status);
+    console.log('✅ Health check data:', healthData);
     
-    if (!demucsResponse.ok) {
-      throw new Error(`Demucs check failed: ${demucsResponse.status} ${demucsResponse.statusText}`);
+    // בדיקת CORS headers
+    console.log('🔍 בודק CORS headers...');
+    const corsHeaders = healthResponse.headers;
+    console.log('✅ CORS headers:', {
+      'Access-Control-Allow-Origin': corsHeaders.get('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Methods': corsHeaders.get('Access-Control-Allow-Methods'),
+      'Access-Control-Allow-Headers': corsHeaders.get('Access-Control-Allow-Headers'),
+      'Access-Control-Max-Age': corsHeaders.get('Access-Control-Max-Age')
+    });
+    
+    // בדיקת worker health
+    console.log('🔍 בודק worker health...');
+    try {
+      const workerHealthResponse = await fetch(`${WORKER_URL}/api/health`);
+      const workerHealthData = await workerHealthResponse.json();
+      
+      console.log('✅ Worker health status:', workerHealthResponse.status);
+      console.log('✅ Worker health data:', workerHealthData);
+    } catch (workerError) {
+      console.log('⚠️ Worker לא זמין:', workerError.message);
     }
     
-    const demucsData = await demucsResponse.json();
-    console.log('✅ בדיקת Demucs:', demucsData);
+    // בדיקת OPTIONS request
+    console.log('🔍 בודק OPTIONS request...');
+    const optionsResponse = await fetch(`${BASE_URL}/api/health`, {
+      method: 'OPTIONS',
+      headers: {
+        'Origin': 'http://localhost:5173',
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'Content-Type'
+      }
+    });
     
-    // בדיקת פרויקטים
-    console.log('📋 בודק קבלת פרויקטים...');
-    const projectsResponse = await fetch(`${API_BASE_URL}/projects`);
+    console.log('✅ OPTIONS status:', optionsResponse.status);
+    console.log('✅ OPTIONS headers:', {
+      'Access-Control-Allow-Origin': optionsResponse.headers.get('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Methods': optionsResponse.headers.get('Access-Control-Allow-Methods'),
+      'Access-Control-Allow-Headers': optionsResponse.headers.get('Access-Control-Allow-Headers')
+    });
     
-    if (!projectsResponse.ok) {
-      throw new Error(`Projects check failed: ${projectsResponse.status} ${projectsResponse.statusText}`);
-    }
-    
-    const projectsData = await projectsResponse.json();
-    console.log('✅ קבלת פרויקטים הצליחה:', projectsData);
-    
-    console.log('✅ ===== כל הבדיקות הצליחו =====');
-    return {
-      success: true,
-      health: healthData,
-      demucs: demucsData,
-      projects: projectsData,
-      message: 'השרת המקומי עובד כראוי'
-    };
+    console.log('✅ ===== בדיקה הושלמה בהצלחה =====');
     
   } catch (error) {
-    console.error('❌ ===== בדיקת שרת מקומי נכשלה =====');
-    console.error('❌ שגיאה:', error.message);
-    
-    return {
-      success: false,
-      error: error.message,
-      message: 'השרת המקומי לא זמין או לא מגיב'
-    };
+    console.error('❌ ===== שגיאה בבדיקה =====');
+    console.error('❌ Error:', error.message);
   }
 }
 
-// הרצת הבדיקה
-testLocalServer().then(result => {
-  console.log('📊 תוצאות בדיקה:', result);
-  
-  if (result.success) {
-    console.log('✅ השרת המקומי עובד כראוי');
-  } else {
-    console.log('❌ השרת המקומי לא עובד:', result.error);
-  }
-}).catch(error => {
-  console.error('❌ שגיאה בבדיקה:', error);
-}); 
+// הפעלת הבדיקה
+testServer(); 

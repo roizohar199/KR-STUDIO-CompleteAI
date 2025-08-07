@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -86,9 +87,6 @@ setInterval(() => {
 // ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
 // זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
 
-// ⚠️ ריכוז CORS middleware ו-app.options לפני כל דבר אחר
-// זה מבטיח שכל preflight OPTIONS יקבל את ה-Access-Control-Allow-Origin header
-
 // הגדרת CORS עם תמיכה מלאה ב-Render Load Balancer
 const corsOptions = {
   origin: function (origin, callback) {
@@ -130,34 +128,25 @@ const corsOptions = {
   ],
   optionsSuccessStatus: 200,
   credentials: false,
-  preflightContinue: true, // מאפשר לנו לטפל ב-OPTIONS ידנית
-  maxAge: 86400 // Cache preflight requests for 24 hours
+  preflightContinue: true,
+  maxAge: 86400
 };
 
-// ריכוז CORS middleware לפני כל דבר אחר
+// 1. CORS middleware ראשון
 app.use(cors(corsOptions));
 
-// ריכוז app.options('*', ...) לפני כל דבר אחר
+// 2. OPTIONS handler
 app.options('*', (req, res) => {
-  // הגדרת CORS headers ידנית - תמיכה ב-Health Checks ללא Origin
   const origin = req.headers.origin || '*';
   res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
-  res.header('Access-Control-Max-Age', '86400'); // 24 שעות
+  res.header('Access-Control-Max-Age', '86400');
   res.header('Access-Control-Allow-Credentials', 'false');
-  
-  // שליחת תשובה מיידית ל-preflight
   return res.status(200).end();
 });
 
-// Middleware ידני לטיפול ב-preflight requests - הוסר כפילות
-// OPTIONS requests מטופלים ב-middleware הכללי למעלה
-
-// Logging middleware for CORS requests - מופעל אחרי CORS middleware
-// הוסר כפילות - יש middleware logging מורכב יותר למטה
-
-// הגדרות נוספות לשרת
+// 3. Body parsers
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
@@ -453,15 +442,6 @@ app.post('/api/separate', async (req, res) => {
     console.log('🎵 פרויקט נמצא:', project);
     console.log('🎵 תיקיית פלט:', outputDir);
 
-    // יצירת תיקיית פלט
-    await fs.ensureDir(outputDir);
-    console.log('✅ תיקיית פלט נוצרה');
-
-    // אופטימיזציה של הקובץ המקורי לפני ההפרדה
-    console.log('🔧 אופטימיזציה של קובץ מקורי...');
-    const optimizedPath = await optimizeInputFile(project.originalPath);
-    console.log('✅ קובץ מקורי אופטימז:', optimizedPath);
-
     // עדכון סטטוס הפרויקט
     project.status = 'processing';
     project.projectName = projectName;
@@ -469,70 +449,42 @@ app.post('/api/separate', async (req, res) => {
     project.progress = 0;
     project.startedAt = new Date().toISOString();
 
-    console.log('🎵 מתחיל Demucs עם fallback...');
-    console.log('🎵 נתיב קובץ:', optimizedPath);
-    console.log('🎵 תיקיית פלט:', outputDir);
-
-    // בדיקת מודלים זמינים
+    // שליחת משימה ל-worker
+    console.log('🔧 שולח משימה ל-worker...');
+    
     try {
-      await checkDemucsModels();
-    } catch (error) {
-      console.warn('⚠️ לא ניתן לבדוק מודלי Demucs:', error.message);
-    }
+      const workerResponse = await fetch('http://localhost:10001/api/worker/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId: fileId,
+          inputPath: project.originalPath,
+          outputDir: outputDir,
+          projectName: projectName
+        })
+      });
 
-    // חלוקת קובץ גדול אם נדרש
-    const fileChunks = await splitLargeFile(optimizedPath, 50); // 50MB מקסימום
-    console.log('📁 קבצים לעיבוד:', fileChunks.length);
+      if (!workerResponse.ok) {
+        throw new Error(`Worker error: ${workerResponse.status}`);
+      }
 
-    // הפעלת Demucs עם fallback
-    let demucsProcess;
-    let isFallback = false;
+      const workerResult = await workerResponse.json();
+      console.log('✅ Worker response:', workerResult);
 
-    try {
-      // ניסיון ראשון עם הפרדה מלאה
-      await runDemucsWithFallback(optimizedPath, outputDir, project);
-      
-      console.log('✅ Demucs הושלם בהצלחה');
-      project.status = 'completed';
-      project.progress = 100;
-      project.completedAt = new Date().toISOString();
-      
-      // יצירת קבצי STEMS
-      console.log('🎵 יוצר קבצי STEMS...');
-      await createStemsFromDemucs(fileId, outputDir);
-      console.log('✅ קבצי STEMS נוצרו');
-      
-    } catch (error) {
-      console.error('❌ Demucs נכשל:', error.message);
-      
-      if (error.message === 'FALLBACK_NEEDED') {
-        console.log('🔄 מנסה fallback עם מודל קל יותר...');
-        project.message = 'מנסה מודל קל יותר...';
-        project.progress = 50;
-        
-        try {
-          // ניסיון שני עם מודל קל יותר
-          await runDemucsWithFallback(optimizedPath, outputDir, project);
-          
-          console.log('✅ Demucs הושלם בהצלחה עם fallback');
-          project.status = 'completed';
-          project.progress = 100;
-          project.completedAt = new Date().toISOString();
-          
-          // יצירת קבצי STEMS
-          console.log('🎵 יוצר קבצי STEMS...');
-          await createStemsFromDemucs(fileId, outputDir);
-          console.log('✅ קבצי STEMS נוצרו');
-          
-        } catch (fallbackError) {
-          console.error('❌ גם fallback נכשל:', fallbackError.message);
-          project.status = 'failed';
-          project.error = `עיבוד נכשל: ${fallbackError.message}. נסה קובץ קטן יותר או חכה לשרת חזק יותר.`;
-        }
+      if (workerResult.success) {
+        project.status = workerResult.status || 'processing';
+        project.error = workerResult.error;
       } else {
         project.status = 'failed';
-        project.error = `עיבוד נכשל: ${error.message}. נסה קובץ קטן יותר או חכה לשרת חזק יותר.`;
+        project.error = workerResult.error || 'עיבוד נכשל';
       }
+
+    } catch (workerError) {
+      console.error('❌ Worker error:', workerError);
+      project.status = 'failed';
+      project.error = `שגיאה בתקשורת עם Worker: ${workerError.message}`;
     }
     
     const response = { 
@@ -559,7 +511,7 @@ app.post('/api/separate', async (req, res) => {
   }
 });
 
-app.get('/api/separate/:fileId/progress', (req, res) => {
+app.get('/api/separate/:fileId/progress', async (req, res) => {
   const { fileId } = req.params;
   const project = projects.get(fileId);
   
@@ -578,22 +530,27 @@ app.get('/api/separate/:fileId/progress', (req, res) => {
     });
   }
   
-  // בדיקה אם התהליך עדיין רץ
-  const process = separationProcesses.get(fileId);
-  if (process) {
-    console.log('🔄 תהליך Demucs עדיין רץ, PID:', process.pid);
-    
-    // בדיקה אם התהליך עדיין חי
+  // בדיקת סטטוס מה-worker
+  if (project.status === 'processing') {
     try {
-      process.kill(0); // בדיקה אם התהליך חי (לא הורג אותו)
-      console.log('✅ תהליך Demucs חי');
-    } catch (error) {
-      console.log('❌ תהליך Demucs מת:', error.message);
-      project.status = 'failed';
-      project.error = 'תהליך Demucs נעצר';
+      const workerResponse = await fetch(`http://localhost:10001/api/worker/status/${fileId}`);
+      
+      if (workerResponse.ok) {
+        const workerStatus = await workerResponse.json();
+        console.log('🔧 Worker status:', workerStatus);
+        
+        if (workerStatus.success) {
+          project.progress = workerStatus.progress;
+          project.status = workerStatus.status;
+          project.error = workerStatus.error;
+          project.message = workerStatus.message;
+          project.completedAt = workerStatus.completedAt;
+        }
+      }
+    } catch (workerError) {
+      console.error('❌ Worker status error:', workerError);
+      // אם לא ניתן לתקשר עם worker, נשאיר את הסטטוס הנוכחי
     }
-  } else {
-    console.log('❌ תהליך Demucs לא נמצא');
   }
   
   const response = {
@@ -1153,6 +1110,7 @@ app.get('/api/health', (req, res) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
   res.header('Access-Control-Allow-Credentials', 'false');
+  res.header('Access-Control-Max-Age', '86400');
   
   const response = { 
     status: 'healthy', 
@@ -1261,6 +1219,13 @@ app.use((error, req, res, next) => {
   console.error('❌ Request method:', req.method);
   console.error('❌ Request headers:', req.headers);
   
+  // הוספת CORS headers לשגיאות
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
+  res.header('Access-Control-Allow-Credentials', 'false');
+  
   res.status(500).json({ 
     error: 'Internal server error',
     message: error.message,
@@ -1274,6 +1239,13 @@ app.use((req, res) => {
   console.log('❌ URL:', req.url);
   console.log('❌ Method:', req.method);
   console.log('❌ Origin:', req.headers.origin);
+  
+  // הוספת CORS headers ל-404
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
+  res.header('Access-Control-Allow-Credentials', 'false');
   
   res.status(404).json({ 
     error: 'Not found',
