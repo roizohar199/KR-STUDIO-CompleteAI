@@ -15,8 +15,7 @@
     "worker": "node demucs-worker.js",
     "server:with-worker": "concurrently \"npm run server\" \"npm run worker\"",
     "install:demucs": "pip install demucs",
-    "setup": "npm install && npm run install:demucs",
-    "postinstall": "pip install -r requirements.txt"
+    "setup": "npm install && npm run install:demucs"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.0.6",
