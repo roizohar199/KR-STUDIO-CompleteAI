@@ -9,6 +9,8 @@ services:
         value: production
       - key: NODE_OPTIONS
         value: "--max-old-space-size=1024"
+      - key: WORKER_URL
+        value: "https://kr-studio-demucs-worker.onrender.com/api/worker"
     healthCheckPath: /api/health
     healthCheckTimeout: 300
     autoDeploy: true
@@ -38,11 +40,14 @@ services:
 
   - type: worker
     name: kr-studio-demucs-worker
-    env: python
-    runtime: python3.12
-    buildCommand: pip install -r requirements.txt
-    startCommand: python demucs-worker.js
+    env: node
+    buildCommand: npm install
+    startCommand: node --max-old-space-size=2048 demucs-worker.js
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_PORT
+        value: "10001"
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: OMP_NUM_THREADS

@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 10001;
+const PORT = process.env.WORKER_PORT || 10001;
 
 // ניהול זיכרון - ניקוי אוטומטי
 const memoryCleanup = () => {

@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // הגדרת כתובת בסיס ל-Worker
-const WORKER_BASE_URL = process.env.WORKER_URL || 'http://localhost:10001/api/worker';
+const WORKER_BASE_URL = process.env.WORKER_URL || `http://localhost:${process.env.WORKER_PORT || 10001}/api/worker`;
 
 // ניהול זיכרון - ניקוי אוטומטי
 const memoryCleanup = () => {
