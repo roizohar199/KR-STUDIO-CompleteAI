@@ -53,8 +53,8 @@ RUN mkdir -p uploads separated
 # Expose port
 EXPOSE 10000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check - מעודכן לתמיכה טובה יותר
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:10000/api/health || exit 1
 
 # Start the application

@@ -14,6 +14,13 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Startup optimization for Fly.io
+let isReady = false;
+setTimeout(() => {
+  isReady = true;
+  console.log('🚀 Server is ready for health checks');
+}, 5000); // 5 שניות להתחלה
+
 // הגדרת כתובת בסיס ל-Worker
 const WORKER_BASE_URL = process.env.WORKER_URL || `http://localhost:${process.env.WORKER_PORT || 10001}/api/worker`;
 
@@ -1098,8 +1105,26 @@ async function runDemucsWithFallback(inputPath, outputDir, project) {
   });
 };
 
-// Health check endpoint - מעודכן לתמיכה ב-Render Load Balancer
+// Health check endpoint - מעודכן לתמיכה ב-Fly.io ו-Render Load Balancer
 app.get('/api/health', (req, res) => {
+  // בדיקה אם השרת מוכן
+  if (!isReady) {
+    return res.status(503).json({ 
+      status: 'starting', 
+      message: 'Server is starting up'
+    });
+  }
+  
+  // תשובה מהירה ופשוטה ל-health checks
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    server: 'KR-STUDIO CompleteAI Backend'
+  });
+});
+
+// Detailed health check endpoint
+app.get('/api/health/detailed', (req, res) => {
   // הוספת CORS headers לתשובה
   const origin = req.headers.origin || '*';
   res.header('Access-Control-Allow-Origin', origin);
