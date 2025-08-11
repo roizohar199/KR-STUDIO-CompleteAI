@@ -11,7 +11,8 @@
     "deploy": "node deploy.js",
     "server": "node server.js",
     "start": "node server.js",
-    "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server\" \"npm run worker\"",
+    "worker": "node demucs-worker.js",
     "install:demucs": "pip install demucs",
     "setup": "npm install && npm run install:demucs",
     "postinstall": "pip install -r requirements.txt"
