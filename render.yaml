@@ -26,7 +26,6 @@ services:
       - key: PYTORCH_CUDA_ALLOC_CONF
         value: "max_split_size_mb:128"
     healthCheckPath: /api/health
-    healthCheckTimeout: 300
     autoDeploy: true
     buildFilter:
       paths:
