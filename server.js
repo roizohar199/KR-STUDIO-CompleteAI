@@ -14,6 +14,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// הגדרת כתובת בסיס ל-Worker
+const WORKER_BASE_URL = process.env.WORKER_URL || 'http://localhost:10001/api/worker';
+
 // ניהול זיכרון - ניקוי אוטומטי
 const memoryCleanup = () => {
   if (global.gc) {
@@ -446,7 +449,7 @@ app.post('/api/separate', async (req, res) => {
     console.log('🔧 שולח משימה ל-worker...');
     
     try {
-      const workerResponse = await fetch('http://localhost:10001/api/worker/process', {
+      const workerResponse = await fetch(`${WORKER_BASE_URL}/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -526,7 +529,7 @@ app.get('/api/separate/:fileId/progress', async (req, res) => {
   // בדיקת סטטוס מה-worker
   if (project.status === 'processing') {
     try {
-      const workerResponse = await fetch(`http://localhost:10001/api/worker/status/${fileId}`);
+      const workerResponse = await fetch(`${WORKER_BASE_URL}/status/${fileId}`);
       
       if (workerResponse.ok) {
         const workerStatus = await workerResponse.json();
