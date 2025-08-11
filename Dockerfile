@@ -51,11 +51,11 @@ RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
 RUN mkdir -p uploads separated
 
 # Expose port
-EXPOSE 8080
+EXPOSE 10000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
+    CMD curl -f http://localhost:10000/api/health || exit 1
 
 # Start the application
 CMD ["node", "server.js"]
