@@ -253,7 +253,7 @@ pm2 restart kr-studio
 - **t3.2xlarge**: ~$240/חודש
 - **g4dn.xlarge**: ~$380/חודש
 
-## יתרונות AWS על Render
+## יתרונות AWS על Fly.io
 
 1. **זיכרון גבוה יותר**: עד 32GB RAM
 2. **GPU זמין**: תמיכה ב-CUDA

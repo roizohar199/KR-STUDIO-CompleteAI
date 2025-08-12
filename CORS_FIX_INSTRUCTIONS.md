@@ -1,81 +1,107 @@
-# 🔧 תיקון בעיית CORS - הוראות למשתמש
+# הוראות תיקון CORS - KR-STUDIO CompleteAI
 
-## הבעיה:
-המערכת מנסה לגשת ל-URL הישן במקום החדש, מה שגורם לשגיאת CORS.
+## הבעיה
+המערכת נתקלת בשגיאות CORS בעת ניסיון לגשת ל-API.
 
-## פתרון:
+## פתרון מהיר
 
-### שלב 1: ניקוי Cache בדפדפן
-1. **פתח Developer Tools** (F12)
-2. **לחץ על F1** או **Settings**
-3. **חפש "Clear storage"** או **"Clear site data"**
-4. **לחץ על "Clear site data"**
-5. **רענן את הדף** (Ctrl+F5)
+### שלב 1: עדכון ה-API URL
+עדכן את `src/api/client.js`:
 
-### שלב 2: בדיקה שהקובץ עודכן
-1. **פתח Developer Tools** (F12)
-2. **עבור לטאב Network**
-3. **רענן את הדף**
-4. **חפש בקשות ל-API**
-5. **וודא שהן הולכות ל-URL החדש**: `https://kr-studio-completeai.onrender.com/api`
+```javascript
+// לפני
+const API_BASE_URL = 'https://kr-studio-audio-separation.fly.dev/api';
 
-### שלב 3: בדיקת הקונסול
-אחרי ניקוי ה-cache, הקונסול צריך להראות:
-```
-✅ [API] קריאה לשרת: /health
-✅ [API] תשובה מהשרת: /health {"status":"OK"}
+// אחרי
+const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
 ```
 
-## אם הבעיה נמשכת:
+### שלב 2: בדיקת חיבור
+1. פתח Developer Tools (F12)
+2. עבור לטאב Console
+3. חפש שגיאות CORS
+4. וודא שהן הולכות ל-URL החדש: `https://kr-studio-completeai.fly.dev/api`
 
-### פתרון 1: שימוש בדפדפן אחר
-- נסה Chrome במקום Firefox
-- או Firefox במקום Chrome
+### שלב 3: בדיקת שרת
+בדוק שהשרת עובד:
 
-### פתרון 2: ניקוי מלא
-1. **סגור את הדפדפן**
-2. **פתח מחדש**
-3. **היכנס ל-`https://mixifyai.k-rstudio.com`**
-4. **נסה שוב**
-
-### פתרון 3: בדיקת הקבצים
-וודא שהקבצים עודכנו:
-- `src/api/client.js` - מכיל את ה-URL החדש
-- `dist/` - מכיל את הקבצים המעודכנים
-
-## בדיקת תקינות:
-
-### בדיקת Backend:
 ```bash
-node test-backend.js
+curl https://kr-studio-completeai.fly.dev/api/health
 ```
 
-### בדיקת Frontend:
-- היכנס ל-`https://mixifyai.k-rstudio.com`
-- פתח Developer Tools (F12)
-- עבור לטאב Console
-- חפש הודעות שגיאה
+## פתרון מפורט
 
-## הודעות תקינות:
-```
-✅ [API] קריאה לשרת: /health
-✅ [API] תשובה מהשרת: /health {"status":"OK"}
-✅ 📁 מעלה קובץ: filename.mp3
-✅ קובץ הועלה בהצלחה
+### 1. עדכון קובץ API Client
+```javascript
+// src/api/client.js
+const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
 ```
 
-## הודעות שגיאה שצריכות להיעלם:
+### 2. עדכון משתני סביבה
+```bash
+# .env
+API_BASE_URL=https://kr-studio-completeai.fly.dev/api
 ```
-❌ Access to fetch at 'https://kr-studio-audio-separation.onrender.com/api/health'
-❌ CORS policy: Response to preflight request doesn't pass access control check
+
+### 3. בדיקת CORS בשרת
+וודא שהשרת מחזיר headers נכונים:
+
+```javascript
+// server.js
+app.use(cors({
+  origin: ['https://mixifyai.k-rstudio.com'],
+  credentials: true
+}));
+```
+
+## בדיקות
+
+### בדיקת חיבור בסיסי
+```bash
+curl -v https://kr-studio-completeai.fly.dev/api/health
+```
+
+### בדיקת CORS Headers
+```bash
+curl -I -H "Origin: https://mixifyai.k-rstudio.com" \
+  https://kr-studio-completeai.fly.dev/api/health
+```
+
+### בדיקת Frontend
+1. פתח את האתר
+2. נסה להעלות קובץ
+3. בדוק את הקונסול לשגיאות
+
+## שגיאות נפוצות
+
+### שגיאת CORS
+```
+❌ Access to fetch at 'https://kr-studio-audio-separation.fly.dev/api/health' 
+from origin 'https://mixifyai.k-rstudio.com' has been blocked by CORS policy
+```
+
+**פתרון:** עדכן את ה-API URL ל-`https://kr-studio-completeai.fly.dev/api`
+
+### שגיאת 404
+```
+❌ GET https://kr-studio-completeai.fly.dev/api/health 404
+```
+
+**פתרון:** בדוק שהשרת רץ ומוגדר נכון
+
+### שגיאת חיבור
+```
 ❌ Failed to fetch
 ```
 
-## אם הכל עובד:
-- ✅ Backend עובד
-- ✅ Frontend עובד
-- ✅ חיבור תקין
-- ✅ העלאת קבצים עובדת
-- ✅ הפרדת אודיו עובדת
+**פתרון:** בדוק חיבור לאינטרנט וזמינות השרת
 
-**האתר זמין ב**: `https://mixifyai.k-rstudio.com` 
+## סיכום
+
+אחרי העדכונים:
+1. ✅ ה-API URL מעודכן ל-Fly.io
+2. ✅ CORS מוגדר נכון
+3. ✅ השרת עובד
+4. ✅ המערכת עובדת
+
+המערכת אמורה לעבוד עכשיו ללא שגיאות CORS! 

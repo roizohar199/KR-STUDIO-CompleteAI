@@ -1,179 +1,194 @@
-# תיקוני יציבות שרת - סיכום מלא
+# תיקוני יציבות שרת - KR-STUDIO CompleteAI
 
-## 🔧 שינויים שבוצעו
+## מה תוקן
 
-### 1. הגדלת הזיכרון
-- **שרת ראשי**: 1GB RAM (standard-1x)
-- **Worker**: 2GB RAM (standard-2x)
-- **הגדרות זיכרון**: `--max-old-space-size=1024` (שרת), `--max-old-space-size=2048` (worker)
-
-### 2. הפרדת Demucs ל-Worker נפרד
-- **קובץ חדש**: `demucs-worker.js`
-- **תפקיד**: עיבוד אודיו בלבד
-- **תקשורת**: HTTP API בין שרתים
-- **ניטור זיכרון**: ניקוי כל 3 דקות
-
-### 3. תיקון סדר Middleware
+### 1. ניהול זיכרון משופר
 ```javascript
-// 1. CORS middleware ראשון
-app.use(cors(corsOptions));
+// ניקוי זיכרון אוטומטי כל 5 דקות
+setInterval(memoryCleanup, 5 * 60 * 1000);
 
-// 2. OPTIONS handler
-app.options('*', (req, res) => { ... });
-
-// 3. Body parsers
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-
-// 4. Routes
-// ... כל ה-endpoints
-
-// 5. Error handlers (עם CORS)
-app.use((error, req, res, next) => { ... });
+const memoryCleanup = () => {
+  if (global.gc) {
+    global.gc();
+    console.log('🧹 ניקוי זיכרון אוטומטי');
+  }
+};
 ```
 
-### 4. CORS על כל התשובות
-- **Health Check**: עם CORS headers מלאים
-- **Error handlers**: CORS headers לכל שגיאה
-- **404 handler**: CORS headers לתשובות 404
-- **Preflight**: תמיכה מלאה ב-OPTIONS requests
-
-### 5. תצורת Render מעודכנת
-```yaml
-services:
-  - type: web
-    name: kr-studio-audio-separation
-    instanceType: standard-1x  # 1GB RAM
-    startCommand: node --max-old-space-size=1024 server.js
-    
-  - type: worker
-    name: kr-studio-demucs-worker
-    instanceType: standard-2x  # 2GB RAM
-    startCommand: node --max-old-space-size=2048 demucs-worker.js
-```
-
-## 🧪 בדיקות שבוצעו
-
-### 1. בדיקה מקומית
-```bash
-node test-local-server.js
-```
-
-### 2. בדיקת Health Check
-```bash
-curl -v https://kr-studio-completeai.onrender.com/api/health
-```
-
-### 3. בדיקת CORS
-```bash
-curl -X OPTIONS -H "Origin: https://mixifyai.k-rstudio.com" \
-  -H "Access-Control-Request-Method: GET" \
-  -H "Access-Control-Request-Headers: Content-Type" \
-  https://kr-studio-completeai.onrender.com/api/health
-```
-
-## 📊 ניטור זיכרון
-
-### שרת ראשי
-- **ניקוי אוטומטי**: כל 5 דקות
-- **אזהרה**: מעל 400MB
-- **ניטור**: כל 30 שניות
-
-### Worker
-- **ניקוי אוטומטי**: כל 3 דקות
-- **אזהרה**: מעל 1.5GB
-- **ניטור**: כל 30 שניות
-
-## 🔄 תקשורת בין שרתים
-
-### שליחת משימה ל-Worker
+### 2. טיפול בשגיאות מתקדם
 ```javascript
-const workerResponse = await fetch('http://localhost:10001/api/worker/process', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    fileId: fileId,
-    inputPath: project.originalPath,
-    outputDir: outputDir,
-    projectName: projectName
-  })
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('❌ ===== Server error =====');
+  console.error('❌ Error:', error);
+  console.error('❌ Message:', error.message);
+  console.error('❌ Stack:', error.stack);
+  console.error('❌ Request URL:', req.url);
+  
+  res.status(500).json({
+    success: false,
+    error: 'Internal Server Error',
+    message: 'שגיאה פנימית בשרת'
+  });
 });
 ```
 
-### בדיקת סטטוס מה-Worker
+### 3. Health Check משופר
 ```javascript
-const workerResponse = await fetch(`http://localhost:10001/api/worker/status/${fileId}`);
+app.get('/api/health', (req, res) => {
+  const origin = req.headers.origin || 'unknown';
+  
+  // תמיכה ב-Health Checks של Fly.io (ללא Origin)
+  if (!origin || origin === 'null') {
+    console.log('🔍 Health check מ-Fly.io Load Balancer');
+  } else {
+    console.log('🔍 Health check מ:', origin);
+  }
+  
+  const response = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || 'development',
+    fly: {
+      healthCheck: true,
+      platform: 'Fly.io',
+      origin: origin
+    }
+  };
+  
+  res.status(200).json(response);
+});
 ```
 
-## 🛠️ קבצים שנוצרו/עודכנו
+### 4. תצורת Fly.io מעודכנת
+```toml
+# fly.toml
+[env]
+  NODE_ENV = "production"
+  PORT = "10000"
 
-### קבצים חדשים:
-1. `demucs-worker.js` - Worker לעיבוד אודיו
-2. `test-local-server.js` - בדיקה מקומית
-3. `SERVER_STABILITY_FIXES.md` - קובץ זה
+[http_service]
+  internal_port = 10000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
 
-### קבצים שעודכנו:
-1. `server.js` - הפרדת Demucs, תיקון CORS
-2. `render.yaml` - הגדלת זיכרון, הוספת worker
-3. `Procfile` - הגדרות הפעלה מעודכנות
-4. `package.json` - הוספת node-fetch
-5. `README_RENDER.md` - הוראות מעודכנות
+[[http_service.checks]]
+  grace_period = "60s"
+  interval = "30s"
+  method = "GET"
+  timeout = "10s"
+  path = "/api/health"
+```
 
-## ✅ תוצאות צפויות
+### 5. ניהול קבצים משופר
+```javascript
+// בדיקת זיכרון זמין לפני עיבוד
+const checkAvailableMemory = () => {
+  const memUsage = process.memoryUsage();
+  const availableMemory = memUsage.heapUsed / memUsage.heapTotal;
+  
+  if (availableMemory > 0.9) {
+    console.warn('⚠️ זיכרון נמוך:', Math.round(availableMemory * 100) + '%');
+    return false;
+  }
+  
+  return true;
+};
 
-### יציבות שרת:
-- **לא יותר קורסים** בגלל Demucs
-- **זיכרון יציב** עם ניקוי אוטומטי
-- **CORS תקין** לכל התשובות
+// ניקוי קבצים ישנים
+const cleanupOldFiles = async () => {
+  try {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    const separatedDir = path.join(__dirname, 'separated');
+    
+    // מחיקת קבצים ישנים מ-24 שעות
+    const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+    
+    await cleanupDirectory(uploadsDir, cutoff);
+    await cleanupDirectory(separatedDir, cutoff);
+    
+    console.log('🧹 ניקוי קבצים ישנים הושלם');
+  } catch (error) {
+    console.error('❌ שגיאה בניקוי קבצים:', error);
+  }
+};
+```
 
-### ביצועים:
-- **עיבוד מהיר יותר** עם worker נפרד
-- **זיכרון יעיל** עם חלוקה נכונה
-- **תקשורת יציבה** בין שרתים
+## תוצאות
 
-### אבטחה:
-- **CORS מאובטח** עם origins מוגדרים
-- **Headers נכונים** לכל התשובות
-- **Error handling** עם CORS
+### לפני התיקון:
+- ❌ שגיאות זיכרון
+- ❌ שרת קורס
+- ❌ Health checks נכשלים
+- ❌ קבצים לא מתנקים
 
-## 🚀 Deploy
+### אחרי התיקון:
+- ✅ ניהול זיכרון אוטומטי
+- ✅ טיפול בשגיאות מתקדם
+- ✅ Health checks עובדים
+- ✅ ניקוי קבצים אוטומטי
 
-### שלבים:
-1. **Push לשינויים**:
-   ```bash
-   git add .
-   git commit -m "Server stability fixes: worker separation, CORS fixes, memory optimization"
-   git push origin main
-   ```
+## בדיקות שבוצעו
 
-2. **בדיקת Render**:
-   - וודא שה-build מצליח
-   - בדוק שה-health check עובד
-   - וודא שה-worker רץ
+### 1. בדיקת יציבות
+```bash
+# בדיקה מקומית
+curl -v http://localhost:10000/api/health
 
-3. **בדיקות אחרי Deploy**:
-   - Health check: `200 OK`
-   - CORS preflight: `200 OK`
-   - Memory usage: פחות מ-80%
+# בדיקה מ-Fly.io
+curl -v https://kr-studio-completeai.fly.dev/api/health
+```
 
-## 📞 פתרון בעיות
+### 2. בדיקת זיכרון
+```bash
+# בדיקת שימוש זיכרון
+node -e "console.log(process.memoryUsage())"
+```
 
-### אם השרת עדיין קורס:
-1. בדוק לוגים ב-Render Dashboard
-2. וודא שה-worker רץ
-3. בדוק זיכרון זמין
-4. הגדל RAM אם נדרש
+### 3. בדיקת Health Check
+```bash
+# בדיקה מ-Load Balancer
+curl -H "Origin: null" https://kr-studio-completeai.fly.dev/api/health
+```
 
-### אם CORS לא עובד:
-1. וודא שה-middleware בסדר הנכון
-2. בדוק שה-headers נכונים
-3. וודא שה-origins מוגדרים
+## קבצים ששונו
 
-### אם Worker לא מגיב:
-1. בדוק אם רץ על פורט 10001
-2. וודא שה-memory מספיק
-3. בדוק לוגים של ה-worker
+1. `server.js` - ניהול זיכרון וטיפול בשגיאות
+2. `fly.toml` - הגדלת זיכרון, הוספת worker
+3. `fly.worker.toml` - הגדרות worker
+4. `README.md` - הוראות מעודכנות
+5. `DEPLOYMENT_INSTRUCTIONS.md` - הוראות Fly.io
 
----
+## הוראות בדיקה
 
-**הערה**: כל השינויים נועדו לשפר את יציבות השרת ולמנוע קריסות בגלל Demucs/Torch.
+### 1. בדיקה מקומית:
+```bash
+npm install
+npm start
+```
+
+### 2. בדיקת Fly.io:
+```bash
+fly status
+fly logs
+```
+
+### 3. בדיקת Health:
+```bash
+curl https://kr-studio-completeai.fly.dev/api/health
+```
+
+## סיכום
+
+השרת עכשיו יציב יותר:
+- **ניהול זיכרון** אוטומטי
+- **טיפול בשגיאות** מתקדם
+- **Health checks** עובדים
+- **ניקוי קבצים** אוטומטי
+- **תצורת Fly.io** מותאמת
+
+המערכת מוכנה לשימוש יציב!

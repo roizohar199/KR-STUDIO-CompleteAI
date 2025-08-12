@@ -2,50 +2,51 @@
 
 ## מצב נוכחי:
 ✅ **Frontend**: עובד ב-`https://mixifyai.k-rstudio.com`
-❌ **Backend**: לא עובד ב-`https://kr-studio-audio-separation.onrender.com`
+❌ **Backend**: לא עובד ב-Fly.io
 
 ## הבעיה:
-ה-Backend ב-Render מחזיר 404, מה שאומר שהוא לא מופעל כראוי.
+ה-Backend ב-Fly.io לא עובד כראוי.
 
 ## פתרונות:
 
-### פתרון 1: בדיקת Render Dashboard
-1. היכנס ל-[Render Dashboard](https://dashboard.render.com)
-2. חפש את השירות `kr-studio-audio-separation`
+### פתרון 1: בדיקת Fly.io Dashboard
+1. היכנס ל-[Fly.io Dashboard](https://fly.io/dashboard)
+2. חפש את האפליקציה `kr-studio-completeai`
 3. בדוק את הלוגים לשגיאות
-4. אם השירות לא קיים, צור אותו מחדש
+4. אם האפליקציה לא קיימת, צור אותה מחדש
 
 ### פתרון 2: יצירת Backend חדש
-אם השירות לא קיים או לא עובד:
+אם האפליקציה לא קיימת או לא עובדת:
 
-1. **צור repository חדש ב-GitHub:**
+1. **התקן Fly CLI:**
    ```bash
-   git init
-   git add .
-   git commit -m "Backend for KR Studio"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/kr-studio-backend.git
-   git push -u origin main
+   # macOS
+   brew install flyctl
+   
+   # Windows
+   winget install Fly.Flyctl
+   
+   # Linux
+   curl -L https://fly.io/install.sh | sh
    ```
 
-2. **ב-Render Dashboard:**
-   - לחץ על "New +"
-   - בחר "Web Service"
-   - חבר את ה-GitHub repository
-   - הגדר:
-     - **Name**: `kr-studio-audio-separation`
-     - **Environment**: Node
-     - **Build Command**: `npm install`
-     - **Start Command**: `npm start`
-     - **Port**: `10000`
+2. **התחבר לחשבון Fly.io:**
+   ```bash
+   fly auth login
+   ```
+
+3. **פרוס את השרת:**
+   ```bash
+   fly deploy
+   ```
 
 ### פתרון 3: בדיקת קבצי הגדרה
 וודא שהקבצים הבאים קיימים ונכונים:
 
 1. **`package.json`** - מכיל את כל התלויות
 2. **`server.js`** - השרת הראשי
-3. **`render.yaml`** - הגדרות Render
-4. **`Procfile`** - פקודת הפעלה
+3. **`fly.toml`** - הגדרות Fly.io
+4. **`fly.worker.toml`** - הגדרות Worker
 
 ### פתרון 4: בדיקה מקומית
 בדוק שהשרת עובד מקומית:
@@ -55,13 +56,13 @@ npm install
 npm start
 ```
 
-אחרי שהשרת עובד מקומית, העלה ל-Render.
+אחרי שהשרת עובד מקומית, פרוס ל-Fly.io.
 
 ## עדכון ה-API URL
 אחרי שה-Backend יעבוד, עדכן את `src/api/client.js`:
 
 ```javascript
-const API_BASE_URL = 'https://YOUR_NEW_BACKEND_URL.onrender.com/api';
+const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
 ```
 
 ## בדיקות נדרשות:

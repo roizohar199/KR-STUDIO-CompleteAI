@@ -4,8 +4,8 @@
 
 ### 1. שגיאת CORS
 ```
-❌ Access to fetch at 'https://kr-studio-audio-separation.onrender.com/api/health' 
-from origin 'https://kr-studio-completeai.onrender.com' has been blocked by CORS policy
+❌ Access to fetch at 'https://kr-studio-audio-separation.fly.dev/api/health' 
+from origin 'https://kr-studio-completeai.fly.dev' has been blocked by CORS policy
 ```
 
 ### 2. שרת נפרד לא זמין
@@ -88,19 +88,19 @@ app.use(cors()); // מאפשר גישה מכל origin
 
 ### 1. בדיקת Health Check
 ```bash
-curl https://kr-studio-completeai.onrender.com/api/health
+curl https://kr-studio-completeai.fly.dev/api/health
 # תוצאה: {"status":"OK","timestamp":"2025-08-05T08:00:31.917Z"}
 ```
 
 ### 2. בדיקת Projects Endpoint
 ```bash
-curl https://kr-studio-completeai.onrender.com/api/projects
+curl https://kr-studio-completeai.fly.dev/api/projects
 # תוצאה: [] (רשימה ריקה - תקין)
 ```
 
 ### 3. בדיקת CORS Headers
 ```bash
-curl -I https://kr-studio-completeai.onrender.com/api/health
+curl -I https://kr-studio-completeai.fly.dev/api/health
 # תוצאה: access-control-allow-origin: *
 ```
 

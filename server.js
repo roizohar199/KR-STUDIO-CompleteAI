@@ -1205,7 +1205,7 @@ async function runDemucsWithFallback(inputPath, outputDir, project) {
   });
 };
 
-// Health check endpoint - מעודכן לתמיכה ב-Fly.io ו-Render Load Balancer
+// Health check endpoint - מעודכן לתמיכה ב-Fly.io Load Balancer
 app.get('/api/health', (req, res) => {
   // בדיקה אם השרת מוכן
   if (!isReady) {
@@ -1241,9 +1241,9 @@ app.get('/api/health/detailed', (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     environment: process.env.NODE_ENV || 'development',
-    render: {
+    fly: {
       healthCheck: true,
-      loadBalancer: 'Render',
+      platform: 'Fly.io',
       origin: origin
     }
   };
