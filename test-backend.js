@@ -1,14 +1,14 @@
 // בדיקת חיבור Backend
 const testBackendConnection = async () => {
-  const urls = [
-    'https://kr-studio-completeai.onrender.com/api/health',
-    'https://kr-studio-completeai.onrender.com/',
-    'https://kr-studio-completeai.onrender.com'
+  const testUrls = [
+    'https://kr-studio-completeai.fly.dev/api/health',
+    'https://kr-studio-completeai.fly.dev/',
+    'https://kr-studio-completeai.fly.dev'
   ];
 
   console.log('🔍 בודק חיבור Backend...');
 
-  for (const url of urls) {
+  for (const url of testUrls) {
     try {
       console.log(`\n📡 בודק: ${url}`);
       const response = await fetch(url);

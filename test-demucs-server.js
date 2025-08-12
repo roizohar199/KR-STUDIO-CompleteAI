@@ -1,5 +1,5 @@
 // בדיקת Demucs בשרת
-const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
+const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
 
 async function testDemucsServer() {
   console.log('🔍 ===== בדיקת Demucs בשרת =====');

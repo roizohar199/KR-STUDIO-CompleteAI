@@ -97,10 +97,11 @@ setInterval(() => {
 // ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
 // זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
 
-// הגדרת CORS עם תמיכה מלאה ב-Render Load Balancer
+// הגדרת CORS עם תמיכה מלאה ב-Fly.io
+// תמיכה ב-Health Checks של Fly.io (ללא Origin)
 const corsOptions = {
   origin: function (origin, callback) {
-    // תמיכה ב-Health Checks של Render (ללא Origin)
+    // תמיכה ב-Health Checks של Fly.io (ללא Origin)
     if (!origin) {
       return callback(null, true);
     }
@@ -112,9 +113,8 @@ const corsOptions = {
       'http://localhost:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:3000',
-      // Render domains
-      'https://kr-studio-completeai.onrender.com',
-      'https://kr-studio-completeai-backend.onrender.com'
+      // Fly.io domains
+      'https://kr-studio-completeai.fly.dev'
     ];
     
     if (allowedOrigins.includes(origin)) {
@@ -143,7 +143,43 @@ const corsOptions = {
   maxAge: 86400
 };
 
-// 1. CORS middleware ראשון - לפני כל middleware אחר
+// Serve static files FIRST - before CORS middleware to avoid CORS issues
+// This ensures static files are served without CORS restrictions
+app.use('/assets', express.static('dist/assets', {
+  setHeaders: (res, path) => {
+    // Set proper headers for JavaScript files
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+    // Allow all origins for static files
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, Accept, Accept-Encoding, Accept-Language');
+  }
+}));
+
+app.use(express.static('dist', {
+  setHeaders: (res, path) => {
+    // Allow all origins for static files
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, Accept, Accept-Encoding, Accept-Language');
+  }
+}));
+
+// Add explicit route for static files to bypass CORS
+app.get('/assets/*', (req, res, next) => {
+  const filePath = path.join(__dirname, 'dist', req.url);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    next();
+  }
+});
+
+// 1. CORS middleware - אחרי הקבצים הסטטיים
 app.use(cors(corsOptions));
 
 // 2. OPTIONS handler מפורש לכל הנתיבים
@@ -166,8 +202,6 @@ app.use((req, res, next) => {
   
   next();
 });
-
-app.use(express.static('dist'));
 
 // Handle preflight requests for all API routes - removed duplicate handler
 // OPTIONS requests are now handled in the CORS middleware above
@@ -431,6 +465,24 @@ app.post('/api/separate', async (req, res) => {
     console.log('🎵 projectName:', projectName);
     console.log('🎵 זמן התחלה:', new Date().toLocaleTimeString());
     
+    if (!fileId || !projects.has(fileId)) {
+      // Fallback: ייתכן שהשרת עבר אתחול וה-Map התרוקן, אך הקובץ עדיין קיים פיזית
+      const potentialPath = path.join(__dirname, 'uploads', `${fileId}`);
+      const potentialExists = fs.existsSync(potentialPath);
+
+      if (potentialExists) {
+        console.log('🔄 Fallback – יוצרים מחדש אובייקט פרויקט מהדיסק:', potentialPath);
+        // משחזרים אובייקט פרויקט מינימלי כדי לאפשר המשך תהליך
+        projects.set(fileId, {
+          id: fileId,
+          originalPath: potentialPath,
+          status: 'uploaded',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // אם אחרי ה-fallback עדיין אין את הפרויקט – נחזיר 404
     if (!fileId || !projects.has(fileId)) {
       console.log('❌ קובץ לא נמצא:', fileId);
       return res.status(404).json({ 
