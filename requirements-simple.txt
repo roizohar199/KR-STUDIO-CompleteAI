@@ -1,0 +1,6 @@
+# Simple working requirements
+numpy
+scipy
+librosa
+soundfile
+pydub

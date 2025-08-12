@@ -1,3 +1,4 @@
+# Dependencies
 node_modules
 npm-debug.log
 .git
@@ -11,3 +12,38 @@ coverage
 dist
 uploads
 separated
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Build artifacts
+build/
+.cache/
+.parcel-cache/
+
+# Documentation
+*.md
+*.docx
+
+# Test files
+test-*.js
+*.test.js
+*.spec.js
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db

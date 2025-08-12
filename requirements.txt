@@ -1,16 +1,18 @@
-# Demucs עם גרסאות יציבות
-demucs==4.0.0
-scipy>=1.10.0,<1.14.0
-# torch ו-torchaudio בגרסאות תואמות ל-3.11
-# לא מצמיד torch לגרסה מסוימת, pip יבחר אוטומטית את הגרסה התואמת
-# אם תרצה להצמיד: torch==2.0.1
-# torchaudio תואם ל-torch 2.0.1 ומעלה
-pydub==0.25.1
-numpy==1.26.4
+# Core audio processing
+demucs>=4.0.0
+librosa>=0.9.0
+soundfile>=0.12.0
+numpy>=1.21.0
+scipy>=1.7.0
 
-# אופטימיזציות לזיכרון
-psutil==5.9.5
-memory-profiler==0.61.0
+# Audio utilities
+pydub>=0.25.0
+pyloudnorm>=0.1.0
 
-# כלים נוספים לבדיקה
-ffmpeg-python==0.2.0 
+# Machine learning (optional)
+scikit-learn>=1.0.0
+
+# Utilities
+tqdm>=4.60.0
+requests>=2.25.0
+Pillow>=8.0.0 
