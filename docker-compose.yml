@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   kr-studio-app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
     ports:
       - "10000:10000"
     environment:
