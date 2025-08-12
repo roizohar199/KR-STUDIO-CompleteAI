@@ -1,0 +1,33 @@
+# fly.worker.toml - Worker configuration for KR-STUDIO CompleteAI
+app = "kr-studio-worker"
+primary_region = "fra"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  PORT = "10001"
+  WORKER_TYPE = "demucs"
+
+[http_service]
+  internal_port = 10001
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http_service.checks]]
+  grace_period = "60s"
+  interval = "30s"
+  method = "GET"
+  timeout = "10s"
+  path = "/api/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 2048
+
+[mounts]
+  source = "kr_studio_data"
+  destination = "/app/uploads"

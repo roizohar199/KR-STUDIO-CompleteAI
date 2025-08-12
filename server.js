@@ -21,8 +21,8 @@ setTimeout(() => {
   console.log('🚀 Server is ready for health checks');
 }, 5000); // 5 שניות להתחלה
 
-// הגדרת כתובת בסיס ל-Worker
-const WORKER_BASE_URL = process.env.WORKER_URL || `http://localhost:${process.env.WORKER_PORT || 10001}/api/worker`;
+// הגדרת כתובת בסיס ל-Worker - עכשיו מקומי
+const WORKER_BASE_URL = process.env.WORKER_URL || 'http://localhost:10001/api/worker';
 
 // ניהול זיכרון - ניקוי אוטומטי
 const memoryCleanup = () => {
@@ -504,42 +504,36 @@ app.post('/api/separate', async (req, res) => {
     project.progress = 0;
     project.startedAt = new Date().toISOString();
 
-    // שליחת משימה ל-worker
-    console.log('🔧 שולח משימה ל-worker...');
+    // עיבוד מקומי של האודיו
+    console.log('🔧 מתחיל עיבוד מקומי...');
     
     try {
-      const workerResponse = await fetch(`${WORKER_BASE_URL}/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileId: fileId,
-          inputPath: project.originalPath,
-          outputDir: outputDir,
-          projectName: projectName
-        })
-      });
-
-      if (!workerResponse.ok) {
-        throw new Error(`Worker error: ${workerResponse.status}`);
-      }
-
-      const workerResult = await workerResponse.json();
-      console.log('✅ Worker response:', workerResult);
-
-      if (workerResult.success) {
-        project.status = workerResult.status || 'processing';
-        project.error = workerResult.error;
+      // הפעלת עיבוד מקומי
+      const result = await processAudioLocally(fileId, project.originalPath, outputDir, projectName);
+      
+      if (result.success) {
+        project.status = 'completed';
+        project.progress = 100;
+        project.completedAt = new Date().toISOString();
+        
+        // סריקת הקבצים שנוצרו
+        try {
+          const files = await fs.readdir(outputDir);
+          const stems = files.filter(file => file.endsWith('.mp3'));
+          project.stems = stems;
+          console.log('✅ Stems שנוצרו:', stems);
+        } catch (scanError) {
+          console.error('❌ שגיאה בסריקת stems:', scanError);
+        }
       } else {
         project.status = 'failed';
-        project.error = workerResult.error || 'עיבוד נכשל';
+        project.error = 'עיבוד נכשל';
       }
 
-    } catch (workerError) {
-      console.error('❌ Worker error:', workerError);
+    } catch (processingError) {
+      console.error('❌ Processing error:', processingError);
       project.status = 'failed';
-      project.error = `שגיאה בתקשורת עם Worker: ${workerError.message}`;
+      project.error = `שגיאה בעיבוד: ${processingError.message}`;
     }
     
     const response = { 
@@ -585,41 +579,23 @@ app.get('/api/separate/:fileId/progress', async (req, res) => {
     });
   }
   
-  // בדיקת סטטוס מה-worker
+  // בדיקת סטטוס מקומי
   if (project.status === 'processing') {
-    try {
-      const workerResponse = await fetch(`${WORKER_BASE_URL}/status/${fileId}`);
-      
-      if (workerResponse.ok) {
-        const workerStatus = await workerResponse.json();
-        console.log('🔧 Worker status:', workerStatus);
-        
-        if (workerStatus.success) {
-          project.progress = workerStatus.progress;
-          project.status = workerStatus.status;
-          project.error = workerStatus.error;
-          project.message = workerStatus.message;
-          project.completedAt = workerStatus.completedAt;
-        }
-      }
-    } catch (workerError) {
-      console.error('❌ Worker status error:', workerError);
-      // אם לא ניתן לתקשר עם worker, נשאיר את הסטטוס הנוכחי
-    }
+    // אם הפרויקט עדיין מעבד, נחזיר התקדמות בסיסית
+    project.progress = Math.min(project.progress + 10, 90); // התקדמות הדרגתית
   }
   
   const response = {
     success: true,
-    progress: project.progress || 0,
+    progress: project.progress,
     status: project.status,
     error: project.error,
-    message: project.message || 'מעבד...',
+    message: project.status === 'completed' ? 'הושלם בהצלחה' : 'מעבד...',
     startedAt: project.startedAt,
     completedAt: project.completedAt
   };
   
   console.log('📊 תשובת התקדמות:', response);
-  console.log('📊 ===== תשובת התקדמות נשלחה =====');
   
   res.json(response);
 });

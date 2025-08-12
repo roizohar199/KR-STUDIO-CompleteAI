@@ -33,6 +33,7 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     ffmpeg \
     python3 \
     python3-pip \
+    libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -43,8 +44,12 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/server.js ./
 COPY --from=base /app/demucs-worker.js ./
 COPY --from=base /app/package.json ./
+COPY --from=base /app/requirements.txt ./
 
-# Install Python dependencies if needed
+# Install Python dependencies (Demucs, etc.)
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_BREAK_SYSTEM_PACKAGES=1
 RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
 
 # Create necessary directories
