@@ -521,6 +521,7 @@ app.post('/api/separate', async (req, res) => {
           const files = await fs.readdir(outputDir);
           const stems = files.filter(file => file.endsWith('.mp3'));
           project.stems = stems;
+          project.stemsDir = outputDir;
           console.log('✅ Stems שנוצרו:', stems);
         } catch (scanError) {
           console.error('❌ שגיאה בסריקת stems:', scanError);
@@ -765,12 +766,17 @@ async function createStemsFromDemucs(fileId, outputDir) {
         const sourcePath = path.join(audioPath, filename);
         const targetPath = path.join(stemsDir, `${track}.mp3`);
         
-        // שימוש ב-ffmpeg עם אופטימיזציה לזיכרון
-        await optimizeAudioFile(sourcePath, targetPath);
+        try {
+          // שימוש ב-ffmpeg עם אופטימיזציה לזיכרון
+          await optimizeAudioFile(sourcePath, targetPath);
+          console.log(`✅ Stem נוצר: ${track}`);
+        } catch (error) {
+          console.error(`❌ שגיאה ביצירת stem ${track}:`, error);
+        }
       }
     }
     
-    project.stems = stems;
+    project.stems = Object.keys(stems).filter(key => stems[key]);
     project.stemsDir = stemsDir;
     
     console.log(`🎵 STEMS נוצרו: ${fileId}`);
@@ -1001,6 +1007,72 @@ async function checkDemucsModels() {
     demucsCheck.on('error', reject);
   });
 };
+
+// פונקציה לעיבוד מקומי של אודיו
+async function processAudioLocally(fileId, inputPath, outputDir, projectName) {
+  try {
+    console.log('🔧 ===== התחלת עיבוד מקומי =====');
+    console.log('🔧 fileId:', fileId);
+    console.log('🔧 inputPath:', inputPath);
+    console.log('🔧 outputDir:', outputDir);
+    console.log('🔧 projectName:', projectName);
+    
+    // יצירת תיקיית פלט
+    await fs.ensureDir(outputDir);
+    
+    // עדכון סטטוס הפרויקט
+    const project = projects.get(fileId);
+    if (project) {
+      project.status = 'processing';
+      project.progress = 10;
+      project.message = 'מתחיל עיבוד מקומי...';
+    }
+    
+    // המרה ל-WAV סטנדרטי
+    console.log('🔄 ממיר ל-WAV סטנדרטי...');
+    const wavPath = await convertToStandardWav(inputPath);
+    
+    if (project) {
+      project.progress = 20;
+      project.message = 'ממיר פורמט...';
+    }
+    
+    // הפעלת Demucs
+    console.log('🎵 מפעיל Demucs...');
+    await runDemucsWithFallback(wavPath, outputDir, project);
+    
+    if (project) {
+      project.progress = 80;
+      project.message = 'יוצר stems...';
+    }
+    
+    // יצירת STEMS
+    console.log('🎵 יוצר STEMS...');
+    await createStemsFromDemucs(fileId, outputDir);
+    
+    if (project) {
+      project.progress = 100;
+      project.status = 'completed';
+      project.message = 'הושלם בהצלחה!';
+      project.completedAt = new Date().toISOString();
+    }
+    
+    console.log('✅ עיבוד מקומי הושלם בהצלחה!');
+    return { success: true };
+    
+  } catch (error) {
+    console.error('❌ שגיאה בעיבוד מקומי:', error);
+    
+    // עדכון סטטוס הפרויקט
+    const project = projects.get(fileId);
+    if (project) {
+      project.status = 'failed';
+      project.error = error.message;
+    }
+    
+    return { success: false, error: error.message };
+  }
+}
 
 // פונקציה להפרדה עם Demucs עם fallback
 async function runDemucsWithFallback(inputPath, outputDir, project) {
