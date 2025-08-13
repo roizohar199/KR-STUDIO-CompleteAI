@@ -7,6 +7,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,7 +22,7 @@ setTimeout(() => {
   console.log('🚀 Server is ready for health checks');
 }, 5000); // 5 שניות להתחלה
 
-// הגדרת כתובת בסיס ל-Worker - עכשיו מקומי
+// הגדרת כתובת בסיס ל-Worker - מקומי או מרוחק
 const WORKER_BASE_URL = process.env.WORKER_URL || 'http://localhost:10001/api/worker';
 
 // ניהול זיכרון - ניקוי אוטומטי
@@ -504,60 +505,51 @@ app.post('/api/separate', async (req, res) => {
     project.progress = 0;
     project.startedAt = new Date().toISOString();
 
-    // עיבוד מקומי של האודיו
-    console.log('🔧 מתחיל עיבוד מקומי...');
+    // שימוש בשרת הענן במקום עיבוד מקומי
+    console.log('☁️ שולח לשרת הענן לעיבוד...');
     
     try {
-      // הפעלת עיבוד מקומי
-      const result = await processAudioLocally(fileId, project.originalPath, outputDir, projectName);
+      // שליחה לשרת הענן
+      const cloudResult = await sendToCloudServer(fileId, project.originalPath, projectName);
       
-      if (result.success) {
+      if (cloudResult.success) {
         project.status = 'completed';
         project.progress = 100;
         project.completedAt = new Date().toISOString();
+        project.stemsDir = outputDir;
+        project.stems = cloudResult.stems;
         
-        // סריקת הקבצים שנוצרו
-        try {
-          const files = await fs.readdir(outputDir);
-          const stems = files.filter(file => file.endsWith('.mp3'));
-          project.stems = stems;
-          project.stemsDir = outputDir;
-          console.log('✅ Stems שנוצרו:', stems);
-        } catch (scanError) {
-          console.error('❌ שגיאה בסריקת stems:', scanError);
-        }
+        console.log('✅ עיבוד בענן הושלם בהצלחה!');
+        res.json({ 
+          success: true, 
+          message: 'הפרדה החלה בענן',
+          projectId: fileId 
+        });
       } else {
-        project.status = 'failed';
-        project.error = 'עיבוד נכשל';
+        throw new Error(cloudResult.error || 'שגיאה בעיבוד בענן');
       }
-
-    } catch (processingError) {
-      console.error('❌ Processing error:', processingError);
+      
+    } catch (error) {
+      console.error('❌ שגיאה בעיבוד בענן:', error);
+      
+      // עדכון סטטוס הפרויקט
       project.status = 'failed';
-      project.error = `שגיאה בעיבוד: ${processingError.message}`;
+      project.error = error.message;
+      
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
     }
-    
-    const response = { 
-      success: true, 
-      projectId: fileId,
-      message: 'הפרדה החלה'
-    };
-    
-    console.log('✅ תשובה נשלחת:', response);
-    
-    res.json(response);
     
   } catch (error) {
     console.error('❌ ===== שגיאה בהפרדה =====');
     console.error('❌ פרטי השגיאה:', error);
-    console.error('❌ Stack trace:', error.stack);
-    console.error('❌ זמן שגיאה:', new Date().toLocaleTimeString());
-    console.error('❌ שולח תשובת שגיאה למשתמש...');
     
-    const errorResponse = { error: error.message };
-    console.error('❌ תשובת שגיאה נשלחת:', errorResponse);
-    
-    res.status(500).json(errorResponse);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 
@@ -1204,6 +1196,57 @@ async function runDemucsWithFallback(inputPath, outputDir, project) {
     });
   });
 };
+
+// פונקציה לשליחה לשרת הענן
+async function sendToCloudServer(fileId, inputPath, projectName) {
+  try {
+    console.log('☁️ ===== שליחה לשרת הענן =====');
+    console.log('☁️ fileId:', fileId);
+    console.log('☁️ inputPath:', inputPath);
+    console.log('☁️ projectName:', projectName);
+    
+    // הגדרת כתובת ה-Worker מהסביבה או ברירת מחדל
+    const baseUrl = (process.env.WORKER_URL || WORKER_BASE_URL || 'http://localhost:10001/api/worker').replace(/\/$/, '');
+    const url = `${baseUrl}/process`;
+
+    const outputDir = path.join(__dirname, 'separated', fileId);
+
+    const payload = {
+      fileId,
+      inputPath,
+      outputDir,
+      projectName
+    };
+
+    // שליחה ל-Worker
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      timeout: 300000 // 5 דקות
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+
+    if (result && result.success) {
+      console.log('✅ משימת עיבוד נשלחה ל-Worker בהצלחה:', result);
+      return { success: true };
+    }
+    throw new Error((result && result.error) || 'שגיאה לא ידועה מה-Worker');
+    
+  } catch (error) {
+    console.error('❌ שגיאה בשליחה לשרת הענן:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
 
 // Health check endpoint - מעודכן לתמיכה ב-Fly.io Load Balancer
 app.get('/api/health', (req, res) => {

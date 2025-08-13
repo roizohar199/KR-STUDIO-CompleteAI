@@ -20,10 +20,9 @@ import LanguageSelector from './LanguageSelector';
 
 const Sidebar = ({ activePage, onPageChange }) => {
   const handleMenuClick = (item) => {
-    console.log(`🎯 לחיצה על תפריט: ${item.label} (${item.id})`);
     if (item.external) {
-      //      
-      window.open('http://localhost:5173', '_blank');
+      // פתיחה בחלון חדש
+      window.open('https://mixifyai.k-rstudio.com', '_blank');
     } else {
       onPageChange(item.id);
     }

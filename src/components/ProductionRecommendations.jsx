@@ -6,10 +6,8 @@ import { Button } from './ui/button';
 import YAMNetAnalyzer from '../lib/yamnet';
 import AIApiService from '../lib/aiApi';
 import { AdvancedTempoAnalyzer } from '../lib/tempoAnalysis.js';
-
-// ----- דמה עבור context ושפה -----
-const LanguageContext = React.createContext('he');
-const useTranslation = () => ({ t: x => x }); // דמה
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
 
 // ----- מערכת AI לניתוח אודיו עם YAMNet -----
 class AudioAnalyzer {
@@ -507,14 +505,6 @@ class AudioAnalyzer {
     if (pitchVariation > 0.1) bonus += 0.1;
     
     const finalScore = Math.min(1, score + bonus);
-    
-    console.log('=== ניקוד ווקאל ===');
-    console.log('מבנה פורמנטים:', formantStructure);
-    console.log('נשימות:', breathiness);
-    console.log('שינויי גובה:', pitchVariation);
-    console.log('ארטיקולציה ווקאלית:', vocalArticulation);
-    console.log('בונוס:', bonus);
-    console.log('ניקוד סופי לווקאל:', finalScore);
     
     return finalScore;
   }

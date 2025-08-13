@@ -32,18 +32,18 @@ const UserVerification = () => {
   const t = useTranslation();
   
   const [user, setUser] = useState({
-    email: 'roizohar111@gmail.com',
-    name: 'רועי זוהר',
-    subscription: 'premium',
-    status: 'active',
-    expiresAt: '2025-12-31',
-    features: ['sketches', 'sessions', 'recommendations', 'export', 'credits'],
+    email: '',
+    name: '',
+    subscription: 'free',
+    status: 'inactive',
+    expiresAt: null,
+    features: [],
     usage: {
-      vocalAnalyses: 15,
-      sketchesCreated: 8,
-      sessionsActive: 2,
-      exportsThisMonth: 12,
-      projectsUsed: 1
+      vocalAnalyses: 0,
+      sketchesCreated: 0,
+      sessionsActive: 0,
+      exportsThisMonth: 0,
+      projectsUsed: 0
     }
   });
 

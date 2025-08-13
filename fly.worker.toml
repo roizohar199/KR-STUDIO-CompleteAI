@@ -3,6 +3,7 @@ app = "kr-studio-worker"
 primary_region = "fra"
 
 [build]
+  builder = "heroku/builder:22"
 
 [env]
   NODE_ENV = "production"
