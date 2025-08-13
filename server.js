@@ -34,12 +34,52 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // CORS optimization
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com', 'https://www.your-domain.com']
+    ? [
+        'https://mixifyai.k-rstudio.com',
+        'https://www.mixifyai.k-rstudio.com',
+        'https://kr-studio-completeai.fly.dev',
+        'https://kr-studio-worker.fly.dev'
+      ]
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  optionsSuccessStatus: 200
 }));
+
+// טיפול נוסף ב-CORS preflight requests
+app.options('*', cors());
+
+// Middleware לטיפול ב-Origin header
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // בדיקה אם ה-Origin מותר
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [
+        'https://mixifyai.k-rstudio.com',
+        'https://www.mixifyai.k-rstudio.com',
+        'https://kr-studio-completeai.fly.dev',
+        'https://kr-studio-worker.fly.dev'
+      ]
+    : ['http://localhost:5173', 'http://localhost:3000'];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // טיפול ב-OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
+  next();
+});
 
 // Static files caching
 app.use(express.static(path.join(__dirname, 'dist'), {
@@ -1276,6 +1316,14 @@ async function sendToCloudServer(fileId, inputPath, projectName) {
 
 // Health check endpoint - מעודכן לתמיכה ב-Fly.io Load Balancer
 app.get('/api/health', (req, res) => {
+  // הוספת CORS headers לתשובה
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
   // בדיקה אם השרת מוכן
   if (!isReady) {
     return res.status(503).json({ 
