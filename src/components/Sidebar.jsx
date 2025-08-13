@@ -1,82 +1,143 @@
-import React, { useMemo, useCallback } from 'react';
-import { Music, Mic, BarChart3, Download, Settings, Users, FileAudio, Home, Upload, Play } from 'lucide-react';
+import React, { useContext } from 'react';
+import {
+  Home,
+  Mic,
+  Brain,
+  Database,
+  Cloud,
+  Music,
+  Users,
+  Lightbulb,
+  BarChart3,
+  FileText,
+  Headphones,
+  Shield,
+  Split
+} from 'lucide-react';
+import { LanguageContext } from '../App';
+import { useTranslation } from '../lib/translations';
+import LanguageSelector from './LanguageSelector';
 
-const Sidebar = ({ activePage, setActivePage }) => {
-  // Memoization של פריטי הניווט
-  const navigationItems = useMemo(() => [
-    { id: 'dashboard', label: 'לוח בקרה', icon: Home, color: 'blue' },
-    { id: 'audio-separation', label: 'הפרדת אודיו', icon: Music, color: 'green' },
-    { id: 'production-recommendations', label: 'המלצות הפקה', icon: Mic, color: 'purple' },
-    { id: 'export-versions', label: 'ייצוא גרסאות', icon: Download, color: 'orange' },
-    { id: 'sketch-creation', label: 'יצירת סקיצות', icon: Play, color: 'pink' },
-    { id: 'credits-contracts', label: 'זכויות וחוזים', icon: FileAudio, color: 'indigo' },
-    { id: 'user-verification', label: 'אימות משתמש', icon: Users, color: 'teal' }
-  ], []);
+const Sidebar = ({ activePage, onPageChange }) => {
+  const handleMenuClick = (item) => {
+    if (item.external) {
+      // פתיחה בחלון חדש
+      window.open('https://mixifyai.k-rstudio.com', '_blank');
+    } else {
+      onPageChange(item.id);
+    }
+  };
+  const { language } = useContext(LanguageContext);
+  const t = useTranslation();
+  const menuItems = [
+    { id: 'dashboard', label: t('dashboard'), icon: Home },
+    { id: 'sketches', label: t('sketches'), icon: Music },
+    { id: 'sessions', label: t('sessions'), icon: Users },
+    { id: 'productionRecommendations', label: t('productionRecommendations'), icon: Lightbulb },
+    { id: 'export', label: t('exportVersions'), icon: BarChart3 },
+    { id: 'credits', label: t('creditsContracts'), icon: FileText },
+    { id: 'verification', label: t('userVerification'), icon: Shield },
+    { id: 'audio-separation', label: 'הפרדת אודיו', icon: Split },
+  ];
 
-  // Callback משופר לשינוי עמוד
-  const handlePageChange = useCallback((pageId) => {
-    setActivePage(pageId);
-  }, [setActivePage]);
-
-  // רכיב פריט ניווט
-  const NavigationItem = React.memo(({ item, isActive, onClick }) => (
-    <button
-      onClick={() => onClick(item.id)}
-      className={`w-full flex items-center space-x-3 space-x-reverse px-4 py-3 rounded-lg transition-all duration-200 group ${
-        isActive
-          ? `bg-${item.color}-600 text-white shadow-lg`
-          : 'text-gray-300 hover:text-white hover:bg-gray-700'
-      }`}
-    >
-      <div className={`p-2 rounded-lg transition-colors ${
-        isActive 
-          ? 'bg-white/20' 
-          : `bg-${item.color}-500/10 group-hover:bg-${item.color}-500/20`
-      }`}>
-        <item.icon className={`w-5 h-5 ${
-          isActive ? 'text-white' : `text-${item.color}-400 group-hover:text-${item.color}-300`
-        }`} />
-      </div>
-      <span className="font-medium">{item.label}</span>
-    </button>
-  ));
+  const quickStats = [
+    { label: t('activeProjects'), value: '0', color: 'text-green-500' },
+    { label: t('weeklyAnalyses'), value: '0', color: 'text-orange-500' },
+    { label: t('sketchesCreated'), value: '0', color: 'text-blue-500' },
+  ];
 
   return (
-    <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-      {/* לוגו */}
-      <div className="p-6 border-b border-gray-800">
+    <div className="w-64 h-screen bg-studio-lightGray flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3 space-x-reverse">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Music className="w-6 h-6 text-white" />
+          <div className="w-8 h-8 bg-black rounded flex items-center justify-center">
+            <Headphones className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">KR Studio</h1>
-            <p className="text-sm text-gray-400">Complete AI</p>
+            <h1 className="text-lg font-bold text-gray-900">KR-STUDIO</h1>
+            <p className="text-xs text-gray-600">{t('aiProductionSystem')}</p>
           </div>
         </div>
       </div>
 
-      {/* ניווט ראשי */}
-      <nav className="flex-1 p-4 space-y-2">
-        {navigationItems.map((item) => (
-          <NavigationItem
-            key={item.id}
-            item={item}
-            isActive={activePage === item.id}
-            onClick={handlePageChange}
-          />
-        ))}
-      </nav>
+      {/* Navigation Menu */}
+      <div className="flex-1 p-4">
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('productionTools')}</h3>
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activePage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuClick(item)}
+                  className={`w-full flex items-center space-x-3 space-x-reverse px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-gradient-to-r from-orange-400 to-yellow-400 text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  } ${item.external ? 'border-l-2 border-blue-500' : ''}`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                  {item.external && (
+                    <span className="text-xs text-blue-500 mr-auto"></span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-      {/* תחתית */}
-      <div className="p-4 border-t border-gray-800">
-        <button className="w-full flex items-center space-x-3 space-x-reverse px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-          <Settings className="w-5 h-5" />
-          <span>הגדרות</span>
-        </button>
+        {/* Quick Statistics */}
+        <div className="border-t border-gray-200 pt-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('quickStats')}</h3>
+          <div className="space-y-2">
+            {quickStats.map((stat, index) => (
+              <div key={index} className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">{stat.label}</span>
+                <span className={`font-semibold ${stat.color}`}>{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* User Profile */}
+      <div className="p-4 border-t border-gray-200">
+        {/* Language Selector above email */}
+        <div className={`mb-3 flex ${language === 'he' ? 'justify-start' : 'justify-end'}`}>
+          <LanguageSelector />
+        </div>
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-semibold">R</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-gray-900">roizohar111@gmail.com</p>
+            <div className="flex items-center mt-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full ml-2"></div>
+              <span className="text-xs text-green-600 font-medium">{t('premiumActive')}</span>
+            </div>
+            {/* Free tier indicator */}
+            <div className="flex items-center mt-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full ml-2"></div>
+              <span className="text-xs text-gray-500">{t('freeTier')}</span>
+            </div>
+            {/* Basic tier indicator */}
+            <div className="flex items-center mt-1">
+              <div className="w-2 h-2 bg-blue-400 rounded-full ml-2"></div>
+              <span className="text-xs text-blue-500">{t('basicTier')}</span>
+            </div>
+            <div className="flex items-center mt-1">
+              <span className="text-xs text-gray-500">{t('expiryDate')}: 31/12/2025</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default React.memo(Sidebar);
+export default Sidebar;
