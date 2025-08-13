@@ -1,236 +1,185 @@
-import React, { useContext } from 'react';
-import { 
-  Sparkles, 
-  Plus, 
-  Music, 
-  Mic, 
-  BarChart3, 
-  Users, 
-  Lightbulb,
-  TrendingUp,
-  Calendar,
-  User,
-  Eye
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { LanguageContext } from '../App';
-import { useTranslation } from '../lib/translations';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Music, Mic, Volume2, BarChart3, Play, Pause, Download, Trash2, Plus, Upload, Settings, Users, FileAudio } from 'lucide-react';
 
-const Dashboard = ({ onPageChange }) => {
-  const { language } = useContext(LanguageContext);
-  const t = useTranslation();
-  
-  const stats = [
-    {
-      title: t('activeProjects'),
-      value: '2',
-      change: language === 'he' ? '+12% השבוע' : '+12% this week',
-      icon: Music,
-      color: 'bg-blue-500',
-      trend: 'up'
-    },
-    {
-      title: t('weeklyAnalyses'),
-      value: '0',
-      change: language === 'he' ? '+8% חודש זה' : '+8% this month',
-      icon: Mic,
-      color: 'bg-green-500',
-      trend: 'up'
-    },
-    {
-      title: t('sketchesCreated'),
-      value: '0',
-      change: language === 'he' ? '+15% השבוע' : '+15% this week',
-      icon: BarChart3,
-      color: 'bg-purple-500',
-      trend: 'up'
-    },
-    {
-      title: t('activeSessions'),
-      value: '0',
-      change: language === 'he' ? 'רק עכשיו' : 'just now',
-      icon: Users,
-      color: 'bg-orange-500',
-      trend: 'up'
-    }
-  ];
+const Dashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [recentProjects, setRecentProjects] = useState([
+    { id: 1, name: 'Project Alpha', type: 'vocals', status: 'completed', date: '2024-01-15' },
+    { id: 2, name: 'Project Beta', type: 'drums', status: 'processing', date: '2024-01-14' },
+    { id: 3, name: 'Project Gamma', type: 'bass', status: 'completed', date: '2024-01-13' }
+  ]);
 
-  const recentProjects = [
-    {
-      title: t('popSongExample'),
-      singer: t('singerExample'),
-      date: '27/07/2025',
-      status: t('mix'),
-      statusColor: 'bg-purple-500',
-      genre: t('pop')
-    },
-    {
-      title: t('emotionalBallad'),
-      singer: t('singerFemaleExample'),
-      date: '27/07/2025',
-      status: t('recording'),
-      statusColor: 'bg-orange-500',
-      genre: t('folk')
-    }
-  ];
+  // Memoization של סטטיסטיקות
+  const stats = useMemo(() => ({
+    totalProjects: recentProjects.length,
+    completedProjects: recentProjects.filter(p => p.status === 'completed').length,
+    processingProjects: recentProjects.filter(p => p.status === 'processing').length,
+    totalAudioFiles: recentProjects.length * 4 // מניח 4 ערוצים לכל פרויקט
+  }), [recentProjects]);
 
-  const quickActions = [
-    {
-      title: t('createNewSketch'),
-      subtitle: t('quickActionCreateSketchSubtitle'),
-      icon: Music,
-      color: 'bg-green-500',
-      onClick: () => onPageChange('sketches')
-    },
-    {
-      title: t('newSession'),
-      subtitle: t('quickActionNewSessionSubtitle'),
-      icon: Users,
-      color: 'bg-purple-500',
-      onClick: () => onPageChange('sessions')
-    },
-    {
-      title: t('productionRecommendations'),
-      subtitle: t('quickActionProductionRecommendationsSubtitle'),
-      icon: Lightbulb,
-      color: 'bg-orange-500',
-      onClick: () => onPageChange('productionRecommendations')
-    }
-  ];
+  // Callback משופר לשינוי טאב
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
+
+  // Callback למחיקת פרויקט
+  const handleDeleteProject = useCallback((projectId) => {
+    setRecentProjects(prev => prev.filter(p => p.id !== projectId));
+  }, []);
+
+  // רכיב כרטיס סטטיסטיקה
+  const StatCard = ({ title, value, icon: Icon, color }) => (
+    <div className={`bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-${color}-500 transition-colors`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-400 text-sm">{title}</p>
+          <p className="text-2xl font-bold text-white">{value}</p>
+        </div>
+        <div className={`p-3 rounded-full bg-${color}-500/20`}>
+          <Icon className={`w-6 h-6 text-${color}-500`} />
+        </div>
+      </div>
+    </div>
+  );
+
+  // רכיב פרויקט
+  const ProjectItem = React.memo(({ project, onDelete }) => (
+    <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <div className={`w-3 h-3 rounded-full ${
+            project.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+          }`} />
+          <div>
+            <h4 className="font-semibold text-white">{project.name}</h4>
+            <p className="text-sm text-gray-400">{project.type} • {project.date}</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <button className="p-2 text-gray-400 hover:text-white transition-colors">
+            <Play className="w-4 h-4" />
+          </button>
+          <button className="p-2 text-gray-400 hover:text-white transition-colors">
+            <Download className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => onDelete(project.id)}
+            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  ));
 
   return (
-    <div className="flex-1 bg-studio-dark p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      {/* כותרת */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t('mainDashboard')}</h1>
-          <p className="text-gray-400">{t('welcomeMessage')}</p>
+          <h1 className="text-3xl font-bold text-white">לוח בקרה</h1>
+          <p className="text-gray-400">ניהול פרויקטי אודיו והפרדת ערוצים</p>
         </div>
-        <div className="flex space-x-3 space-x-reverse">
-          <Button 
-            variant="outline" 
-            size="lg"
-            onClick={() => {
-              console.log('🆕 כפתור New Project נלחץ');
-              onPageChange('sketches');
-            }}
-          >
-            <Plus className="w-5 h-5 ml-2" />
-            {t('newProject')}
-          </Button>
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 space-x-reverse transition-colors">
+          <Plus className="w-4 h-4" />
+          <span>פרויקט חדש</span>
+        </button>
+      </div>
+
+      {/* סטטיסטיקות */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="פרויקטים סה״כ" 
+          value={stats.totalProjects} 
+          icon={Music} 
+          color="blue" 
+        />
+        <StatCard 
+          title="הושלמו" 
+          value={stats.completedProjects} 
+          icon={BarChart3} 
+          color="green" 
+        />
+        <StatCard 
+          title="בתהליך" 
+          value={stats.processingProjects} 
+          icon={Volume2} 
+          color="yellow" 
+        />
+        <StatCard 
+          title="קבצי אודיו" 
+          value={stats.totalAudioFiles} 
+          icon={FileAudio} 
+          color="purple" 
+        />
+      </div>
+
+      {/* טאבים */}
+      <div className="bg-gray-800 rounded-lg p-1">
+        <div className="flex space-x-1 space-x-reverse">
+          {['overview', 'projects', 'analytics', 'settings'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => handleTabChange(tab)}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+              }`}
+            >
+              {tab === 'overview' && 'סקירה כללית'}
+              {tab === 'projects' && 'פרויקטים'}
+              {tab === 'analytics' && 'ניתוחים'}
+              {tab === 'settings' && 'הגדרות'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index} className="bg-studio-gray border-studio-gray">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-white mb-1">{stat.value}</p>
-                    <div className="flex items-center text-green-500 text-sm">
-                      <TrendingUp className="w-4 h-4 ml-1" />
-                      {stat.change}
-                    </div>
-                  </div>
-                  <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Projects */}
-        <Card className="bg-studio-gray border-studio-gray">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center">
-              <Music className="w-5 h-5 text-white ml-2" />
-              <CardTitle className="text-white">{t('recentProjects')}</CardTitle>
+      {/* תוכן טאבים */}
+      <div className="bg-gray-800 rounded-lg p-6">
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-4">פרויקטים אחרונים</h3>
+              <div className="space-y-3">
+                {recentProjects.map(project => (
+                  <ProjectItem 
+                    key={project.id} 
+                    project={project} 
+                    onDelete={handleDeleteProject}
+                  />
+                ))}
+              </div>
             </div>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Eye className="w-4 h-4 ml-1" />
-              {t('showAll')}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentProjects.map((project, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-studio-dark rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium text-white ${project.statusColor}`}>
-                        {project.status}
-                      </span>
-                      <span className="text-xs text-gray-400 mr-2">#{project.genre}</span>
-                    </div>
-                    <h4 className="text-white font-medium mb-1">{project.title}</h4>
-                    <div className="flex items-center text-sm text-gray-400">
-                      <User className="w-4 h-4 ml-1" />
-                      {project.singer}
-                      <Calendar className="w-4 h-4 mr-4 ml-1" />
-                      {project.date}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="bg-studio-gray border-studio-gray">
-          <CardHeader>
-            <div className="flex items-center">
-              <Lightbulb className="w-5 h-5 text-white ml-2" />
-              <CardTitle className="text-white">{t('quickActions')}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={action.onClick}
-                    className="p-4 bg-studio-dark rounded-lg hover:bg-gray-800 transition-colors text-right"
-                  >
-                    <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center mb-3`}>
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                    <h4 className="text-white font-medium mb-1">{action.title}</h4>
-                    <p className="text-sm text-gray-400">{action.subtitle}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card className="bg-studio-gray border-studio-gray mt-6">
-        <CardHeader>
-          <div className="flex items-center">
-            <Lightbulb className="w-5 h-5 text-white ml-2" />
-            <CardTitle className="text-white">{t('lastActivity')}</CardTitle>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-gray-400">{t('noActivity')}</p>
+        )}
+
+        {activeTab === 'projects' && (
+          <div className="text-center py-12">
+            <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">ניהול פרויקטים</h3>
+            <p className="text-gray-500">כאן תוכל לנהל את כל הפרויקטים שלך</p>
           </div>
-        </CardContent>
-      </Card>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="text-center py-12">
+            <BarChart3 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">ניתוחים מתקדמים</h3>
+            <p className="text-gray-500">צפה בסטטיסטיקות מפורטות על הפרויקטים שלך</p>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="text-center py-12">
+            <Settings className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">הגדרות מערכת</h3>
+            <p className="text-gray-500">התאם את הגדרות המערכת לצרכים שלך</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

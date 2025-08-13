@@ -3,18 +3,25 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import LanguageSelector from './components/LanguageSelector';
 import PerformanceMonitor from './components/PerformanceMonitor';
-import { dynamicLoader } from './lib/dynamicImports';
 
 // יצירת context לשפה
 export const LanguageContext = createContext();
 
-// רכיב טעינה
+// רכיב טעינה משופר
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center h-full">
-    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-    <div className="mr-4 text-lg text-gray-300">טוען...</div>
+    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+    <div className="mr-4 text-sm text-gray-300">טוען...</div>
   </div>
 );
+
+// רכיבים שנטענים דינמית - רק מה שבאמת צריך
+const AudioSeparation = lazy(() => import('./components/AudioSeparation'));
+const ProductionRecommendations = lazy(() => import('./components/ProductionRecommendations'));
+const ExportVersions = lazy(() => import('./components/ExportVersions'));
+const SketchCreation = lazy(() => import('./components/SketchCreation'));
+const CreditsContracts = lazy(() => import('./components/CreditsContracts'));
+const UserVerification = lazy(() => import('./components/UserVerification'));
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -44,154 +51,82 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [language, setLanguage] = useState('he'); // ברירת מחדל: עברית
-  const [loadedComponents, setLoadedComponents] = useState(new Map());
 
-  // טעינה דינמית של רכיבים
-  const loadComponent = async (componentName) => {
-    if (loadedComponents.has(componentName)) {
-      return loadedComponents.get(componentName);
-    }
-
-    try {
-      const Component = await dynamicLoader.loadComponent(componentName);
-      setLoadedComponents(prev => new Map(prev).set(componentName, Component));
-      return Component;
-    } catch (error) {
-      console.error(`שגיאה בטעינת רכיב ${componentName}:`, error);
-      return null;
-    }
-  };
-
-  // רכיבים שנטענים דינמית
-  const DynamicComponent = ({ componentName, fallback = null }) => {
-    const [Component, setComponent] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    React.useEffect(() => {
-      const loadComp = async () => {
-        try {
-          setIsLoading(true);
-          setError(null);
-          console.log(`🔄 מנסה לטעון רכיב: ${componentName}`);
-          const Comp = await loadComponent(componentName);
-          if (Comp) {
-            console.log(`✅ רכיב ${componentName} נטען בהצלחה`);
-            setComponent(() => Comp);
-          } else {
-            console.error(`❌ רכיב ${componentName} לא נטען`);
-            setError(`לא ניתן לטעון את הרכיב ${componentName}`);
-          }
-        } catch (err) {
-          console.error(`❌ שגיאה בטעינת רכיב ${componentName}:`, err);
-          setError(err.message);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadComp();
-    }, [componentName]);
-
-    if (isLoading) {
-      return fallback || <LoadingSpinner />;
-    }
-
-    if (error) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-red-500 text-center">
-            <div className="text-2xl mb-4">❌ שגיאה בטעינה</div>
-            <div className="text-lg">{error}</div>
-            <button 
-              onClick={() => {
-                // במקום window.location.reload(), ננסה לטעון מחדש את הקומפוננטה
-                setError(null);
-                setIsLoading(true);
-                loadComp();
-              }}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              נסה שוב
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return Component ? <Component /> : null;
-  };
-
+  // פונקציה פשוטה לניווט
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard onPageChange={setActivePage} />;
-      case 'sketches':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="SketchCreation" />
-          </Suspense>
-        );
-      case 'sessions':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="SessionManagement" />
-          </Suspense>
-        );
-      case 'productionRecommendations':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="ProductionRecommendations" />
-          </Suspense>
-        );
-      case 'export':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="ExportVersions" />
-          </Suspense>
-        );
-      case 'credits':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="CreditsContracts" />
-          </Suspense>
-        );
-      case 'verification':
-        return (
-          <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="UserVerification" />
-          </Suspense>
-        );
+        return <Dashboard />;
       case 'audio-separation':
         return (
           <Suspense fallback={<LoadingSpinner />}>
-            <DynamicComponent componentName="AudioSeparation" fallback={
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <div className="text-lg text-gray-300">טוען הפרדת אודיו...</div>
-                </div>
-              </div>
-            } />
+            <AudioSeparation />
+          </Suspense>
+        );
+      case 'production-recommendations':
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProductionRecommendations />
+          </Suspense>
+        );
+      case 'export-versions':
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ExportVersions />
+          </Suspense>
+        );
+      case 'sketch-creation':
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <SketchCreation />
+          </Suspense>
+        );
+      case 'credits-contracts':
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <CreditsContracts />
+          </Suspense>
+        );
+      case 'user-verification':
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserVerification />
           </Suspense>
         );
       default:
-        return <Dashboard onPageChange={setActivePage} />;
+        return <Dashboard />;
     }
   };
 
   return (
     <ErrorBoundary>
       <LanguageContext.Provider value={{ language, setLanguage }}>
-        <div className="flex h-screen bg-studio-dark" dir={language === 'he' ? 'rtl' : 'ltr'}>
-          <Sidebar activePage={activePage} onPageChange={setActivePage} />
-          <main className="flex-1 overflow-auto">
-            {renderPage()}
-          </main>
-          <PerformanceMonitor />
+        <div className="flex h-screen bg-gray-900 text-white overflow-hidden">
+          <Sidebar activePage={activePage} setActivePage={setActivePage} />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h1 className="text-xl font-semibold">
+                {activePage === 'dashboard' && 'לוח בקרה'}
+                {activePage === 'audio-separation' && 'הפרדת אודיו'}
+                {activePage === 'production-recommendations' && 'המלצות הפקה'}
+                {activePage === 'export-versions' && 'ייצוא גרסאות'}
+                {activePage === 'sketch-creation' && 'יצירת סקיצות'}
+                {activePage === 'credits-contracts' && 'זכויות וחוזים'}
+                {activePage === 'user-verification' && 'אימות משתמש'}
+              </h1>
+              <div className="flex items-center space-x-4 space-x-reverse">
+                <PerformanceMonitor />
+                <LanguageSelector />
+              </div>
+            </div>
+            <main className="flex-1 overflow-auto p-6">
+              {renderPage()}
+            </main>
+          </div>
         </div>
       </LanguageContext.Provider>
     </ErrorBoundary>

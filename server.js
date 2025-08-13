@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { spawn } from 'child_process';
 import cors from 'cors';
+import compression from 'compression';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fetch from 'node-fetch';
@@ -20,12 +21,34 @@ let isReady = false;
 setTimeout(() => {
   isReady = true;
   console.log('🚀 Server is ready for health checks');
-}, 5000); // 5 שניות להתחלה
+}, 3000); // הורדה מ-5 שניות ל-3 שניות
 
 // הגדרת כתובת בסיס ל-Worker - מקומי או מרוחק
 const WORKER_BASE_URL = process.env.WORKER_URL || 'http://localhost:10001/api/worker';
 
-// ניהול זיכרון - ניקוי אוטומטי
+// Middleware optimization
+app.use(compression()); // דחיסה
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// CORS optimization
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-domain.com', 'https://www.your-domain.com']
+    : ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Static files caching
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1y',
+  etag: true,
+  lastModified: true
+}));
+
+// ניהול זיכרון משופר - ניקוי אוטומטי
 const memoryCleanup = () => {
   if (global.gc) {
     global.gc();
@@ -33,41 +56,41 @@ const memoryCleanup = () => {
   }
 };
 
-// ניקוי זיכרון כל 5 דקות
-setInterval(memoryCleanup, 5 * 60 * 1000);
+// ניקוי זיכרון כל 3 דקות (במקום 5)
+setInterval(memoryCleanup, 3 * 60 * 1000);
 
-// ניקוי קבצים ישנים כל 10 דקות
+// ניקוי קבצים ישנים כל 5 דקות (במקום 10)
 setInterval(async () => {
   try {
     const uploadsDir = path.join(__dirname, 'uploads');
     const separatedDir = path.join(__dirname, 'separated');
     
-    // ניקוי קבצים ישנים מ-uploads (יותר מ-שעה)
+    // ניקוי קבצים ישנים מ-uploads (יותר מ-30 דקות)
     if (await fs.pathExists(uploadsDir)) {
       const files = await fs.readdir(uploadsDir);
-      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
       
       for (const file of files) {
         const filePath = path.join(uploadsDir, file);
         const stats = await fs.stat(filePath);
         
-        if (stats.mtime.getTime() < oneHourAgo) {
+        if (stats.mtime.getTime() < thirtyMinutesAgo) {
           await fs.remove(filePath);
           console.log('🗑️ נוקה קובץ ישן:', file);
         }
       }
     }
     
-    // ניקוי פרויקטים ישנים מ-separated (יותר מ-שעתיים)
+    // ניקוי פרויקטים ישנים מ-separated (יותר משעה)
     if (await fs.pathExists(separatedDir)) {
       const projects = await fs.readdir(separatedDir);
-      const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
       
       for (const project of projects) {
         const projectPath = path.join(separatedDir, project);
         const stats = await fs.stat(projectPath);
         
-        if (stats.mtime.getTime() < twoHoursAgo) {
+        if (stats.mtime.getTime() < oneHourAgo) {
           await fs.remove(projectPath);
           console.log('🗑️ נוקה פרויקט ישן:', project);
         }
@@ -76,24 +99,27 @@ setInterval(async () => {
   } catch (error) {
     console.error('❌ שגיאה בניקוי קבצים:', error);
   }
-}, 10 * 60 * 1000); // כל 10 דקות
+}, 5 * 60 * 1000); // כל 5 דקות
 
-// ניטור זיכרון
+// ניטור זיכרון משופר
 setInterval(() => {
   const memUsage = process.memoryUsage();
+  const rssMB = Math.round(memUsage.rss / 1024 / 1024);
+  const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+  
   console.log('📊 שימוש זיכרון:', {
-    rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
-    heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+    rss: rssMB + 'MB',
+    heapUsed: heapUsedMB + 'MB',
     heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
     external: Math.round(memUsage.external / 1024 / 1024) + 'MB'
   });
   
   // אזהרה אם הזיכרון גבוה מדי
-  if (memUsage.rss > 400 * 1024 * 1024) { // 400MB
-    console.warn('⚠️ שימוש זיכרון גבוה:', Math.round(memUsage.rss / 1024 / 1024) + 'MB');
+  if (rssMB > 300) { // הורדה מ-400MB ל-300MB
+    console.warn('⚠️ שימוש זיכרון גבוה:', rssMB + 'MB');
     memoryCleanup();
   }
-}, 30000); // כל 30 שניות
+}, 20000); // כל 20 שניות (במקום 30)
 
 // ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
 // זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
