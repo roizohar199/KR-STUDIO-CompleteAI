@@ -20,3 +20,22 @@ services:
     autoDeploy: true
     branch: main
     repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
+
+  - type: background
+    name: demucs-worker
+    env: node
+    plan: free
+    buildCommand: npm ci --prefer-offline
+    startCommand: node demucs-node-worker.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_MODE
+        value: true
+      - key: MAX_WORKERS
+        value: "4"
+      - key: TASK_TIMEOUT
+        value: "300000"
+    autoDeploy: true
+    branch: main
+    repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
