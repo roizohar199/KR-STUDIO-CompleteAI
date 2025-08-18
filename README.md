@@ -1,5 +1,7 @@
 # 🚀 KR-STUDIO CompleteAI
 
+**עודכן לאחרונה**: ${new Date().toLocaleString('he-IL')}
+
 ## 📋 **תיאור הפרויקט**
 
 KR-STUDIO CompleteAI הוא פלטפורמה מתקדמת להפרדת אודיו באמצעות AI, המבוססת על React ו-Node.js. המערכת מספקת כלים מתקדמים לעיבוד אודיו עם ממשק משתמש מודרני ואינטואיטיבי.
