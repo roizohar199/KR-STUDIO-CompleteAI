@@ -1,21 +1,43 @@
-import React from "react";
-import { Upload, Music } from "lucide-react";
+import React from 'react';
+import { Music, Upload, FileAudio } from 'lucide-react';
 
-export default function EmptyState({ onUploadClick }) {
+export default function EmptyState() {
   return (
-    <div className="text-center p-6 bg-gray-800/50 rounded-xl border border-gray-700">
-      <Music className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-gray-300 mb-2">אין פרויקטים עדיין</h3>
-      <p className="text-gray-400 text-sm mb-4">
-        התחל על ידי העלאת קובץ אודיו והפרדתו לערוצים
+    <div className="text-center py-12">
+      <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Music className="w-12 h-12 text-gray-400" />
+      </div>
+      
+      <h3 className="text-xl font-semibold text-white mb-3">
+        אין ערוצי אודיו זמינים
+      </h3>
+      
+      <p className="text-gray-400 mb-6 max-w-md mx-auto">
+        עדיין לא הופרדו ערוצי אודיו לפרויקט זה. אנא המתן לסיום התהליך או צור פרויקט חדש.
       </p>
-      <button
-        onClick={onUploadClick}
-        className="bg-gradient-to-r from-purple-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all duration-300 flex items-center gap-2 mx-auto"
-      >
-        <Upload className="w-4 h-4" />
-        העלה קובץ אודיו
-      </button>
+      
+      <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+        <div className="flex items-center space-x-2">
+          <FileAudio className="w-4 h-4" />
+          <span>ווקאל</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <FileAudio className="w-4 h-4" />
+          <span>תופים</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <FileAudio className="w-4 h-4" />
+          <span>בס</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <FileAudio className="w-4 h-4" />
+          <span>גיטרה</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <FileAudio className="w-4 h-4" />
+          <span>אחר</span>
+        </div>
+      </div>
     </div>
   );
 } 

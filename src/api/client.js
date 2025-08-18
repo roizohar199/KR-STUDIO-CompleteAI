@@ -1,7 +1,7 @@
-// API Client מעודכן ל-Fly.io בלבד
+// API Client - שימוש ב-URL דינמי
 const API_BASE_URL = typeof process !== 'undefined' && process.env && process.env.WORKER_API_URL
   ? process.env.WORKER_API_URL
-  : 'https://kr-studio-completeai.fly.dev/api';
+  : window.location.origin + '/api';
 
 // Helper function for API calls with improved error handling
 const apiCall = async (endpoint, options = {}) => {
@@ -118,7 +118,9 @@ export const uploadAudio = async (file, onProgress = null, abortController = nul
       
       // אם יש AbortController, שמור את ה-XHR כדי שנוכל לבטל
       if (abortController) {
-        abortController.xhr = xhr;
+        abortController.signal.addEventListener('abort', () => {
+          xhr.abort();
+        });
       }
     });
     

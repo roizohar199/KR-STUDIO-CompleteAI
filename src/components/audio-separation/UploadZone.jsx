@@ -103,69 +103,63 @@ export default function UploadZone({ onFileSelect, onDrop, disabled = false }) {
         />
         
         <div className="space-y-4">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
-            disabled 
-              ? 'bg-gray-600' 
-              : 'bg-gradient-to-r from-purple-500 to-blue-500'
-          }`}>
-            {disabled ? (
-              <WifiOff className="w-8 h-8 text-gray-400" />
-            ) : (
-              <Upload className="w-8 h-8 text-white" />
-            )}
+          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
+            <Upload className="w-8 h-8 text-white" />
           </div>
           
           <div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              {disabled 
-                ? 'שרת לא מחובר' 
-                : selectedFile 
-                ? 'File Selected' 
-                : 'Upload Audio File'
-              }
+              העלה קובץ אודיו
             </h3>
-            <p className="text-gray-400 mb-4">
-              {disabled 
-                ? 'אנא המתן לחיבור לשרת' 
-                : selectedFile 
-                ? 'File ready for processing' 
-                : 'Drag and drop or click to select'
-              }
+            <p className="text-gray-400">
+              גרור וזרוק קובץ אודיו לכאן, או לחץ לבחירה
             </p>
           </div>
-
-          {selectedFile && !disabled && (
-            <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <FileAudio className="w-6 h-6 text-green-400" />
-                <div className="flex-1">
-                  <p className="text-white font-medium">{selectedFile.name}</p>
-                  <p className="text-green-400 text-sm">{formatFileSize(selectedFile.size)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!selectedFile && !disabled && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-500">Supported formats: MP3, WAV, FLAC, M4A, OGG</p>
-              <p className="text-sm text-gray-500">Max size: 50MB</p>
-            </div>
-          )}
+          
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>קבצים נתמכים: MP3, WAV, FLAC, M4A, OGG</p>
+            <p>גודל מקסימלי: 50MB</p>
+          </div>
         </div>
       </div>
 
-      {selectedFile && !disabled && (
-        <div className="flex items-center justify-between bg-blue-500/20 border border-blue-500/30 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-400" />
-            <div>
-              <p className="text-white font-medium">File ready for processing</p>
-              <p className="text-blue-400 text-sm">Click "Start Separation" to begin</p>
+      {/* Selected File Info */}
+      {selectedFile && (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
+            <FileAudio className="w-8 h-8 text-blue-400" />
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-white truncate">{selectedFile.name}</h4>
+              <p className="text-sm text-gray-400">
+                {formatFileSize(selectedFile.size)} • {selectedFile.type}
+              </p>
             </div>
+            <div className="text-green-400 text-sm font-medium">נבחר</div>
           </div>
         </div>
       )}
+
+      {/* Instructions */}
+      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+        <h4 className="font-medium text-blue-200 mb-2">איך זה עובד?</h4>
+        <ol className="text-blue-200 text-sm space-y-1 list-decimal list-inside">
+          <li>העלה קובץ אודיו (שיר, הקלטה, או כל קובץ אודיו אחר)</li>
+          <li>המערכת תנתח את האודיו ותפריד אותו ל-5 ערוצים נפרדים</li>
+          <li>קבל גישה לכל ערוץ בנפרד: ווקאל, תופים, בס, גיטרה ואחר</li>
+          <li>הורד כל ערוץ בנפרד או ערבב אותם מחדש בסטודיו</li>
+        </ol>
+      </div>
+
+      {/* Tips */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <h4 className="font-medium text-white mb-2">טיפים לאודיו איכותי</h4>
+        <ul className="text-gray-300 text-sm space-y-1">
+          <li>• השתמש בקבצי אודיו באיכות גבוהה (320kbps MP3 או WAV)</li>
+          <li>• הימנע מקבצים עם רעש רקע מוגזם</li>
+          <li>• אורך אופטימלי: 1-10 דקות</li>
+          <li>• תהליך ההפרדה לוקח 2-5 דקות בהתאם לאורך הקובץ</li>
+        </ul>
+      </div>
     </div>
   );
 } 
