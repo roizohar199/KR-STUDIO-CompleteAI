@@ -1,4 +1,5 @@
 services:
+  # Web Service - Frontend + API
   - type: web
     name: kr-studio-completeai
     env: node
@@ -21,12 +22,13 @@ services:
     branch: main
     repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
 
+  # Background Worker - Demucs Processing
   - type: background
     name: demucs-worker
     env: node
     plan: free
     buildCommand: npm ci --prefer-offline
-    startCommand: node demucs-node-worker.js
+    startCommand: node server/demucs-node-worker.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -36,6 +38,8 @@ services:
         value: "4"
       - key: TASK_TIMEOUT
         value: "300000"
+      - key: WORKER_SERVICE
+        value: "demucs"
     autoDeploy: true
     branch: main
     repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
