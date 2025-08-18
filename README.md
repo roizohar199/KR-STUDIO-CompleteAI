@@ -1,6 +1,6 @@
 # 🚀 KR-STUDIO CompleteAI
 
-**עודכן לאחרונה**: ${new Date().toLocaleString('he-IL')}
+**עודכן לאחרונה**: 2024-12-19 15:30:00
 
 ## 📋 **תיאור הפרויקט**
 
