@@ -2,9 +2,7 @@
 class AIClient {
   constructor() {
     // קדימות: VITE_API_BASE_URL → אותו דומיין עם /api → localhost לפיתוח
-    const viteEnv = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env)
-      ? import.meta.env.VITE_API_BASE_URL
-      : undefined;
+    const viteEnv = import.meta.env.VITE_API_BASE_URL;
 
     if (viteEnv && typeof viteEnv === 'string' && viteEnv.length > 0) {
       this.baseURL = viteEnv.replace(/\/$/, '');

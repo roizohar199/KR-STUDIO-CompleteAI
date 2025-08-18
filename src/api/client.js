@@ -1,9 +1,8 @@
 // API Client - שימוש ב-URL דינמי עם תמיכה ב-Vite env
 // קדימות: VITE_API_BASE_URL → אותו דומיין עם /api → localhost לפיתוח
 const getApiBaseUrl = () => {
-  const viteEnv = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env)
-    ? import.meta.env.VITE_API_BASE_URL
-    : undefined;
+  // שימוש ישיר במשתנה הסביבה של Vite
+  const viteEnv = import.meta.env.VITE_API_BASE_URL;
 
   if (viteEnv && typeof viteEnv === 'string' && viteEnv.length > 0) {
     return viteEnv.replace(/\/$/, '');
