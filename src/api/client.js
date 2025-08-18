@@ -239,7 +239,7 @@ export const downloadStem = async (projectId, stemName) => {
 // Health check
 export const healthCheck = async () => {
   try {
-    const result = await apiCall('/health');
+    const result = await apiCall('/api/health');
     return result;
   } catch (error) {
     console.error('❌ שרת לא זמין:', error.message);
