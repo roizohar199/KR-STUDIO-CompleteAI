@@ -5,16 +5,25 @@ const { spawn } = require('child_process');
 
 if (isMainThread) {
     // Main thread - מנהל את ה-workers
-    class DemucsWorkerManager {
+    class DemucsNodeWorker {
         constructor() {
             this.workers = [];
             this.taskQueue = [];
             this.maxWorkers = process.env.MAX_WORKERS || 2;
             this.isRunning = false;
+            this.stats = {
+                totalTasks: 0,
+                completedTasks: 0,
+                failedTasks: 0,
+                startTime: new Date()
+            };
         }
 
         async addTask(task) {
+            console.log(`📥 הוספת משימה: ${task.fileId}`);
             this.taskQueue.push(task);
+            this.stats.totalTasks++;
+            
             if (!this.isRunning) {
                 this.startProcessing();
             }
@@ -22,15 +31,21 @@ if (isMainThread) {
 
         async startProcessing() {
             this.isRunning = true;
+            console.log('🚀 מתחיל עיבוד משימות...');
+            
             while (this.taskQueue.length > 0 && this.workers.length < this.maxWorkers) {
                 const task = this.taskQueue.shift();
                 await this.processTask(task);
             }
+            
             this.isRunning = false;
+            console.log('⏸️ עיבוד הושלם, ממתין למשימות נוספות...');
         }
 
         async processTask(task) {
             return new Promise((resolve, reject) => {
+                console.log(`🎵 יצירת Worker עבור: ${task.fileId}`);
+                
                 const worker = new Worker(__filename, {
                     workerData: task
                 });
@@ -38,13 +53,21 @@ if (isMainThread) {
                 this.workers.push(worker);
 
                 worker.on('message', (result) => {
-                    console.log(`✅ Worker הושלם: ${task.fileId}`);
+                    if (result.success) {
+                        console.log(`✅ Worker הושלם בהצלחה: ${task.fileId}`);
+                        this.stats.completedTasks++;
+                    } else {
+                        console.error(`❌ Worker נכשל: ${task.fileId} - ${result.error}`);
+                        this.stats.failedTasks++;
+                    }
+                    
                     resolve(result);
                     this.removeWorker(worker);
                 });
 
                 worker.on('error', (error) => {
                     console.error(`❌ Worker שגיאה: ${task.fileId}`, error);
+                    this.stats.failedTasks++;
                     reject(error);
                     this.removeWorker(worker);
                 });
@@ -63,6 +86,7 @@ if (isMainThread) {
             if (index > -1) {
                 this.workers.splice(index, 1);
             }
+            
             // המשך עיבוד אם יש עוד משימות
             if (this.taskQueue.length > 0 && !this.isRunning) {
                 this.startProcessing();
@@ -74,7 +98,9 @@ if (isMainThread) {
                 activeWorkers: this.workers.length,
                 queuedTasks: this.taskQueue.length,
                 maxWorkers: this.maxWorkers,
-                isRunning: this.isRunning
+                isRunning: this.isRunning,
+                stats: this.stats,
+                uptime: Date.now() - this.stats.startTime.getTime()
             };
         }
 
@@ -88,33 +114,33 @@ if (isMainThread) {
         }
     }
 
-    // יצירת מופע של המנהל
-    const workerManager = new DemucsWorkerManager();
+    // יצירת מופע של ה-Worker
+    const demucsWorker = new DemucsNodeWorker();
 
     // טיפול בסגירת התהליך
     process.on('SIGINT', async () => {
         console.log('\n🔄 מקבל SIGINT, מכבה...');
-        await workerManager.shutdown();
+        await demucsWorker.shutdown();
         process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
         console.log('\n🔄 מקבל SIGTERM, מכבה...');
-        await workerManager.shutdown();
+        await demucsWorker.shutdown();
         process.exit(0);
     });
 
-    // ייצוא המנהל
-    module.exports = workerManager;
+    // ייצוא ה-Worker
+    module.exports = demucsWorker;
 
     // אם הקובץ רץ ישירות
     if (require.main === module) {
-        console.log('🚀 Demucs Worker Manager מופעל...');
-        console.log('📊 סטטוס:', workerManager.getStatus());
+        console.log('🚀 Demucs Node Worker מופעל...');
+        console.log('📊 סטטוס:', demucsWorker.getStatus());
         
         // דוגמה לשימוש
         setTimeout(() => {
-            console.log('📊 סטטוס עדכני:', workerManager.getStatus());
+            console.log('📊 סטטוס עדכני:', demucsWorker.getStatus());
         }, 5000);
     }
 } else {

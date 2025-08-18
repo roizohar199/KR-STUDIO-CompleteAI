@@ -1,2 +1,2 @@
 web: node server.js
-worker: node demucs-server-worker.js
+worker: node demucs-node-worker.cjs
