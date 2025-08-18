@@ -1,6 +1,6 @@
 # 🚀 KR-STUDIO CompleteAI
 
-**עודכן לאחרונה**: 2024-12-19 15:30:00
+**עודכן לאחרונה**: 2024-12-19 15:45:00
 
 ## 📋 **תיאור הפרויקט**
 
@@ -118,7 +118,8 @@ KR-STUDIO CompleteAI/
 
 ### **Production**
 - **Frontend**: `https://mixifyai.k-rstudio.com`
-- **Backend**: `https://kr-studio-completeai.cyclic.app`
+- **Backend**: `https://kr-studio-completeai.onrender.com`
+- **Worker**: `https://kr-studio-completeai-worker.onrender.com`
 
 ### **Development**
 - **Frontend**: `http://localhost:5173`
@@ -144,7 +145,7 @@ KR-STUDIO CompleteAI/
 וודא שה-CORS מוגדר נכון לכלול את הדומיין החדש.
 
 ### **Port Issues**
-Cyclic.sh דורש שהשרת יאזין ל-`process.env.PORT`.
+Render.com דורש שהשרת יאזין ל-`process.env.PORT`.
 
 ### **Build Failures**
 וודא שה-build script עובד מקומית לפני הפריסה.

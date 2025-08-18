@@ -1,7 +1,12 @@
 # 📊 Render Deployment Status
 
 **תאריך יצירה**: 2024-12-19 15:30:00
-**סטטוס**: ממתין לדיפלוי אוטומטי
+**סטטוס**: URLs עודכנו - ממתין לדיפלוי אוטומטי
+
+## 🌐 **URLs מעודכנים**
+- **Frontend**: `https://mixifyai.k-rstudio.com`
+- **Backend**: `https://kr-studio-completeai.onrender.com`
+- **Worker**: `https://kr-studio-completeai-worker.onrender.com`
 
 ## 🔍 **בדיקות שבוצעו**
 
