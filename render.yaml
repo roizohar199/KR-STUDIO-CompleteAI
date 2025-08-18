@@ -19,4 +19,4 @@ services:
       sizeGB: 1
     autoDeploy: true
     branch: main
-    repo: https://github.com/your-username/kr-studio-completeai
+    repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI
