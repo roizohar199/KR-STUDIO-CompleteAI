@@ -246,7 +246,8 @@ export const downloadStem = async (projectId, stemName) => {
 // Health check
 export const healthCheck = async () => {
   try {
-    const result = await apiCall('/api/health');
+    // שים לב: ה-API_BASE_URL כבר כולל /api, לכן נקרא רק /health כדי להימנע מ-/api/api/health
+    const result = await apiCall('/health');
     return result;
   } catch (error) {
     console.error('❌ שרת לא זמין:', error.message);
