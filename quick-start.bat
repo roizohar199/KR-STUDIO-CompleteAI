@@ -3,16 +3,16 @@ echo 🚀 KR-STUDIO CompleteAI - הרצה מהירה
 echo =====================================
 
 echo.
-echo 🎵 מפעיל Worker...
-start "KR-STUDIO Worker" cmd /k "npm run worker"
+echo 🎵 מפעיל Worker (Hot Reload)...
+start "KR-STUDIO Worker (hot)" cmd /k "npm run worker:dev"
 
 echo.
 echo ⏳ ממתין ל-Worker...
 timeout /t 5 /nobreak >nul
 
 echo.
-echo 🌐 מפעיל שרת...
-start "KR-STUDIO Server" cmd /k "npm run server"
+echo 🌐 מפעיל שרת (Hot Reload)...
+start "KR-STUDIO Server (hot)" cmd /k "npm run server:dev"
 
 echo.
 echo ✅ השרת וה-Worker הופעלו!

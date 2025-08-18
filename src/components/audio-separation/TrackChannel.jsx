@@ -54,9 +54,40 @@ export default function TrackChannel({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Play/Pause Button */}
+          <button
+            onClick={onTogglePlay}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
+              isPlaying 
+                ? 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700' 
+                : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
+            }`}
+          >
+            {isPlaying ? (
+              <Pause className="w-4 h-4 text-white" />
+            ) : (
+              <Play className="w-4 h-4 text-white ml-0.5" />
+            )}
+          </button>
+
+          {/* Mute/Unmute Button */}
+          <button
+            onClick={onToggleMute}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+              isMuted 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-gray-700 hover:bg-gray-600'
+            }`}
+          >
+            {isMuted ? (
+              <VolumeX className="w-4 h-4 text-white" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-gray-300" />
+            )}
+          </button>
+
           {/* Volume Slider */}
           <div className="flex items-center gap-2 min-w-[120px]">
-            <Volume2 className="w-4 h-4 text-gray-400" />
             <input
               type="range"
               min="0"

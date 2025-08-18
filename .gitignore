@@ -7,6 +7,8 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
+.next/
+out/
 
 # Environment variables
 .env
@@ -15,31 +17,22 @@ build/
 .env.test.local
 .env.production.local
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
 # Logs
-logs/
+logs
 *.log
 
 # Runtime data
-pids/
+pids
 *.pid
 *.seed
 *.pid.lock
 
 # Coverage directory used by tools like istanbul
 coverage/
+*.lcov
 
 # nyc test coverage
-.nyc_output/
+.nyc_output
 
 # Dependency directories
 jspm_packages/
@@ -65,6 +58,9 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
+# dotenv environment variables file
+.env.test
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -74,6 +70,7 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
+dist
 
 # Gatsby files
 .cache/
@@ -87,14 +84,31 @@ public
 tmp/
 temp/
 
-# Audio separation files
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cyclic.sh specific
+.cyclic/
+cyclic.log
+
+# Uploads and temporary files
 uploads/
 separated/
-*.mp3
-*.wav
-*.flac
-*.m4a
-*.aac
+*.tmp
+*.temp
 
 # Python
 __pycache__/
@@ -110,8 +124,5 @@ venv.bak/
 
 # Demucs models
 models/
-
-# Server logs
-server.log
-error.log
-access.log
+*.pth
+*.ckpt

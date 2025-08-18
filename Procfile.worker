@@ -1,1 +1,11 @@
+# Worker process for KR-STUDIO CompleteAI
+# Optimized for audio processing and stability
+
+# Main worker process
 web: node demucs-worker.js
+
+# Health check process (optional)
+health: node -e "setInterval(() => fetch('http://localhost:10001/api/health').catch(() => process.exit(1)), 30000)"
+
+# Metrics collection process (optional)
+metrics: node -e "const os = require('os'); setInterval(() => console.log(JSON.stringify({timestamp: Date.now(), memory: process.memoryUsage(), cpu: os.loadavg()})), 60000)"

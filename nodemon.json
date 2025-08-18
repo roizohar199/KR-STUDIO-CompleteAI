@@ -1,0 +1,13 @@
+{
+  "ignore": [
+    "uploads/**",
+    "separated/**",
+    "dist/**",
+    "node_modules/**",
+    ".git/**"
+  ],
+  "ext": "js,json",
+  "delay": "200"
+}
+
+

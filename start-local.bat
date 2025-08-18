@@ -36,8 +36,10 @@ if errorlevel 1 (
 )
 
 echo.
-echo 🏗️ בונה את הפרונטנד...
-call npm run build
+echo 🏗️ מפעיל מצב פיתוח עם Hot Reload...
+echo.
+echo 💡 חלון 1: Worker (reload אוטומטי)
+echo 💡 חלון 2: Server (reload אוטומטי)
 
 echo.
 echo 🚀 מפעיל את השרת...
@@ -48,9 +50,9 @@ echo.
 echo ⚠️ לחץ Ctrl+C כדי לעצור
 echo.
 
-start "KR-STUDIO Worker" cmd /k "npm run worker"
-timeout /t 3 /nobreak >nul
-start "KR-STUDIO Server" cmd /k "npm run server"
+start "KR-STUDIO Worker (hot)" cmd /k "npm run worker:dev"
+timeout /t 2 /nobreak >nul
+start "KR-STUDIO Server (hot)" cmd /k "npm run server:dev"
 
 echo ✅ השרת וה-Worker הופעלו!
 pause

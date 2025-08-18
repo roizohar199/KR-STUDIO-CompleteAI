@@ -2,7 +2,7 @@
 class AIClient {
   constructor() {
     this.baseURL = process.env.NODE_ENV === 'production' 
-      ? 'https://your-fly-app.fly.dev/api' 
+      ? 'https://kr-studio-completeai.onrender.com/api' 
       : 'http://localhost:10000/api';
     
     this.cache = new Map();

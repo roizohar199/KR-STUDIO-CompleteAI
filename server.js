@@ -16,15 +16,12 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Startup optimization for Fly.io
+// Server startup
 let isReady = false;
 setTimeout(() => {
   isReady = true;
-  console.log('🚀 Server is ready for health checks');
-}, 3000); // הורדה מ-5 שניות ל-3 שניות
-
-// הגדרת כתובת בסיס ל-Worker - מקומי או מרוחק
-const WORKER_BASE_URL = process.env.WORKER_URL || 'http://localhost:10001/api/worker';
+  console.log('🚀 Server is ready');
+}, 3000);
 
 // Middleware optimization
 app.use(compression()); // דחיסה
@@ -37,8 +34,7 @@ app.use(cors({
     ? [
         'https://mixifyai.k-rstudio.com',
         'https://www.mixifyai.k-rstudio.com',
-        'https://kr-studio-completeai.fly.dev',
-        'https://kr-studio-worker.fly.dev'
+        'https://kr-studio-completeai.onrender.com'
       ]
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
@@ -59,8 +55,7 @@ app.use((req, res, next) => {
     ? [
         'https://mixifyai.k-rstudio.com',
         'https://www.mixifyai.k-rstudio.com',
-        'https://kr-studio-completeai.fly.dev',
-        'https://kr-studio-worker.fly.dev'
+        'https://kr-studio-completeai.onrender.com'
       ]
     : ['http://localhost:5173', 'http://localhost:3000'];
   
@@ -164,8 +159,8 @@ setInterval(() => {
 // ⚠️ סדר חשוב: CORS middleware חייב להיות הראשון לפני כל middleware אחר
 // זה מבטיח שכל בקשה, כולל OPTIONS preflight, תקבל את ה-CORS headers הנכונים
 
-// הגדרת CORS עם תמיכה מלאה ב-Fly.io
-// תמיכה ב-Health Checks של Fly.io (ללא Origin)
+// הגדרת CORS עם תמיכה מלאה ב-Render.com
+// תמיכה ב-Health Checks של Render.com (ללא Origin)
 const corsOptions = {
   origin: function (origin, callback) {
     // תמיכה ב-Health Checks של Fly.io (ללא Origin)
@@ -180,8 +175,8 @@ const corsOptions = {
       'http://localhost:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:3000',
-      // Fly.io domains
-      'https://kr-studio-completeai.fly.dev'
+      // Render.com domains
+      'https://kr-studio-completeai.onrender.com'
     ];
     
     if (allowedOrigins.includes(origin)) {
@@ -579,13 +574,20 @@ app.post('/api/separate', async (req, res) => {
       const cloudResult = await sendToCloudServer(fileId, project.originalPath, projectName);
       
       if (cloudResult.success) {
-        project.status = 'completed';
-        project.progress = 100;
-        project.completedAt = new Date().toISOString();
+        // עדכון הפרויקט עם התוצאות מה-Worker
+        project.status = cloudResult.status;
+        project.outputDir = outputDir;
         project.stemsDir = outputDir;
-        project.stems = cloudResult.stems;
+        project.stems = cloudResult.stems || [];
+        project.workerProcessed = true; // סימון שהפרדה נעשתה על ידי ה-Worker
+        
+        if (cloudResult.error) {
+          project.error = cloudResult.error;
+        }
         
         console.log('✅ עיבוד בענן הושלם בהצלחה!');
+        console.log('✅ סטטוס:', project.status);
+        console.log('✅ stems:', project.stems);
         res.json({ 
           success: true, 
           message: 'הפרדה החלה בענן',
@@ -703,7 +705,8 @@ app.get('/api/projects/:id', (req, res) => {
   });
 });
 
-app.get('/api/projects/:id/download/:stem', (req, res) => {
+// הורדת קובץ stem
+app.get('/api/projects/:id/download/:stem', async (req, res) => {
   const { id, stem } = req.params;
   const project = projects.get(id);
   
@@ -713,28 +716,70 @@ app.get('/api/projects/:id/download/:stem', (req, res) => {
   console.log('⬇️ Stem:', stem);
   console.log('⬇️ פרויקט:', project);
   
-  if (!project || !project.stemsDir) {
-    console.log('❌ פרויקט או תיקיית stems לא נמצאו');
+  if (!project) {
+    console.log('❌ פרויקט לא נמצא');
     return res.status(404).json({ 
       success: false, 
       error: 'קובץ לא נמצא' 
     });
   }
-  
-  const filePath = path.join(project.stemsDir, `${stem}.mp3`);
-  console.log('⬇️ נתיב קובץ:', filePath);
-  
-  if (!fs.existsSync(filePath)) {
-    console.log('❌ קובץ לא קיים:', filePath);
-    return res.status(404).json({ 
+
+  try {
+    // אם הפרויקט עובד על Worker, נקבל את הקובץ מה-Worker
+    if (project.workerProcessed) {
+      console.log('🔧 מקבל קובץ מה-Worker...');
+      
+      const workerUrl = `${WORKER_BASE_URL}/download/${id}/${stem}`;
+      console.log('🔧 Worker URL:', workerUrl);
+      
+      const response = await fetch(workerUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Worker error: ${response.status} ${response.statusText}`);
+      }
+      
+      // העתקת headers מה-Worker
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+      
+      if (contentType) res.setHeader('Content-Type', contentType);
+      if (contentLength) res.setHeader('Content-Length', contentLength);
+      
+      // העתקת הקובץ ישירות מה-Worker
+      response.body.pipe(res);
+      
+    } else {
+      // פרויקט מקומי - בדיקה רגילה
+      if (!project.stemsDir) {
+        console.log('❌ תיקיית stems לא נמצאה');
+        return res.status(404).json({ 
+          success: false, 
+          error: 'קובץ לא נמצא' 
+        });
+      }
+      
+      const filePath = path.join(project.stemsDir, `${stem}.mp3`);
+      console.log('⬇️ נתיב קובץ מקומי:', filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        console.log('❌ קובץ לא קיים:', filePath);
+        return res.status(404).json({ 
+          success: false, 
+          error: 'קובץ לא נמצא' 
+        });
+      }
+      
+      console.log('✅ קובץ מקומי נמצא ונשלח להורדה');
+      res.download(filePath);
+    }
+    
+  } catch (error) {
+    console.error('❌ שגיאה בהורדת קובץ:', error);
+    res.status(500).json({ 
       success: false, 
-      error: 'קובץ לא נמצא' 
+      error: error.message 
     });
   }
-  
-  console.log('✅ קובץ נמצא ונשלח להורדה');
-  
-  res.download(filePath);
 });
 
 app.delete('/api/projects/:id', async (req, res) => {
@@ -1272,15 +1317,19 @@ async function sendToCloudServer(fileId, inputPath, projectName) {
     console.log('☁️ projectName:', projectName);
     
     // הגדרת כתובת ה-Worker מהסביבה או ברירת מחדל
-    const baseUrl = (process.env.WORKER_URL || WORKER_BASE_URL || 'http://localhost:10001/api/worker').replace(/\/$/, '');
+    const baseUrl = (process.env.WORKER_URL || WORKER_BASE_URL || 'https://kr-studio-worker.onrender.com/api/worker').replace(/\/$/, '');
     const url = `${baseUrl}/process`;
 
     const outputDir = path.join(__dirname, 'separated', fileId);
 
+    // קריאת הקובץ כבסיס 64
+    const fileBuffer = await fs.readFile(inputPath);
+    const base64File = fileBuffer.toString('base64');
+    
     const payload = {
       fileId,
-      inputPath,
-      outputDir,
+      fileName: path.basename(inputPath),
+      fileData: base64File,
       projectName
     };
 
@@ -1314,7 +1363,7 @@ async function sendToCloudServer(fileId, inputPath, projectName) {
   }
 }
 
-// Health check endpoint - מעודכן לתמיכה ב-Fly.io Load Balancer
+// Health check endpoint - מעודכן לתמיכה ב-Render.com Load Balancer
 app.get('/api/health', (req, res) => {
   // הוספת CORS headers לתשובה
   const origin = req.headers.origin || '*';
@@ -1358,9 +1407,9 @@ app.get('/api/health/detailed', (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     environment: process.env.NODE_ENV || 'development',
-    fly: {
+    render: {
       healthCheck: true,
-      platform: 'Fly.io',
+      platform: 'Render.com',
       origin: origin
     }
   };
