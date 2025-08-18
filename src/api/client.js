@@ -1,7 +1,22 @@
-// API Client - שימוש ב-URL דינמי
-const API_BASE_URL = typeof process !== 'undefined' && process.env && process.env.WORKER_API_URL
-  ? process.env.WORKER_API_URL
-  : window.location.origin + '/api';
+// API Client - שימוש ב-URL דינמי עם תמיכה ב-Vite env
+// קדימות: VITE_API_BASE_URL → אותו דומיין עם /api → localhost לפיתוח
+const getApiBaseUrl = () => {
+  const viteEnv = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env)
+    ? import.meta.env.VITE_API_BASE_URL
+    : undefined;
+
+  if (viteEnv && typeof viteEnv === 'string' && viteEnv.length > 0) {
+    return viteEnv.replace(/\/$/, '');
+  }
+
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return `${window.location.origin}/api`;
+  }
+
+  return 'http://localhost:10000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper function for API calls with improved error handling
 const apiCall = async (endpoint, options = {}) => {

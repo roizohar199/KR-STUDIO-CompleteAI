@@ -34,7 +34,9 @@ app.use(cors({
     ? [
         'https://mixifyai.k-rstudio.com',
         'https://www.mixifyai.k-rstudio.com',
-        'https://kr-studio-completeai.onrender.com'
+        'https://kr-studio-completeai.onrender.com',
+        'http://localhost:5173',
+        'http://localhost:3000'
       ]
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
@@ -55,7 +57,9 @@ app.use((req, res, next) => {
     ? [
         'https://mixifyai.k-rstudio.com',
         'https://www.mixifyai.k-rstudio.com',
-        'https://kr-studio-completeai.onrender.com'
+        'https://kr-studio-completeai.onrender.com',
+        'http://localhost:5173',
+        'http://localhost:3000'
       ]
     : ['http://localhost:5173', 'http://localhost:3000'];
   

@@ -1,9 +1,18 @@
 // API client משופר עם caching ו-optimization
 class AIClient {
   constructor() {
-    this.baseURL = process.env.NODE_ENV === 'production' 
-      ? 'https://kr-studio-completeai.onrender.com/api' 
-      : 'http://localhost:10000/api';
+    // קדימות: VITE_API_BASE_URL → אותו דומיין עם /api → localhost לפיתוח
+    const viteEnv = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env)
+      ? import.meta.env.VITE_API_BASE_URL
+      : undefined;
+
+    if (viteEnv && typeof viteEnv === 'string' && viteEnv.length > 0) {
+      this.baseURL = viteEnv.replace(/\/$/, '');
+    } else if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      this.baseURL = `${window.location.origin}/api`;
+    } else {
+      this.baseURL = 'http://localhost:10000/api';
+    }
     
     this.cache = new Map();
     this.requestQueue = new Map();
