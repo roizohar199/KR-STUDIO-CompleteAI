@@ -8,11 +8,18 @@ const getApiBaseUrl = () => {
     return viteEnv.replace(/\/$/, '');
   }
 
+  // אם אין משתנה סביבה, נשתמש בכתובת Render.com
   if (typeof window !== 'undefined' && window.location && window.location.origin) {
-    return `${window.location.origin}/api`;
+    // בדיקה אם אנחנו על localhost
+    if (window.location.origin.includes('localhost')) {
+      return 'http://localhost:10000/api';
+    }
+    // אם לא, נשתמש ב-Render.com
+    return 'https://kr-studio-completeai.onrender.com/api';
   }
 
-  return 'http://localhost:10000/api';
+  // ברירת מחדל - Render.com
+  return 'https://kr-studio-completeai.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

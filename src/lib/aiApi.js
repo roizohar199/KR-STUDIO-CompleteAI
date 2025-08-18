@@ -1,16 +1,8 @@
 // API client משופר עם caching ו-optimization
 class AIClient {
   constructor() {
-    // קדימות: VITE_API_BASE_URL → אותו דומיין עם /api → localhost לפיתוח
-    const viteEnv = import.meta.env.VITE_API_BASE_URL;
-
-    if (viteEnv && typeof viteEnv === 'string' && viteEnv.length > 0) {
-      this.baseURL = viteEnv.replace(/\/$/, '');
-    } else if (typeof window !== 'undefined' && window.location && window.location.origin) {
-      this.baseURL = `${window.location.origin}/api`;
-    } else {
-      this.baseURL = 'http://localhost:10000/api';
-    }
+    // OpenAI API Base URL - לא שרת שלנו
+    this.baseURL = 'https://api.openai.com/v1';
     
     this.cache = new Map();
     this.requestQueue = new Map();
