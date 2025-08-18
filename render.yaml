@@ -1,10 +1,12 @@
 services:
   - type: web
     name: kr-studio-completeai
-    env: node
+    env: python3
+    pythonVersion: "3.9"
+    buildpack: https://github.com/heroku/heroku-buildpack-python.git
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: pip3 install -r requirements.txt && npm ci --prefer-offline && npm run build
+    startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -13,10 +15,12 @@ services:
         value: 10000
       - key: WORKER_URL
         value: https://kr-studio-worker.onrender.com/api/worker
+      - key: PYTHONPATH
+        value: /opt/render/project
     disk:
       name: audio-storage
-      mountPath: /opt/render/project/src
+      mountPath: /opt/render/project
       sizeGB: 1
     autoDeploy: true
     branch: main
-    repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI
+    repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
