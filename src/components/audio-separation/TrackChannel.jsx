@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Volume2, VolumeX, Download, Music, Mic, Drum, Guitar, Volume1 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Download, Music, Mic, Volume1, Music2, Music3 } from 'lucide-react';
 
 export default function TrackChannel({ 
   trackId, 
@@ -17,11 +17,11 @@ export default function TrackChannel({
       case 'vocals':
         return <Mic className="w-5 h-5 text-blue-400" />;
       case 'drums':
-        return <Drum className="w-5 h-5 text-green-400" />;
+        return <Music2 className="w-5 h-5 text-green-400" />;
       case 'bass':
         return <Volume1 className="w-5 h-5 text-purple-400" />;
       case 'guitar':
-        return <Guitar className="w-5 h-5 text-orange-400" />;
+        return <Music3 className="w-5 h-5 text-orange-400" />;
       case 'other':
         return <Music className="w-5 h-5 text-gray-400" />;
       default:
