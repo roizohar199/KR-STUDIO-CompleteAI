@@ -1,0 +1,23 @@
+[33mcommit b49bfc030fc6fe905e516b20056f1296eca78500[m
+Author: roizohar199 <roizohar111@gmail.com>
+Date:   Mon Aug 18 08:36:23 2025 +0300
+
+    Deploy to Render
+
+[33mcommit b6d3ba0730d8a00ac4ff4b376e8451c9c556a607[m
+Author: roizohar199 <roizohar111@gmail.com>
+Date:   Mon Aug 11 09:31:30 2025 +0300
+
+    הכנה לפריסה: עדכון ארכיטקטורת Worker ו-Render deployment
+
+[33mcommit aa13585b9996f4fe69cf22d8f05781b1ae37c6eb[m
+Author: roizohar199 <roizohar111@gmail.com>
+Date:   Thu Aug 7 12:16:49 2025 +0300
+
+    Create Demucs-Worker.js
+
+[33mcommit cde5aa2e1e64422e57cf429715d0ce8776e35914[m
+Author: roizohar199 <roizohar111@gmail.com>
+Date:   Thu Aug 7 09:48:22 2025 +0300
+
+    Memory optimization: Reduce RAM usage for audio separation on Render5
