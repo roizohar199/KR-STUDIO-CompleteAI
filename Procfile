@@ -1,2 +1,2 @@
 web: node server.js
-worker: node server/demucs-node-worker.js
+worker: node demucs-server-worker.js

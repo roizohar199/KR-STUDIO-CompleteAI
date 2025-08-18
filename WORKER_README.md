@@ -1,63 +1,133 @@
-# Demucs Worker System
+# Demucs Server Worker - תיעוד
 
-## תיאור
-מערכת עובדים (Workers) לעיבוד אודיו באמצעות Demucs, המשתמשת ב-Node.js worker_threads.
+## סקירה כללית
 
-## הפעלה
+`demucs-server-worker.js` הוא Worker אמיתי לצד-שרת שמשתמש ב-`worker_threads` של Node.js לעיבוד Demucs במקביל.
 
-### הפעלה מקומית
+## איך זה עובד
+
+### 1. Main Thread
+- מנהל את ה-Worker Pool
+- מקבל משימות ועומד בתור
+- מפזר משימות ל-workers זמינים
+- עוקב אחר סטטוס ה-workers
+
+### 2. Worker Threads
+- כל worker רץ בתהליך נפרד
+- מפעיל Demucs עם Python
+- מעבד קובץ אודיו אחד בכל פעם
+- מחזיר תוצאות ל-main thread
+
+## שימוש
+
+### הפעלה ישירה
 ```bash
-npm run worker
+node demucs-server-worker.js
 ```
 
-### הפעלה עם nodemon (פיתוח)
+### הפעלה עם npm scripts
 ```bash
-npm run worker:dev
+npm run worker          # הפעלה רגילה
+npm run worker:dev      # הפעלה עם nodemon
+npm run worker:start    # הפעלה לפרודקשן
+npm run worker:test     # הפעלה לבדיקות
 ```
 
-### הפעלה ברנדר
-המערכת מוגדרת לרוץ אוטומטית כ-Background Worker ברנדר.
-
-## מבנה המערכת
-
-### DemucsWorkerManager
-- מנהל את תור המשימות
-- מקצה עובדים לעיבוד
-- מנטר את הסטטוס
-
-### Worker Threads
-- מבצעים את העבודה בפועל
-- עיבוד אודיו עם Demucs
-- החזרת תוצאות
-
-## הגדרות
-כל ההגדרות נמצאות ב-`worker-config.js`:
-- מספר מקסימלי של עובדים
-- זמן המתנה למשימות
-- פורמטים נתמכים
-- רמות עדיפות
-
-## שימוש בקוד
+### שימוש כמודול
 ```javascript
-import workerManager from './server/demucs-node-worker.js';
+const workerManager = require('./demucs-server-worker.js');
 
 // הוספת משימה
 await workerManager.addTask({
-    type: 'audio_separation',
-    inputFile: 'audio.mp3',
-    outputDir: './output'
+    fileId: 'file123',
+    inputPath: '/path/to/audio.mp3',
+    outputDir: '/path/to/output',
+    projectName: 'My Project'
 });
 
 // בדיקת סטטוס
-const status = workerManager.getQueueStatus();
+const status = workerManager.getStatus();
+console.log(status);
 ```
 
-## לוגים
-המערכת מפיקה לוגים מפורטים לכל הפעולות:
-- הוספת משימות
-- התחלת עיבוד
-- השלמת משימות
-- שגיאות
+## הגדרות סביבה
 
-## תמיכה
-לשאלות ותמיכה, פנה לצוות הפיתוח.
+| משתנה | ברירת מחדל | תיאור |
+|--------|-------------|--------|
+| `MAX_WORKERS` | 2 | מספר מקסימלי של workers |
+| `TASK_TIMEOUT` | 900000 | timeout למשימה (15 דקות) |
+| `LOG_LEVEL` | 'info' | רמת לוגים |
+
+## תכונות
+
+✅ **עיבוד מקביל** - מספר קבצים במקביל  
+✅ **ניהול תורים** - משימות לא הולכות לאיבוד  
+✅ **ניטור בריאות** - מעקב אחר זיכרון ו-CPU  
+✅ **טיפול בשגיאות** - retry אוטומטי  
+✅ **Graceful shutdown** - כיבוי מסודר  
+
+## ארכיטקטורה
+
+```
+Main Thread (Worker Manager)
+├── Task Queue
+├── Worker Pool
+│   ├── Worker 1 (Demucs Process 1)
+│   ├── Worker 2 (Demucs Process 2)
+│   └── ...
+└── Health Monitor
+```
+
+## דרישות מערכת
+
+- Node.js 18+
+- Python 3.8+
+- Demucs מותקן
+- זיכרון: 2GB+ לכל worker
+- מעבד: 2 cores+ לכל worker
+
+## פתרון בעיות
+
+### Worker לא מתחיל
+1. בדוק ש-Python מותקן
+2. בדוק ש-Demucs מותקן
+3. בדוק הרשאות לקבצים
+
+### Worker קורס
+1. בדוק זיכרון פנוי
+2. בדוק גודל קובץ (מקסימום 100MB)
+3. בדוק לוגים לשגיאות
+
+### ביצועים איטיים
+1. הגדל `MAX_WORKERS`
+2. בדוק זיכרון פנוי
+3. בדוק עומס על המערכת
+
+## דוגמאות
+
+### הוספת משימה עם עדיפות גבוהה
+```javascript
+await workerManager.addTask({
+    fileId: 'urgent123',
+    inputPath: '/urgent/audio.mp3',
+    outputDir: '/output/urgent',
+    projectName: 'Urgent Project',
+    priority: 'high'
+});
+```
+
+### ניטור בזמן אמת
+```javascript
+setInterval(() => {
+    const status = workerManager.getStatus();
+    console.log('📊 סטטוס:', status);
+}, 5000);
+```
+
+### כיבוי מסודר
+```javascript
+process.on('SIGINT', async () => {
+    await workerManager.shutdown();
+    process.exit(0);
+});
+```

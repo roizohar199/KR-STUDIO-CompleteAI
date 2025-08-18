@@ -12,8 +12,8 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: WORKER_URL
-        value: https://kr-studio-worker.onrender.com/api/worker
+      - key: WORKER_MODE
+        value: false
     disk:
       name: audio-storage
       mountPath: /opt/render/project
@@ -22,24 +22,22 @@ services:
     branch: main
     repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
 
-  # Background Worker - התור/העיבוד של Demucs
+  # Background Worker - Demucs Worker Manager
   - type: background
-    name: demucs-worker
+    name: demucs-worker-manager
     env: node
     plan: free
     buildCommand: npm ci --prefer-offline && pip install -r requirements.txt
-    startCommand: node demucs-node-worker.js
+    startCommand: node demucs-server-worker.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: WORKER_MODE
         value: true
       - key: MAX_WORKERS
-        value: "4"
+        value: "2"
       - key: TASK_TIMEOUT
-        value: "300000"
-      - key: WORKER_SERVICE
-        value: "demucs"
+        value: "900000"
     autoDeploy: true
     branch: main
     repo: https://github.com/roizohar199/KR-STUDIO-CompleteAI.git
