@@ -39,7 +39,7 @@ npm run worker:dev
 
 ## שימוש בקוד
 ```javascript
-const workerManager = require('./server/demucs-node-worker.js');
+import workerManager from './server/demucs-node-worker.js';
 
 // הוספת משימה
 await workerManager.addTask({

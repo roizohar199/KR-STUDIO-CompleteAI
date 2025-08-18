@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     // הגדרות כלליות
     maxWorkers: 4,
     taskTimeout: 300000, // 5 minutes
