@@ -12,7 +12,12 @@ import {
   FileText,
   Headphones,
   Shield,
-  Split
+  Split,
+  Settings,
+  Download,
+  Edit3,
+  ShieldCheck,
+  Circle
 } from 'lucide-react';
 import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
@@ -20,13 +25,63 @@ import LanguageSelector from './LanguageSelector';
 
 const Sidebar = ({ activePage, onPageChange }) => {
   const handleMenuClick = (item) => {
-    if (item.external) {
-      // פתיחה בחלון חדש
-      window.open('https://mixifyai.k-rstudio.com', '_blank');
-    } else {
-      onPageChange(item.id);
+    console.log(`🖱️ [Sidebar] לחיצה על תפריט: ${item.key}`);
+    console.log(`🖱️ [Sidebar] דף נוכחי: ${activePage}`);
+    console.log(`🖱️ [Sidebar] עובר לדף: ${item.key}`);
+    
+    try {
+      onPageChange(item.key);
+      console.log(`✅ [Sidebar] ניווט הצליח: ${activePage} → ${item.key}`);
+    } catch (error) {
+      console.error(`❌ [Sidebar] שגיאה בניווט:`, error);
+      console.error(`❌ [Sidebar] פרטי השגיאה:`, {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
     }
   };
+
+  const getMenuIcon = (item) => {
+    console.log(`🎨 [Sidebar] מחפש אייקון עבור: ${item.key}`);
+    
+    switch (item.key) {
+      case 'dashboard':
+        console.log(`🎨 [Sidebar] אייקון Dashboard: Home`);
+        return <Home className="w-5 h-5" />;
+      case 'audio-separation':
+        console.log(`🎨 [Sidebar] אייקון AudioSeparation: Mic`);
+        return <Mic className="w-5 h-5" />;
+      case 'productionRecommendations':
+        console.log(`🎨 [Sidebar] אייקון ProductionRecommendations: Settings`);
+        return <Settings className="w-5 h-5" />;
+      case 'export':
+        console.log(`🎨 [Sidebar] אייקון Export: Download`);
+        return <Download className="w-5 h-5" />;
+      case 'credits':
+        console.log(`🎨 [Sidebar] אייקון Credits: FileText`);
+        return <FileText className="w-5 h-5" />;
+      case 'sessions':
+        console.log(`🎨 [Sidebar] אייקון Sessions: Users`);
+        return <Users className="w-5 h-5" />;
+      case 'sketches':
+        console.log(`🎨 [Sidebar] אייקון Sketches: Edit3`);
+        return <Edit3 className="w-5 h-5" />;
+      case 'verification':
+        console.log(`🎨 [Sidebar] אייקון Verification: ShieldCheck`);
+        return <ShieldCheck className="w-5 h-5" />;
+      default:
+        console.log(`🎨 [Sidebar] אייקון ברירת מחדל עבור: ${item.key}`);
+        return <Circle className="w-5 h-5" />;
+    }
+  };
+
+  const isActive = (itemKey) => {
+    const active = activePage === itemKey;
+    console.log(`🔍 [Sidebar] בדיקת פעילות: ${itemKey} = ${active}`);
+    return active;
+  };
+
   const { language } = useContext(LanguageContext);
   const t = useTranslation();
   const menuItems = [

@@ -2,6 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Music, FileAudio, Zap, CheckCircle, AlertCircle, Clock, Download, Settings, RefreshCw, X } from "lucide-react";
 
 export default function ProcessingStatus({ step, progress, error, fileName, onRetry, onCancel }) {
+  console.log(`📊 [ProcessingStatus] רכיב נטען עם:`, {
+    step,
+    progress,
+    error: error?.message,
+    fileName
+  });
+
   const [elapsedTime, setElapsedTime] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(null);
 
@@ -25,85 +32,133 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
   }, [progress, elapsedTime]);
 
   const formatTime = (seconds) => {
-    if (seconds < 60) return `${seconds}s`;
+    if (!seconds || seconds < 0) return '00:00';
+    
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    const remainingSeconds = Math.floor(seconds % 60);
+    const result = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    
+    console.log(`⏰ [ProcessingStatus] זמן מעוצב: ${seconds}s = ${result}`);
+    return result;
   };
 
   const getStepIcon = (step) => {
+    console.log(`🎨 [ProcessingStatus] מחפש אייקון עבור שלב: ${step}`);
+    
     switch (step) {
       case 'uploading':
-        return <Download className="w-8 h-8 text-blue-400" />;
-      case 'processing':
-        return <Settings className="w-8 h-8 text-purple-400" />;
+        console.log(`🎨 [ProcessingStatus] אייקון Uploading: Upload`);
+        return <Upload className="w-8 h-8 text-blue-400" />;
       case 'separating':
-        return <Zap className="w-8 h-8 text-green-400" />;
+        console.log(`🎨 [ProcessingStatus] אייקון Separating: Split`);
+        return <Split className="w-8 h-8 text-purple-400" />;
+      case 'monitoring':
+        console.log(`🎨 [ProcessingStatus] אייקון Monitoring: Eye`);
+        return <Eye className="w-8 h-8 text-green-400" />;
       case 'completed':
+        console.log(`🎨 [ProcessingStatus] אייקון Completed: CheckCircle`);
         return <CheckCircle className="w-8 h-8 text-green-400" />;
-      case 'loading-project':
-        return <RefreshCw className="w-8 h-8 text-blue-400 animate-spin" />;
       case 'error':
-        return <AlertCircle className="w-8 h-8 text-red-400" />;
+        console.log(`🎨 [ProcessingStatus] אייקון Error: XCircle`);
+        return <XCircle className="w-8 h-8 text-red-400" />;
       default:
-        return <Music className="w-8 h-8 text-purple-400" />;
+        console.log(`🎨 [ProcessingStatus] אייקון ברירת מחדל עבור: ${step}`);
+        return <Circle className="w-8 h-8 text-purple-400" />;
     }
   };
 
   const getStepColor = (step) => {
+    console.log(`🎨 [ProcessingStatus] מחפש צבע עבור שלב: ${step}`);
+    
     switch (step) {
       case 'uploading':
+        console.log(`🎨 [ProcessingStatus] צבע Uploading: from-blue-500 to-blue-600`);
         return 'from-blue-500 to-blue-600';
-      case 'processing':
-        return 'from-purple-500 to-purple-600';
       case 'separating':
+        console.log(`🎨 [ProcessingStatus] צבע Separating: from-purple-500 to-purple-600`);
+        return 'from-purple-500 to-purple-600';
+      case 'monitoring':
+        console.log(`🎨 [ProcessingStatus] צבע Monitoring: from-green-500 to-green-600`);
         return 'from-green-500 to-green-600';
       case 'completed':
+        console.log(`🎨 [ProcessingStatus] צבע Completed: from-green-500 to-green-600`);
         return 'from-green-500 to-green-600';
-      case 'loading-project':
-        return 'from-blue-500 to-blue-600';
       case 'error':
+        console.log(`🎨 [ProcessingStatus] צבע Error: from-red-500 to-red-600`);
         return 'from-red-500 to-red-600';
       default:
+        console.log(`🎨 [ProcessingStatus] צבע ברירת מחדל עבור: ${step}`);
         return 'from-purple-500 to-purple-600';
     }
   };
 
   const getStepText = (step) => {
+    console.log(`📝 [ProcessingStatus] מחפש טקסט עבור שלב: ${step}`);
+    
     switch (step) {
       case 'uploading':
+        console.log(`📝 [ProcessingStatus] טקסט Uploading: מעלה קובץ...`);
         return 'מעלה קובץ...';
-      case 'processing':
-        return 'מנתח אודיו...';
       case 'separating':
+        console.log(`📝 [ProcessingStatus] טקסט Separating: מפריד ערוצים...`);
         return 'מפריד ערוצים...';
+      case 'monitoring':
+        console.log(`📝 [ProcessingStatus] טקסט Monitoring: עוקב אחר התקדמות...`);
+        return 'עוקב אחר התקדמות...';
       case 'completed':
+        console.log(`📝 [ProcessingStatus] טקסט Completed: הושלם בהצלחה!`);
         return 'הושלם בהצלחה!';
-      case 'loading-project':
-        return 'טוען פרויקט...';
       case 'error':
+        console.log(`📝 [ProcessingStatus] טקסט Error: שגיאה בעיבוד`);
         return 'שגיאה בעיבוד';
       default:
+        console.log(`📝 [ProcessingStatus] טקסט ברירת מחדל עבור: ${step}`);
         return 'מעבד...';
     }
   };
 
   const getStepDescription = (step) => {
+    console.log(`📄 [ProcessingStatus] מחפש תיאור עבור שלב: ${step}`);
+    
     switch (step) {
       case 'uploading':
-        return `מעלה את הקובץ "${fileName}" לשרת`;
-      case 'processing':
-        return 'מנתח את האודיו ומכין לעיבוד מתקדם';
+        console.log(`📄 [ProcessingStatus] תיאור Uploading: מעלה את הקובץ לשרת...`);
+        return 'מעלה את הקובץ לשרת...';
       case 'separating':
-        return 'מפריד את האודיו ל-5 ערוצים נפרדים (ווקאל, בס, תופים, כלי נגינה, אחר)';
+        console.log(`📄 [ProcessingStatus] תיאור Separating: מפריד את האודיו לערוצים נפרדים...`);
+        return 'מפריד את האודיו לערוצים נפרדים...';
+      case 'monitoring':
+        console.log(`📄 [ProcessingStatus] תיאור Monitoring: עוקב אחר התקדמות ההפרדה...`);
+        return 'עוקב אחר התקדמות ההפרדה...';
       case 'completed':
-        return 'האודיו הופרד בהצלחה! אתה יכול להוריד את הערוצים';
-      case 'loading-project':
-        return 'ההפרדה הושלמה! טוען את הפרויקט המוכן עם כל הערוצים...';
+        console.log(`📄 [ProcessingStatus] תיאור Completed: ההפרדה הושלמה בהצלחה!`);
+        return 'ההפרדה הושלמה בהצלחה!';
       case 'error':
+        console.log(`📄 [ProcessingStatus] תיאור Error: אירעה שגיאה בעיבוד הקובץ`);
         return 'אירעה שגיאה בעיבוד הקובץ';
       default:
-        return 'מעבד את האודיו שלך';
+        console.log(`📄 [ProcessingStatus] תיאור ברירת מחדל עבור: ${step}`);
+        return 'מעבד את הקובץ...';
+    }
+  };
+
+  const handleRetry = () => {
+    console.log(`🔄 [ProcessingStatus] כפתור Retry נלחץ`);
+    try {
+      onRetry?.();
+      console.log(`✅ [ProcessingStatus] Retry הופעל בהצלחה`);
+    } catch (error) {
+      console.error(`❌ [ProcessingStatus] שגיאה ב-Retry:`, error);
+    }
+  };
+
+  const handleCancel = () => {
+    console.log(`❌ [ProcessingStatus] כפתור Cancel נלחץ`);
+    try {
+      onCancel?.();
+      console.log(`✅ [ProcessingStatus] Cancel הופעל בהצלחה`);
+    } catch (error) {
+      console.error(`❌ [ProcessingStatus] שגיאה ב-Cancel:`, error);
     }
   };
 
@@ -123,7 +178,7 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
         
         {onCancel && (
           <button
-            onClick={onCancel}
+            onClick={handleCancel}
             className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
             title="בטל תהליך"
           >
@@ -193,7 +248,7 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
       {error && onRetry && (
         <div className="flex items-center justify-center space-x-4">
           <button
-            onClick={onRetry}
+            onClick={handleRetry}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
           >
             <RefreshCw className="w-4 h-4" />
@@ -206,7 +261,7 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
       {step === 'loading-project' && onRetry && (
         <div className="flex items-center justify-center space-x-4">
           <button
-            onClick={onRetry}
+            onClick={handleRetry}
             className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
           >
             <RefreshCw className="w-4 h-4" />

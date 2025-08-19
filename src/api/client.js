@@ -26,278 +26,293 @@ const API_BASE_URL = getApiBaseUrl();
 
 // Helper function for API calls with improved error handling
 const apiCall = async (endpoint, options = {}) => {
+  const url = `${getApiBaseUrl()}${endpoint}`;
+  console.log(`🌐 [API] שולח בקשה ל: ${url}`);
+  console.log(`🌐 [API] שיטת בקשה: ${options.method || 'GET'}`);
+  console.log(`🌐 [API] כותרות:`, options.headers);
+  console.log(`🌐 [API] גוף הבקשה:`, options.body);
+  
   try {
-    console.log('[API] קריאה לשרת:', endpoint);
-    const url = `${API_BASE_URL}${endpoint}`;
-    
-    const fetchOptions = {
+    const startTime = performance.now();
+    const response = await fetch(url, {
+      ...options,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      ...options,
-          // אופטימיזציה: timeout קצר יותר לביצועים טובים יותר
-    signal: AbortSignal.timeout(30000), // 30 שניות במקום 3 דקות
-    };
+    });
+    const responseTime = performance.now() - startTime;
     
-    const response = await fetch(url, fetchOptions);
+    console.log(`🌐 [API] תשובה התקבלה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`🌐 [API] סטטוס תשובה: ${response.status} ${response.statusText}`);
+    console.log(`🌐 [API] כותרות תשובה:`, Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Network error' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      console.error(`❌ [API] שגיאה בתשובה: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ [API] תוכן שגיאה:`, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log(`🌐 [API] נתוני תשובה:`, data);
     
     // בדיקה אם התשובה כוללת שדה success
     if (data && typeof data.success === 'boolean') {
       if (!data.success) {
+        console.error(`❌ [API] תשובה נכשלה:`, data.error || 'הבקשה נכשלה');
         throw new Error(data.error || 'הבקשה נכשלה');
       }
+      console.log(`✅ [API] תשובה הצליחה`);
     }
     
     return data;
-  } catch (err) {
-    // טיפול בשגיאות ספציפיות
-    if (err.name === 'AbortError') {
-      throw new Error('הבקשה נכשלה - timeout');
-    }
-    if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-      throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
-    }
-    
-    throw err;
+  } catch (error) {
+    console.error(`❌ [API] שגיאה בבקשה ל-${url}:`, error);
+    console.error(`❌ [API] פרטי השגיאה:`, {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    throw error;
   }
 };
 
 // Upload audio file with progress tracking
 export const uploadAudio = async (file, onProgress = null, abortController = null) => {
+  console.log(`📤 [API] מתחיל העלאת קובץ: ${file.name}`);
+  console.log(`📤 [API] גודל קובץ: ${file.size} bytes`);
+  console.log(`📤 [API] סוג קובץ: ${file.type}`);
+  
   try {
-    console.log('📤 התחלת העלאה:', file.name, `(${Math.round(file.size / 1024 / 1024)}MB)`);
-    
-    // בדיקת גודל הקובץ
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      throw new Error(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 50MB`);
-    }
-    
     const formData = new FormData();
     formData.append('audio', file);
-
-    // שימוש ב-XMLHttpRequest לתמיכה בהתקדמות
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      
-      // הגדרת timeout
-      xhr.timeout = 900000; // 15 דקות
-      
-      // מעקב אחר התקדמות
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable && onProgress) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          onProgress(percentComplete);
-        }
-      });
-      
-      // טיפול בתשובה
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const result = JSON.parse(xhr.responseText);
-            console.log('✅ קובץ הועלה בהצלחה!');
-            resolve(result);
-          } catch (parseError) {
-            reject(new Error('תשובה לא תקינה מהשרת'));
-          }
-        } else {
-          try {
-            const error = JSON.parse(xhr.responseText);
-            reject(new Error(error.error || `HTTP ${xhr.status}`));
-          } catch {
-            reject(new Error(`HTTP ${xhr.status}`));
-          }
-        }
-      });
-      
-      // טיפול בשגיאות
-      xhr.addEventListener('error', () => {
-        reject(new Error('שגיאת רשת - בדוק את החיבור לאינטרנט'));
-      });
-      
-      xhr.addEventListener('timeout', () => {
-        reject(new Error('העלאה נכשלה - timeout (15 דקות). נסה שוב או בדוק את החיבור לאינטרנט'));
-      });
-      
-      xhr.addEventListener('abort', () => {
-        reject(new Error('העלאה בוטלה'));
-      });
-      
-      // שליחת הבקשה
-      xhr.open('POST', `${API_BASE_URL}/upload`);
-      xhr.setRequestHeader('Accept', 'application/json');
-      xhr.send(formData);
-      
-      // אם יש AbortController, שמור את ה-XHR כדי שנוכל לבטל
-      if (abortController) {
-        abortController.signal.addEventListener('abort', () => {
-          xhr.abort();
-        });
-      }
-    });
     
+    console.log(`📤 [API] FormData נוצר עם ${formData.entries().length} שדות`);
+    
+    const startTime = performance.now();
+    const response = await fetch(`${getApiBaseUrl()}/api/upload`, {
+      method: 'POST',
+      body: formData,
+      signal: abortController?.signal,
+    });
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`📤 [API] העלאה הושלמה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`📤 [API] סטטוס תשובה: ${response.status} ${response.statusText}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ [API] שגיאה בהעלאה: ${response.status} ${response.statusText}`);
+      console.error(`❌ [API] תוכן שגיאה:`, errorText);
+      throw new Error(`העלאה נכשלה: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log(`📤 [API] תוצאת העלאה:`, data);
+    
+    if (data && data.fileId) {
+      console.log(`✅ [API] קובץ הועלה בהצלחה, ID: ${data.fileId}`);
+    } else {
+      console.error(`❌ [API] לא התקבל fileId מהשרת`);
+      throw new Error('לא התקבל מזהה קובץ מהשרת');
+    }
+    
+    return data;
   } catch (error) {
-    console.error('❌ שגיאה בהעלאה:', error.message);
+    console.error(`❌ [API] שגיאה בהעלאת קובץ ${file.name}:`, error);
     throw error;
   }
 };
 
 // Separate audio with Demucs
 export const separateAudio = async (fileId, projectName) => {
+  console.log(`🎵 [API] מתחיל הפרדת אודיו: fileId=${fileId}, projectName=${projectName}`);
+  
   try {
-    console.log('🎵 התחלת הפרדה:', projectName);
-    
-    const requestBody = { fileId, projectName };
-    
-    const result = await apiCall('/separate', {
+    const startTime = performance.now();
+    const data = await apiCall('/api/separate', {
       method: 'POST',
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({ fileId, projectName }),
     });
+    const responseTime = performance.now() - startTime;
     
-    console.log('✅ הפרדה החלה בהצלחה!');
-    return result;
+    console.log(`🎵 [API] הפרדה הושלמה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`🎵 [API] תוצאת הפרדה:`, data);
+    
+    return data;
   } catch (error) {
-    console.error('❌ שגיאה בהפרדה:', error.message);
+    console.error(`❌ [API] שגיאה בהפרדת אודיו:`, error);
     throw error;
   }
 };
 
 // Get separation progress with polling
 export const getSeparationProgress = async (fileId) => {
+  console.log(`📊 [API] בודק התקדמות הפרדה: fileId=${fileId}`);
+  
   try {
-    const result = await apiCall(`/separate/${fileId}/progress`);
-    return result;
+    const startTime = performance.now();
+    const data = await apiCall(`/api/separate/${fileId}/progress`);
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`📊 [API] התקדמות התקבלה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`📊 [API] נתוני התקדמות:`, data);
+    
+    return data;
   } catch (error) {
-    console.error('❌ שגיאה בקבלת התקדמות:', error.message);
+    console.error(`❌ [API] שגיאה בבדיקת התקדמות:`, error);
     throw error;
   }
 };
 
 // Get all projects
 export const getProjects = async () => {
+  console.log(`📁 [API] טוען רשימת פרויקטים`);
+  
   try {
-    const projects = await apiCall('/projects');
-    return projects;
+    const startTime = performance.now();
+    const data = await apiCall('/api/projects');
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`📁 [API] פרויקטים נטענו ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`📁 [API] מספר פרויקטים: ${Array.isArray(data) ? data.length : 'לא מערך'}`);
+    
+    return data;
   } catch (error) {
-    console.error('❌ שגיאה בקבלת פרויקטים:', error.message);
-    return [];
+    console.error(`❌ [API] שגיאה בטעינת פרויקטים:`, error);
+    throw error;
   }
 };
 
 // Get specific project
 export const getProject = async (id) => {
+  console.log(`📁 [API] טוען פרויקט: id=${id}`);
+  
   try {
-    const result = await apiCall(`/projects/${id}`);
-    return result.project || result;
+    const startTime = performance.now();
+    const data = await apiCall(`/api/projects/${id}`);
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`📁 [API] פרויקט נטען ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`📁 [API] פרטי פרויקט:`, data);
+    
+    return data;
   } catch (error) {
-    console.error('❌ שגיאה בקבלת פרויקט:', error.message);
-    return null;
+    console.error(`❌ [API] שגיאה בטעינת פרויקט ${id}:`, error);
+    throw error;
   }
 };
 
 // Delete project
 export const deleteProject = async (id) => {
+  console.log(`🗑️ [API] מוחק פרויקט: id=${id}`);
+  
   try {
-    const result = await apiCall(`/projects/${id}`, {
+    const startTime = performance.now();
+    const data = await apiCall(`/api/projects/${id}`, {
       method: 'DELETE',
     });
-    return result;
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`🗑️ [API] פרויקט נמחק ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`🗑️ [API] תוצאת מחיקה:`, data);
+    
+    return data;
   } catch (error) {
-    console.error('❌ שגיאה במחיקת פרויקט:', error.message);
+    console.error(`❌ [API] שגיאה במחיקת פרויקט ${id}:`, error);
     throw error;
   }
 };
 
 // Download stem
 export const downloadStem = async (projectId, stemName) => {
+  console.log(`⬇️ [API] מוריד stem: projectId=${projectId}, stemName=${stemName}`);
+  
   try {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/download/${stemName}`);
+    const startTime = performance.now();
+    const response = await fetch(`${getApiBaseUrl()}/api/projects/${projectId}/download/${stemName}`);
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`⬇️ [API] הורדה הושלמה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`⬇️ [API] סטטוס הורדה: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorText = await response.text();
+      console.error(`❌ [API] שגיאה בהורדה: ${response.status} ${response.statusText}`);
+      console.error(`❌ [API] תוכן שגיאה:`, errorText);
+      throw new Error(`הורדה נכשלה: ${response.status} ${response.statusText}`);
     }
     
     const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${stemName}.mp3`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    console.log(`✅ [API] stem הורד בהצלחה, גודל: ${blob.size} bytes`);
     
-    console.log('✅ Stem הורד בהצלחה:', stemName);
+    return blob;
   } catch (error) {
-    console.error('❌ שגיאה בהורדת stem:', error.message);
+    console.error(`❌ [API] שגיאה בהורדת stem:`, error);
     throw error;
   }
 };
 
 // Health check
 export const healthCheck = async () => {
+  console.log(`🏥 [API] בודק בריאות שרת`);
+  
   try {
-    // שים לב: ה-API_BASE_URL כבר כולל /api, לכן נקרא רק /health כדי להימנע מ-/api/api/health
-    const result = await apiCall('/health');
-    return result;
+    const startTime = performance.now();
+    const data = await apiCall('/api/health');
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`🏥 [API] בדיקת בריאות הושלמה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`🏥 [API] סטטוס שרת:`, data);
+    
+    return data;
   } catch (error) {
-    console.error('❌ שרת לא זמין:', error.message);
-    
-    // טיפול בשגיאות ספציפיות
-    if (error.message.includes('Failed to fetch')) {
-      throw new Error('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
-    }
-    if (error.message.includes('timeout')) {
-      throw new Error('השרת לא מגיב - נסה שוב מאוחר יותר');
-    }
-    if (error.message.includes('502')) {
-      throw new Error('השרת זמנית לא זמין - נסה שוב בעוד כמה דקות');
-    }
-    
-    throw new Error(`שגיאה בחיבור לשרת: ${error.message}`);
+    console.error(`❌ [API] שגיאה בבדיקת בריאות:`, error);
+    throw error;
   }
 };
 
 // Quick connection test - מהיר יותר
 export const quickConnectionTest = async () => {
+  console.log(`⚡ [API] בדיקת חיבור מהירה`);
+  
   try {
-    const result = await apiCall('/quick-test');
-    return result;
+    const startTime = performance.now();
+    const data = await apiCall('/api/health');
+    const responseTime = performance.now() - startTime;
+    
+    console.log(`⚡ [API] בדיקת חיבור מהירה הושלמה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`⚡ [API] תוצאת בדיקה:`, data);
+    
+    return { success: true, responseTime, data };
   } catch (error) {
-    console.error('❌ בדיקה מהירה נכשלה:', error.message);
-    throw error;
+    console.error(`❌ [API] שגיאה בבדיקת חיבור מהירה:`, error);
+    return { success: false, error: error.message };
   }
 };
 
 // בדיקה נוספת של חיבור לשרת
 export const testServerConnection = async () => {
+  console.log(`🔗 [API] בדיקת חיבור לשרת`);
+  
   try {
-    // בדיקה ראשונית
-    const healthResult = await healthCheck();
+    const startTime = performance.now();
+    const data = await apiCall('/api/health');
+    const responseTime = performance.now() - startTime;
     
-    // בדיקת פרויקטים
-    const projects = await getProjects();
+    console.log(`🔗 [API] בדיקת חיבור הושלמה ב: ${responseTime.toFixed(0)}ms`);
+    console.log(`🔗 [API] תוצאת בדיקה:`, data);
     
-    return {
-      success: true,
-      health: healthResult,
-      projects: projects,
-      message: 'השרת זמין ועובד כראוי'
-    };
+    if (data && data.status === 'OK') {
+      console.log(`✅ [API] שרת מחובר ופעיל`);
+      return true;
+    } else {
+      console.log(`❌ [API] שרת לא מגיב כראוי`);
+      return false;
+    }
   } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      message: 'השרת לא זמין או לא מגיב'
-    };
+    console.error(`❌ [API] שגיאה בבדיקת חיבור לשרת:`, error);
+    return false;
   }
 }; 

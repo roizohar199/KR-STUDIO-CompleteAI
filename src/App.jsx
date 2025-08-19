@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, Suspense, lazy } from 'react';
+import React, { useState, createContext, useContext, Suspense, lazy, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import LanguageSelector from './components/LanguageSelector';
@@ -52,45 +52,111 @@ function App() {
 
   // טעינה דינמית של רכיבים
   const loadComponent = async (componentName) => {
-    if (loadedComponents.has(componentName)) {
-      return loadedComponents.get(componentName);
-    }
-
+    console.log(`🔄 [App] מתחיל טעינת קומפוננטה: ${componentName}`);
+    setLoading(true);
+    setError(null);
+    
     try {
-      const Component = await dynamicLoader.loadComponent(componentName);
-      setLoadedComponents(prev => new Map(prev).set(componentName, Component));
+      console.log(`🔍 [App] מחפש קומפוננטה: ${componentName}`);
+      let Component;
+      
+      switch (componentName) {
+        case 'dashboard':
+          console.log(`📁 [App] טוען Dashboard...`);
+          Component = (await import('./components/Dashboard')).default;
+          break;
+        case 'audio-separation':
+          console.log(`📁 [App] טוען AudioSeparation...`);
+          Component = (await import('./components/AudioSeparation')).default;
+          break;
+        case 'production-recommendations':
+          console.log(`📁 [App] טוען ProductionRecommendations...`);
+          Component = (await import('./components/ProductionRecommendations')).default;
+          break;
+        case 'export-versions':
+          console.log(`📁 [App] טוען ExportVersions...`);
+          Component = (await import('./components/ExportVersions')).default;
+          break;
+        case 'credits-contracts':
+          console.log(`📁 [App] טוען CreditsContracts...`);
+          Component = (await import('./components/CreditsContracts')).default;
+          break;
+        case 'session-management':
+          console.log(`📁 [App] טוען SessionManagement...`);
+          Component = (await import('./components/SessionManagement')).default;
+          break;
+        case 'sketch-creation':
+          console.log(`📁 [App] טוען SketchCreation...`);
+          Component = (await import('./components/SketchCreation')).default;
+          break;
+        case 'user-verification':
+          console.log(`📁 [App] טוען UserVerification...`);
+          Component = (await import('./components/UserVerification')).default;
+          break;
+        case 'performance-monitor':
+          console.log(`📁 [App] טוען PerformanceMonitor...`);
+          Component = (await import('./components/PerformanceMonitor')).default;
+          break;
+        case 'statistics-display':
+          console.log(`📁 [App] טוען StatisticsDisplay...`);
+          Component = (await import('./components/StatisticsDisplay')).default;
+          break;
+        case 'waveform-visualizer':
+          console.log(`📁 [App] טוען WaveformVisualizer...`);
+          Component = (await import('./components/WaveformVisualizer')).default;
+          break;
+        default:
+          console.error(`❌ [App] קומפוננטה לא ידועה: ${componentName}`);
+          throw new Error(`קומפוננטה לא ידועה: ${componentName}`);
+      }
+      
+      console.log(`✅ [App] קומפוננטה ${componentName} נטענה בהצלחה`);
+      setActivePage(componentName);
       return Component;
     } catch (error) {
-      console.error(`שגיאה בטעינת רכיב ${componentName}:`, error);
+      console.error(`❌ [App] שגיאה בטעינת קומפוננטה ${componentName}:`, error);
+      console.error(`❌ [App] פרטי השגיאה:`, {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      setError(`שגיאה בטעינת ${componentName}: ${error.message}`);
       return null;
+    } finally {
+      setLoading(false);
+      console.log(`🔚 [App] סיים טעינת קומפוננטה: ${componentName}`);
     }
   };
 
   // רכיבים שנטענים דינמית
   const DynamicComponent = ({ componentName, fallback = null }) => {
     const [Component, setComponent] = useState(null);
+    const [componentError, setComponentError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
+      console.log(`🔄 [DynamicComponent] מתחיל טעינה דינמית של: ${componentName}`);
+      setIsLoading(true);
+      setComponentError(null);
+      
       const loadComp = async () => {
         try {
-          setIsLoading(true);
-          setError(null);
-          console.log(`🔄 מנסה לטעון רכיב: ${componentName}`);
-          const Comp = await loadComponent(componentName);
-          if (Comp) {
-            console.log(`✅ רכיב ${componentName} נטען בהצלחה`);
-            setComponent(() => Comp);
+          console.log(`🔍 [DynamicComponent] מנסה לטעון: ${componentName}`);
+          const loadedComponent = await loadComponent(componentName);
+          
+          if (loadedComponent) {
+            console.log(`✅ [DynamicComponent] ${componentName} נטען בהצלחה`);
+            setComponent(loadedComponent);
           } else {
-            console.error(`❌ רכיב ${componentName} לא נטען`);
-            setError(`לא ניתן לטעון את הרכיב ${componentName}`);
+            console.error(`❌ [DynamicComponent] ${componentName} לא נטען`);
+            setComponentError(`לא ניתן לטעון ${componentName}`);
           }
-        } catch (err) {
-          console.error(`❌ שגיאה בטעינת רכיב ${componentName}:`, err);
-          setError(err.message);
+        } catch (error) {
+          console.error(`❌ [DynamicComponent] שגיאה בטעינת ${componentName}:`, error);
+          setComponentError(error.message);
         } finally {
           setIsLoading(false);
+          console.log(`🔚 [DynamicComponent] סיים טעינה דינמית של: ${componentName}`);
         }
       };
 
@@ -98,76 +164,82 @@ function App() {
     }, [componentName]);
 
     if (isLoading) {
-      return fallback || <LoadingSpinner />;
+      console.log(`⏳ [DynamicComponent] טוען ${componentName}...`);
+      return <LoadingSpinner />;
     }
 
-    if (error) {
+    if (componentError) {
+      console.error(`❌ [DynamicComponent] שגיאה ב-${componentName}:`, componentError);
       return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-red-500 text-center">
-            <div className="text-2xl mb-4">❌ שגיאה בטעינה</div>
-            <div className="text-lg">{error}</div>
-            <button 
-              onClick={() => {
-                // במקום window.location.reload(), ננסה לטעון מחדש את הקומפוננטה
-                setError(null);
-                setIsLoading(true);
-                loadComp();
-              }}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              נסה שוב
-            </button>
-          </div>
+        <div className="error-boundary">
+          <h2>שגיאה בטעינת {componentName}</h2>
+          <p>{componentError}</p>
+          <button onClick={() => window.location.reload()}>רענן דף</button>
         </div>
       );
     }
 
-    return Component ? <Component /> : null;
+    if (!Component) {
+      console.error(`❌ [DynamicComponent] קומפוננטה ${componentName} לא זמינה`);
+      return fallback || <div>קומפוננטה לא זמינה</div>;
+    }
+
+    console.log(`🎯 [DynamicComponent] מציג ${componentName}`);
+    return <Component onPageChange={setActivePage} />;
   };
 
   // רכיבים שנטענים דינמית
   const renderPage = () => {
+    console.log(`🎨 [App] מציג דף: ${activePage}`);
+    
     switch (activePage) {
       case 'dashboard':
+        console.log(`📊 [App] מציג Dashboard`);
         return <Dashboard onPageChange={setActivePage} />;
       case 'sketches':
+        console.log(`✏️ [App] מציג SketchCreation`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="SketchCreation" />
           </Suspense>
         );
       case 'sessions':
+        console.log(`🔐 [App] מציג SessionManagement`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="SessionManagement" />
           </Suspense>
         );
       case 'productionRecommendations':
+        console.log(`🎛️ [App] מציג ProductionRecommendations`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="ProductionRecommendations" />
           </Suspense>
         );
       case 'export':
+        console.log(`📤 [App] מציג ExportVersions`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="ExportVersions" />
           </Suspense>
         );
       case 'credits':
+        console.log(`📋 [App] מציג CreditsContracts`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="CreditsContracts" />
           </Suspense>
         );
       case 'verification':
+        console.log(`👤 [App] מציג UserVerification`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="UserVerification" />
           </Suspense>
         );
       case 'audio-separation':
+        console.log(`🎵 [App] מציג AudioSeparation`);
         return (
           <Suspense fallback={<LoadingSpinner />}>
             <DynamicComponent componentName="AudioSeparation" fallback={
@@ -181,6 +253,7 @@ function App() {
           </Suspense>
         );
       default:
+        console.error(`❌ [App] דף לא ידוע: ${activePage}`);
         return <Dashboard onPageChange={setActivePage} />;
     }
   };

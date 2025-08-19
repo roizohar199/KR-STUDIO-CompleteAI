@@ -10,7 +10,13 @@ import {
   TrendingUp,
   Calendar,
   User,
-  Eye
+  Eye,
+  Settings,
+  Download,
+  FileText,
+  Edit3,
+  ShieldCheck,
+  Circle
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -81,23 +87,133 @@ const Dashboard = ({ onPageChange }) => {
       subtitle: t('quickActionCreateSketchSubtitle'),
       icon: Music,
       color: 'bg-green-500',
-      onClick: () => onPageChange('sketches')
+      onClick: () => handlePageChange('sketches')
     },
     {
       title: t('newSession'),
       subtitle: t('quickActionNewSessionSubtitle'),
       icon: Users,
       color: 'bg-purple-500',
-      onClick: () => onPageChange('sessions')
+      onClick: () => handlePageChange('sessions')
     },
     {
       title: t('productionRecommendations'),
       subtitle: t('quickActionProductionRecommendationsSubtitle'),
       icon: Lightbulb,
       color: 'bg-orange-500',
-      onClick: () => onPageChange('productionRecommendations')
+      onClick: () => handlePageChange('productionRecommendations')
     }
   ];
+
+  const handlePageChange = (page) => {
+    console.log(`🖱️ [Dashboard] לחיצה על כרטיס: ${page}`);
+    console.log(`🖱️ [Dashboard] עובר לדף: ${page}`);
+    
+    try {
+      onPageChange(page);
+      console.log(`✅ [Dashboard] ניווט הצליח: Dashboard → ${page}`);
+    } catch (error) {
+      console.error(`❌ [Dashboard] שגיאה בניווט:`, error);
+      console.error(`❌ [Dashboard] פרטי השגיאה:`, {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+  };
+
+  const getCardIcon = (page) => {
+    console.log(`🎨 [Dashboard] מחפש אייקון עבור: ${page}`);
+    
+    switch (page) {
+      case 'audio-separation':
+        console.log(`🎨 [Dashboard] אייקון AudioSeparation: Mic`);
+        return <Mic className="w-8 h-8" />;
+      case 'productionRecommendations':
+        console.log(`🎨 [Dashboard] אייקון ProductionRecommendations: Settings`);
+        return <Settings className="w-8 h-8" />;
+      case 'export':
+        console.log(`🎨 [Dashboard] אייקון Export: Download`);
+        return <Download className="w-8 h-8" />;
+      case 'credits':
+        console.log(`🎨 [Dashboard] אייקון Credits: FileText`);
+        return <FileText className="w-8 h-8" />;
+      case 'sessions':
+        console.log(`🎨 [Dashboard] אייקון Sessions: Users`);
+        return <Users className="w-8 h-8" />;
+      case 'sketches':
+        console.log(`🎨 [Dashboard] אייקון Sketches: Edit3`);
+        return <Edit3 className="w-8 h-8" />;
+      case 'verification':
+        console.log(`🎨 [Dashboard] אייקון Verification: ShieldCheck`);
+        return <ShieldCheck className="w-8 h-8" />;
+      default:
+        console.log(`🎨 [Dashboard] אייקון ברירת מחדל עבור: ${page}`);
+        return <Circle className="w-8 h-8" />;
+    }
+  };
+
+  const getCardTitle = (page) => {
+    console.log(`📝 [Dashboard] מחפש כותרת עבור: ${page}`);
+    
+    switch (page) {
+      case 'audio-separation':
+        console.log(`📝 [Dashboard] כותרת AudioSeparation: הפרדת אודיו`);
+        return 'הפרדת אודיו';
+      case 'productionRecommendations':
+        console.log(`📝 [Dashboard] כותרת ProductionRecommendations: המלצות הפקה`);
+        return 'המלצות הפקה';
+      case 'export':
+        console.log(`📝 [Dashboard] כותרת Export: ייצוא גרסאות`);
+        return 'ייצוא גרסאות';
+      case 'credits':
+        console.log(`📝 [Dashboard] כותרת Credits: קרדיטים וחוזים`);
+        return 'קרדיטים וחוזים';
+      case 'sessions':
+        console.log(`📝 [Dashboard] כותרת Sessions: ניהול סשנים`);
+        return 'ניהול סשנים';
+      case 'sketches':
+        console.log(`📝 [Dashboard] כותרת Sketches: יצירת סקיצות`);
+        return 'יצירת סקיצות';
+      case 'verification':
+        console.log(`📝 [Dashboard] כותרת Verification: אימות משתמש`);
+        return 'אימות משתמש';
+      default:
+        console.log(`📝 [Dashboard] כותרת ברירת מחדל עבור: ${page}`);
+        return 'עמוד לא ידוע';
+    }
+  };
+
+  const getCardDescription = (page) => {
+    console.log(`📄 [Dashboard] מחפש תיאור עבור: ${page}`);
+    
+    switch (page) {
+      case 'audio-separation':
+        console.log(`📄 [Dashboard] תיאור AudioSeparation: הפרדת קבצי אודיו לכלי נגינה נפרדים`);
+        return 'הפרדת קבצי אודיו לכלי נגינה נפרדים באמצעות AI מתקדם';
+      case 'productionRecommendations':
+        console.log(`📄 [Dashboard] תיאור ProductionRecommendations: קבלת המלצות הפקה מותאמות אישית`);
+        return 'קבלת המלצות הפקה מותאמות אישית למוזיקה שלך';
+      case 'export':
+        console.log(`📄 [Dashboard] תיאור Export: ייצוא המוזיקה שלך במגוון פורמטים`);
+        return 'ייצוא המוזיקה שלך במגוון פורמטים ואיכויות';
+      case 'credits':
+        console.log(`📄 [Dashboard] תיאור Credits: ניהול קרדיטים וחוזים`);
+        return 'ניהול קרדיטים וחוזים לפרויקטים שלך';
+      case 'sessions':
+        console.log(`📄 [Dashboard] תיאור Sessions: ניהול סשני הקלטה ועריכה`);
+        return 'ניהול סשני הקלטה ועריכה';
+      case 'sketches':
+        console.log(`📄 [Dashboard] תיאור Sketches: יצירת סקיצות מוזיקליות`);
+        return 'יצירת סקיצות מוזיקליות ורעיונות';
+      case 'verification':
+        console.log(`📄 [Dashboard] תיאור Verification: אימות זהות המשתמש`);
+        return 'אימות זהות המשתמש והרשאות';
+      default:
+        console.log(`📄 [Dashboard] תיאור ברירת מחדל עבור: ${page}`);
+        return 'תיאור לא זמין';
+    }
+  };
 
   return (
     <div className="flex-1 bg-studio-dark p-6">
@@ -113,7 +229,7 @@ const Dashboard = ({ onPageChange }) => {
             size="lg"
             onClick={() => {
               console.log('🆕 כפתור New Project נלחץ');
-              onPageChange('sketches');
+              handlePageChange('sketches');
             }}
           >
             <Plus className="w-5 h-5 ml-2" />
@@ -216,6 +332,41 @@ const Dashboard = ({ onPageChange }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Main Menu Cards */}
+      <Card className="bg-studio-gray border-studio-gray mt-6">
+        <CardHeader>
+          <div className="flex items-center">
+            <Settings className="w-5 h-5 text-white ml-2" />
+            <CardTitle className="text-white">תפריט ראשי</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {menuItems.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => handlePageChange(item.id)}
+                className="bg-studio-dark rounded-lg p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                    {getCardIcon(item.id)}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {getCardTitle(item.id)}
+                    </h3>
+                    <p className="text-gray-300 text-sm">
+                      {getCardDescription(item.id)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       <Card className="bg-studio-gray border-studio-gray mt-6">

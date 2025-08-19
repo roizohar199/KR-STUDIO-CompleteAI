@@ -7,66 +7,103 @@ export default function UploadZone({ onFileSelect, onDrop, disabled = false }) {
   const fileInputRef = useRef(null);
 
   const handleDragOver = (e) => {
+    console.log(`🖱️ [UploadZone] Drag Over - disabled: ${disabled}`);
     if (disabled) return;
+    
     e.preventDefault();
     setIsDragOver(true);
+    console.log(`✅ [UploadZone] Drag Over הופעל`);
   };
 
   const handleDragLeave = (e) => {
-    if (disabled) return;
+    console.log(`🖱️ [UploadZone] Drag Leave`);
     e.preventDefault();
     setIsDragOver(false);
+    console.log(`✅ [UploadZone] Drag Leave הופעל`);
   };
 
   const handleDrop = (e) => {
+    console.log(`🖱️ [UploadZone] Drop - disabled: ${disabled}`);
     if (disabled) return;
+    
     e.preventDefault();
     setIsDragOver(false);
     
-    const files = e.dataTransfer.files;
+    const files = Array.from(e.dataTransfer.files);
+    console.log(`📁 [UploadZone] קבצים שהועברו:`, files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+    
     if (files.length > 0) {
       const file = files[0];
-      handleFileSelect(file);
+      console.log(`📁 [UploadZone] קובץ נבחר: ${file.name} (${file.size} bytes, ${file.type})`);
+      
+      try {
+        setSelectedFile(file);
+        onDrop(file);
+        console.log(`✅ [UploadZone] קובץ נמסר בהצלחה`);
+      } catch (error) {
+        console.error(`❌ [UploadZone] שגיאה במסירת קובץ:`, error);
+      }
+    } else {
+      console.log(`⚠️ [UploadZone] לא נמצאו קבצים ב-Drop`);
     }
   };
 
   const handleFileInput = (e) => {
+    console.log(`🖱️ [UploadZone] File Input - disabled: ${disabled}`);
     if (disabled) return;
-    const file = e.target.files[0];
-    if (file) {
-      handleFileSelect(file);
+    
+    const files = Array.from(e.target.files);
+    console.log(`📁 [UploadZone] קבצים נבחרו:`, files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+    
+    if (files.length > 0) {
+      const file = files[0];
+      console.log(`📁 [UploadZone] קובץ נבחר: ${file.name} (${file.size} bytes, ${file.type})`);
+      
+      try {
+        setSelectedFile(file);
+        onFileSelect(file);
+        console.log(`✅ [UploadZone] קובץ נמסר בהצלחה`);
+      } catch (error) {
+        console.error(`❌ [UploadZone] שגיאה במסירת קובץ:`, error);
+      }
+    } else {
+      console.log(`⚠️ [UploadZone] לא נמצאו קבצים בבחירה`);
     }
   };
 
   const handleFileSelect = (file) => {
-    if (disabled) return;
+    console.log(`📁 [UploadZone] handleFileSelect נקרא עם: ${file.name}`);
     
-    // Validate file type
-    const allowedTypes = [
-      'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 
-      'audio/x-wav', 'audio/flac', 'audio/x-flac', 
-      'audio/m4a', 'audio/x-m4a', 'audio/ogg', 'audio/x-ogg'
-    ];
-    
-    if (!allowedTypes.includes(file.type)) {
-      alert('אנא בחר קובץ אודיו תקין (MP3, WAV, FLAC, M4A, OGG)');
+    if (!file) {
+      console.error(`❌ [UploadZone] קובץ לא תקין`);
       return;
     }
-
-    // Validate file size (50MB max)
-    const maxSize = 50 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert('הקובץ גדול מדי. גודל מקסימלי: 50MB');
-      return;
+    
+    console.log(`📁 [UploadZone] פרטי קובץ:`, {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+    
+    try {
+      setSelectedFile(file);
+      onFileSelect(file);
+      console.log(`✅ [UploadZone] קובץ נמסר בהצלחה`);
+    } catch (error) {
+      console.error(`❌ [UploadZone] שגיאה במסירת קובץ:`, error);
     }
-
-    setSelectedFile(file);
-    onFileSelect(file);
   };
 
   const handleClick = () => {
-    if (disabled) return;
-    fileInputRef.current?.click();
+    console.log(`🖱️ [UploadZone] לחיצה על אזור העלאה - disabled: ${disabled}`);
+    if (disabled) {
+      console.log(`⚠️ [UploadZone] העלאה מושבתת`);
+      return;
+    }
+    
+    console.log(`✅ [UploadZone] פותח בחירת קובץ`);
+    document.getElementById('file-input')?.click();
   };
 
   const formatFileSize = (bytes) => {
@@ -74,7 +111,9 @@ export default function UploadZone({ onFileSelect, onDrop, disabled = false }) {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const result = parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    console.log(`📏 [UploadZone] גודל קובץ: ${bytes} bytes = ${result}`);
+    return result;
   };
 
   return (
@@ -94,7 +133,7 @@ export default function UploadZone({ onFileSelect, onDrop, disabled = false }) {
         onClick={handleClick}
       >
         <input
-          ref={fileInputRef}
+          id="file-input"
           type="file"
           accept="audio/*"
           onChange={handleFileInput}
