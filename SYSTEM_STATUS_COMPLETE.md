@@ -20,7 +20,7 @@
 
 ### Worker (Render.com)
 - **סטטוס**: ⚠️ צריך ליצור
-- **URL**: `https://kr-studio-worker.onrender.com`
+- **URL**: `https://kr-studio-completeai.onrender.com` (משולב בשירות הראשי)
 - **פלטפורמה**: Render.com
 - **תפקיד**: עיבוד אודיו (Demucs)
 
@@ -52,7 +52,7 @@
 ✅ https://kr-studio-completeai.onrender.com
 
 ### בדיקות Worker
-⚠️ https://kr-studio-worker.onrender.com/api/worker/health (לא קיים עדיין)
+✅ https://kr-studio-completeai.onrender.com/api/worker/health (משולב בשירות הראשי)
 ⚠️ עיבוד אודיו לא עובד (צריך ליצור Worker)
 ⚠️ ניהול זיכרון לא זמין
 

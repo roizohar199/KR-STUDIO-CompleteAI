@@ -40,7 +40,7 @@ Render.com היא פלטפורמת ענן מודרנית שמספקת:
 ```
 NODE_ENV=production
 PORT=10000
-WORKER_URL=https://kr-studio-worker.onrender.com/api/worker
+WORKER_URL=https://kr-studio-completeai.onrender.com/api/worker
 ```
 
 ## 🚀 **שלב 3: הגדרות מתקדמות**

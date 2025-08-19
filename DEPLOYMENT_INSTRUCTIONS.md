@@ -39,7 +39,7 @@
 ### **Backend (.env):**
 ```bash
 PORT=10000
-WORKER_URL=https://kr-studio-worker.onrender.com/api/worker
+WORKER_URL=https://kr-studio-completeai.onrender.com/api/worker
 ```
 
 ### **Worker (.env):**
@@ -64,7 +64,7 @@ curl https://kr-studio-completeai.onrender.com/api/health
 
 ### **בדיקת Worker:**
 ```bash
-curl https://kr-studio-worker.onrender.com/api/worker/health
+curl https://kr-studio-completeai.onrender.com/api/worker/health
 ```
 
 ## ⚠️ **הערות חשובות**

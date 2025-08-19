@@ -10,7 +10,7 @@
 
 ```javascript
 // לפני
-const API_BASE_URL = 'https://kr-studio-worker.onrender.com/api';
+const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
 
 // אחרי
 const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';

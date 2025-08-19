@@ -119,7 +119,7 @@ KR-STUDIO CompleteAI/
 ### **Production**
 - **Frontend**: `https://mixifyai.k-rstudio.com`
 - **Backend**: `https://kr-studio-completeai.onrender.com`
-- **Worker**: `https://kr-studio-completeai-worker.onrender.com`
+- **Worker**: `https://kr-studio-completeai.onrender.com/api/worker` (משולב בשירות הראשי)
 
 ### **Development**
 - **Frontend**: `http://localhost:5173`

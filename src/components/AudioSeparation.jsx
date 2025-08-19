@@ -135,7 +135,7 @@ const AudioSeparation = () => {
         if (project && project.id && project.name) {
           validProjects.push(project);
           console.log(`✅ פרויקט ${i + 1} תקין`);
-        } else {
+      } else {
           invalidProjects.push(project);
           console.warn(`⚠️ פרויקט ${i + 1} לא תקין:`, project);
         }
@@ -290,10 +290,10 @@ const AudioSeparation = () => {
             if (response.ok) {
               const contentLength = response.headers.get('content-length');
               fileSizes[stemKey] = contentLength ? parseInt(contentLength) : 'unknown';
-            } else {
+      } else {
               fileSizes[stemKey] = 'error';
-            }
-          } catch (error) {
+      }
+    } catch (error) {
             fileSizes[stemKey] = 'error';
           }
         }
@@ -535,22 +535,22 @@ const AudioSeparation = () => {
       // בדיקת תקינות הקובץ
       console.log('🔍 שלב 1: בדיקת תקינות הקובץ...');
       
-      if (!file) {
+    if (!file) {
         console.error('❌ לא התקבל קובץ');
         setError('לא התקבל קובץ');
-        return;
-      }
+      return;
+    }
 
       // בדיקת סוג הקובץ
       const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/flac', 'audio/m4a', 'audio/ogg'];
       console.log('🎵 סוג קובץ שהתקבל:', file.type);
       console.log('✅ סוגי קבצים מותרים:', allowedTypes);
-      
-      if (!allowedTypes.includes(file.type)) {
+    
+    if (!allowedTypes.includes(file.type)) {
         console.error('❌ סוג קובץ לא נתמך:', file.type);
         setError('סוג קובץ לא נתמך. אנא העלה קובץ MP3, WAV, FLAC, M4A או OGG');
-        return;
-      }
+      return;
+    }
 
       // בדיקת גודל הקובץ
       const maxSizeMB = 100;
@@ -561,8 +561,8 @@ const AudioSeparation = () => {
       if (fileSizeMB > maxSizeMB) {
         console.error('❌ קובץ גדול מדי:', fileSizeMB.toFixed(2), 'MB');
         setError(`הקובץ גדול מדי (${fileSizeMB.toFixed(2)}MB). הגודל המקסימלי הוא ${maxSizeMB}MB`);
-        return;
-      }
+      return;
+    }
 
       console.log('✅ בדיקת תקינות עברה בהצלחה');
       
@@ -827,36 +827,36 @@ const AudioSeparation = () => {
               
               if (latestProject && latestProject.id) {
                 console.log('🔄 מנסה לטעון את הפרויקט החדש...');
-                
-                // נסה כמה פעמים עם המתנה בין הניסיונות
-                let attempts = 0;
+            
+            // נסה כמה פעמים עם המתנה בין הניסיונות
+            let attempts = 0;
                 const maxAttempts = 15; // הגדלת מספר הניסיונות ל-15
+            
+            const tryToLoadProject = async () => {
+              attempts++;
+              console.log(`🔄 ניסיון ${attempts}/${maxAttempts} לטעינת הפרויקט...`);
+              
+              try {
+                // טעינה מחדש של פרויקטים
+                await loadProjects();
                 
-                const tryToLoadProject = async () => {
-                  attempts++;
-                  console.log(`🔄 ניסיון ${attempts}/${maxAttempts} לטעינת הפרויקט...`);
-                  
-                  try {
-                    // טעינה מחדש של פרויקטים
-                    await loadProjects();
-                    
-                    // טעינת הפרויקט החדש שנוצר
-                    const newProjects = await getProjects();
-                    if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
-                      // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
+                // טעינת הפרויקט החדש שנוצר
+                const newProjects = await getProjects();
+                if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
+                  // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
                       let latestProject = newProjects.find(p => p.id == fileId) || newProjects[newProjects.length - 1];
-                      
-                      if (latestProject && latestProject.id) {
+                  
+                  if (latestProject && latestProject.id) {
                         console.log('🔍 בודק אם הפרויקט מוכן...');
-                        
+                    
                         // בדיקה שהפרויקט מוכן באמת
-                        const projectData = await getProject(latestProject.id);
-                        if (projectData && projectData.success && 
-                            projectData.project && projectData.project.stems &&
-                            Object.keys(projectData.project.stems).length >= 5) {
-                          
-                          console.log('✅ פרויקט מוכן עם', Object.keys(projectData.project.stems).length, 'ערוצים');
-                          
+                    const projectData = await getProject(latestProject.id);
+                    if (projectData && projectData.success && 
+                        projectData.project && projectData.project.stems &&
+                        Object.keys(projectData.project.stems).length >= 5) {
+                      
+                      console.log('✅ פרויקט מוכן עם', Object.keys(projectData.project.stems).length, 'ערוצים');
+                      
                           // בדיקה מתקדמת של מצב הפרויקט
                           const advancedStatus = await checkProjectStatusAdvanced(latestProject.id);
                           console.log('🔍 בדיקה מתקדמת:', advancedStatus);
@@ -870,18 +870,18 @@ const AudioSeparation = () => {
                               setError(null);
                               setCurrentView('studio');
                               setShowUploadForm(false);
-                              setUploadedFile(null);
-                              setProjectName('');
+                      setUploadedFile(null);
+                      setProjectName('');
                               return;
-                            } else {
+                    } else {
                               console.error('❌ הפרויקט לא נטען למרות שהוא מוכן');
                               setError('הפרויקט מוכן אבל לא נטען. נסה לרענן את הדף.');
                               return;
-                            }
-                          } else {
+                    }
+                  } else {
                             console.log('⚠️ הפרויקט עדיין לא מוכן:', advancedStatus.reason);
-                          }
-                        } else {
+                  }
+                } else {
                           console.log('⚠️ הפרויקט לא מכיל מספיק ערוצים');
                         }
                       }
@@ -930,7 +930,7 @@ const AudioSeparation = () => {
           
           return;
         }
-
+        
         // בדיקה אם יש שגיאה
         if (currentStatus === 'error' || currentStatus === 'failed') {
           console.error('❌ הפרדה נכשלה:', currentMessage);

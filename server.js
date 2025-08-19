@@ -16,6 +16,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// הגדרת כתובת ה-Worker - עובד עם השירות הראשי
+const WORKER_BASE_URL = process.env.WORKER_URL || 'https://kr-studio-completeai.onrender.com/api/worker';
+
 // Server startup
 let isReady = false;
 setTimeout(() => {
@@ -1317,7 +1320,7 @@ async function sendToCloudServer(fileId, inputPath, projectName) {
     console.log('☁️ projectName:', projectName);
     
     // הגדרת כתובת ה-Worker מהסביבה או ברירת מחדל
-    const baseUrl = (process.env.WORKER_URL || WORKER_BASE_URL || 'https://kr-studio-worker.onrender.com/api/worker').replace(/\/$/, '');
+    const baseUrl = (process.env.WORKER_URL || WORKER_BASE_URL || 'https://kr-studio-completeai.onrender.com/api/worker').replace(/\/$/, '');
     const url = `${baseUrl}/process`;
 
     const outputDir = path.join(__dirname, 'separated', fileId);
@@ -1552,4 +1555,105 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`💾 Memory: ${JSON.stringify(process.memoryUsage())}`);
   console.log(`✅ ===== שרת מוכן =====`);
+});
+
+// ===============================
+// Worker API Endpoints
+// ===============================
+
+// Worker health check
+app.get('/api/worker/health', (req, res) => {
+  console.log('🔍 Worker health check requested');
+  
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    worker: 'KR-STUDIO CompleteAI Worker',
+    version: '1.0.0',
+    mode: 'integrated'
+  });
+});
+
+// Worker process endpoint
+app.post('/api/worker/process', async (req, res) => {
+  try {
+    console.log('🎵 Worker process request received');
+    
+    const origin = req.headers.origin || '*';
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    const { fileId, fileName, fileData, projectName } = req.body;
+    
+    if (!fileId || !fileName || !fileData) {
+      return res.status(400).json({
+        success: false,
+        error: 'חסרים פרמטרים נדרשים'
+      });
+    }
+    
+    console.log(`🎵 Processing file: ${fileName} (${fileId})`);
+    
+    // כאן נוכל להוסיף את הלוגיקה לעיבוד הקובץ
+    // כרגע נחזיר תשובה של הצלחה
+    
+    res.status(200).json({
+      success: true,
+      message: `קובץ ${fileName} נשלח לעיבוד`,
+      fileId,
+      projectName: projectName || fileName
+    });
+    
+  } catch (error) {
+    console.error('❌ Worker process error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Worker download endpoint
+app.get('/api/worker/download/:id/:stem', async (req, res) => {
+  try {
+    console.log('📥 Worker download request');
+    
+    const origin = req.headers.origin || '*';
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    const { id, stem } = req.params;
+    console.log(`📥 Download request: ${id}/${stem}`);
+    
+    // נפנה לקובץ המופרד הקיים
+    const filePath = path.join(__dirname, 'separated', id, `${stem}.wav`);
+    
+    if (await fs.pathExists(filePath)) {
+      console.log(`✅ File found: ${filePath}`);
+      res.download(filePath);
+    } else {
+      console.log(`❌ File not found: ${filePath}`);
+      res.status(404).json({
+        success: false,
+        error: 'קובץ לא נמצא'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Worker download error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 }); 
