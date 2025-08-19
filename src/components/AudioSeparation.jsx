@@ -433,8 +433,9 @@ const AudioSeparation = () => {
           // מעבר למסך הסטודיו
           setCurrentView('studio');
           setShowUploadForm(false);
-          setUploadedFile(null);
-          setProjectName('');
+          // לא מאפסים את uploadedFile ו-projectName עד שההפרדה תסתיים
+          // setUploadedFile(null);
+          // setProjectName('');
           
           console.log('📋 טוען פרויקטים מחדש...');
           // טעינה מחדש של פרויקטים
@@ -485,6 +486,10 @@ const AudioSeparation = () => {
       setProcessingStep(null);
       setProgress(0);
       
+      // איפוס המצב כאשר יש שגיאה
+      setUploadedFile(null);
+      setProjectName('');
+      
       // הודעה למשתמש
       console.error('❌ ===== שגיאה בתהליך העלאה/הפרדה =====');
     }
@@ -516,8 +521,9 @@ const AudioSeparation = () => {
         // מעבר למסך הסטודיו
         setCurrentView('studio');
         setShowUploadForm(false);
-        setUploadedFile(null);
-        setProjectName('');
+        // לא מאפסים את uploadedFile ו-projectName עד שההפרדה תסתיים
+        // setUploadedFile(null);
+        // setProjectName('');
         
         // טעינה מחדש של פרויקטים
         await loadProjects();
@@ -545,6 +551,10 @@ const AudioSeparation = () => {
       setError(errorMessage);
       setIsProcessing(false);
       setProcessingStep(null);
+      
+      // איפוס המצב כאשר יש שגיאה
+      setUploadedFile(null);
+      setProjectName('');
       
       // הודעה למשתמש
       console.error('❌ ===== שגיאה בהפרדה =====');
@@ -580,6 +590,11 @@ const AudioSeparation = () => {
           setError(`שגיאה מהשרת: ${progressData.error}`);
           setIsProcessing(false);
           setProcessingStep(null);
+          
+          // איפוס המצב כאשר יש שגיאה
+          setUploadedFile(null);
+          setProjectName('');
+          
           clearInterval(interval);
           return;
         }
@@ -589,6 +604,10 @@ const AudioSeparation = () => {
           setProgress(100);
           setIsProcessing(false);
           setProcessingStep('completed');
+          
+          // איפוס המצב רק כאשר ההפרדה מסתיימת בהצלחה
+          setUploadedFile(null);
+          setProjectName('');
           
           // טעינה מחדש של פרויקטים
           await loadProjects();
@@ -609,6 +628,11 @@ const AudioSeparation = () => {
           setError('התהליך תקוע - נסה שוב או פנה לתמיכה');
           setIsProcessing(false);
           setProcessingStep(null);
+          
+          // איפוס המצב כאשר התהליך תקוע
+          setUploadedFile(null);
+          setProjectName('');
+          
           clearInterval(interval);
         }
         
@@ -639,6 +663,11 @@ const AudioSeparation = () => {
           setError('שגיאה בבדיקת התקדמות - נסה שוב');
           setIsProcessing(false);
           setProcessingStep(null);
+          
+          // איפוס המצב כאשר יש יותר מדי שגיאות
+          setUploadedFile(null);
+          setProjectName('');
+          
           clearInterval(interval);
         }
         
@@ -701,6 +730,7 @@ const AudioSeparation = () => {
       setError(null);
       setUploadedFile(null);
       setSelectedFile(null);
+      setProjectName(''); // איפוס שם הפרויקט גם בביטול
       
       console.log('✅ תהליך בוטל');
     } catch (error) {
