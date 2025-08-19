@@ -270,6 +270,7 @@ const AudioSeparation = () => {
         const stems = project.stems || {};
         const stemCount = Object.keys(stems).length;
         console.log('🎵 מספר ערוצים שנמצאו:', stemCount);
+        console.log('🎵 ערוצים זמינים:', Object.keys(stems));
         
         if (stemCount < 5) {
           console.warn('⚠️ לא כל הערוצים מוכנים עדיין:', stemCount, 'מתוך 5');
@@ -291,8 +292,9 @@ const AudioSeparation = () => {
         );
         
         if (!allStemsReady) {
-          console.warn('⚠️ חסרים ערוצים:', expectedStems.filter(s => !availableStems.includes(s)));
-          setError('חלק מהערוצים עדיין בעיבוד, אנא המתן...');
+          const missingStems = expectedStems.filter(s => !availableStems.includes(s));
+          console.warn('⚠️ חסרים ערוצים:', missingStems);
+          setError(`חסרים ערוצים: ${missingStems.join(', ')}. אנא המתן...`);
           
           // נסה שוב אחרי כמה שניות
           setTimeout(() => {
@@ -302,7 +304,25 @@ const AudioSeparation = () => {
           return;
         }
         
-        console.log('✅ כל הערוצים מוכנים!');
+        // בדיקה נוספת שכל הערוצים מכילים קבצים אמיתיים
+        const stemsWithFiles = Object.entries(stems).filter(([key, value]) => {
+          return value && typeof value === 'object' && value.url;
+        });
+        
+        if (stemsWithFiles.length < 5) {
+          console.warn('⚠️ חלק מהערוצים לא מכילים קבצים:', stemsWithFiles.length, 'מתוך 5');
+          setError(`חלק מהערוצים לא מכילים קבצים. אנא המתן...`);
+          
+          // נסה שוב אחרי כמה שניות
+          setTimeout(() => {
+            console.log('🔄 מנסה שוב לטעון את הפרויקט...');
+            loadProject(projectId);
+          }, 3000);
+          return;
+        }
+        
+        console.log('✅ כל הערוצים מוכנים עם קבצים!');
+        console.log('🎵 ערוצים עם קבצים:', stemsWithFiles.map(([key, value]) => `${key}: ${value.url ? 'יש קובץ' : 'אין קובץ'}`));
         
         setSelectedProject(project);
         setAudioFiles(stems);
@@ -319,6 +339,11 @@ const AudioSeparation = () => {
         setCurrentView('studio');
         setShowUploadForm(false);
       } else {
+        console.error('❌ נתוני פרויקט לא תקינים:', {
+          hasData: !!projectData,
+          success: projectData?.success,
+          hasProject: !!projectData?.project
+        });
         throw new Error('פרויקט לא נמצא או שגיאה בטעינה');
       }
     } catch (error) {
@@ -712,70 +737,105 @@ const AudioSeparation = () => {
           console.log('✅ הפרדה הושלמה בהצלחה!');
           console.log('⏳ ממתין לטעינת הפרויקט המוכן...');
           setProgress(100);
-          setProcessingStep('loading-project'); // שינוי לסטטוס loading-project
+          setProcessingStep('loading-project');
           
           // השאר את מסך ההתקדמות פעיל
           console.log('📊 נשאר במסך ההתקדמות עד שהפרויקט נטען');
           
           clearInterval(interval);
           
-          // המתן קצת לוודא שהקבצים מוכנים בשרת
+          // המתן יותר זמן לוודא שהקבצים מוכנים בשרת
           setTimeout(async () => {
-            console.log('🔄 טוען פרויקטים מעודכנים...');
+            console.log('🔄 מתחיל לבדוק אם הפרויקט מוכן...');
             
-            try {
-              // טעינה מחדש של פרויקטים
-              await loadProjects();
+            // נסה כמה פעמים עם המתנה בין הניסיונות
+            let attempts = 0;
+            const maxAttempts = 10; // מקסימום 10 ניסיונות
+            
+            const tryToLoadProject = async () => {
+              attempts++;
+              console.log(`🔄 ניסיון ${attempts}/${maxAttempts} לטעינת הפרויקט...`);
               
-              // טעינת הפרויקט החדש שנוצר
-              const newProjects = await getProjects();
-              if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
-                // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
-                let latestProject = newProjects.find(p => p.id === fileId);
-                if (!latestProject) {
-                  latestProject = newProjects[newProjects.length - 1];
-                }
+              try {
+                // טעינה מחדש של פרויקטים
+                await loadProjects();
                 
-                if (latestProject && latestProject.id) {
-                  console.log('📁 טוען פרויקט חדש:', latestProject.id);
+                // טעינת הפרויקט החדש שנוצר
+                const newProjects = await getProjects();
+                if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
+                  // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
+                  let latestProject = newProjects.find(p => p.id === fileId);
+                  if (!latestProject) {
+                    latestProject = newProjects[newProjects.length - 1];
+                  }
                   
-                  // בדיקה שהפרויקט מוכן
-                  const projectData = await getProject(latestProject.id);
-                  if (projectData && projectData.success && 
-                      projectData.project && projectData.project.stems &&
-                      Object.keys(projectData.project.stems).length >= 5) {
+                  if (latestProject && latestProject.id) {
+                    console.log('📁 נמצא פרויקט:', latestProject.id);
                     
-                    console.log('✅ פרויקט מוכן עם', Object.keys(projectData.project.stems).length, 'ערוצים');
+                    // בדיקה שהפרויקט מוכן
+                    const projectData = await getProject(latestProject.id);
+                    console.log('📊 נתוני פרויקט:', projectData);
                     
-                    // עכשיו אפשר לעבור לסטודיו
-                    setIsProcessing(false);
-                    setUploadedFile(null);
-                    setProjectName('');
-                    
-                    // טעינת הפרויקט (כולל מעבר לסטודיו)
-                    await loadProject(latestProject.id);
-                  } else {
-                    console.warn('⚠️ הפרויקט עדיין לא מוכן, ממשיך לבדוק...');
-                    // נסה שוב אחרי כמה שניות
-                    setTimeout(async () => {
-                      await loadProject(latestProject.id);
+                    if (projectData && projectData.success && 
+                        projectData.project && projectData.project.stems &&
+                        Object.keys(projectData.project.stems).length >= 5) {
+                      
+                      console.log('✅ פרויקט מוכן עם', Object.keys(projectData.project.stems).length, 'ערוצים');
+                      
+                      // עכשיו אפשר לעבור לסטודיו
                       setIsProcessing(false);
-                    }, 3000);
+                      setUploadedFile(null);
+                      setProjectName('');
+                      
+                      // טעינת הפרויקט (כולל מעבר לסטודיו)
+                      await loadProject(latestProject.id);
+                      return; // יציאה מוצלחת
+                    } else {
+                      console.warn('⚠️ הפרויקט עדיין לא מוכן:', {
+                        success: projectData?.success,
+                        hasProject: !!projectData?.project,
+                        stemsCount: projectData?.project?.stems ? Object.keys(projectData.project.stems).length : 0
+                      });
+                    }
+                  } else {
+                    console.warn('⚠️ לא נמצא פרויקט עם ID תקין');
                   }
                 } else {
-                  throw new Error('לא נמצא פרויקט חדש');
+                  console.warn('⚠️ לא נמצאו פרויקטים ברשימה');
                 }
-              } else {
-                throw new Error('לא נמצאו פרויקטים');
+                
+                // אם לא הצלחנו, נסה שוב אחרי המתנה
+                if (attempts < maxAttempts) {
+                  console.log(`⏳ ממתין 3 שניות לפני ניסיון נוסף... (${attempts}/${maxAttempts})`);
+                  setTimeout(tryToLoadProject, 3000);
+                } else {
+                  console.error('❌ הגענו למספר המקסימלי של ניסיונות');
+                  setError('הפרויקט לא נטען לאחר מספר ניסיונות. נסה לרענן את הדף או לחץ על "פתח בסטודיו" מהרשימה.');
+                  setIsProcessing(false);
+                  setUploadedFile(null);
+                  setProjectName('');
+                }
+                
+              } catch (loadError) {
+                console.error(`❌ שגיאה בניסיון ${attempts}:`, loadError);
+                
+                if (attempts < maxAttempts) {
+                  console.log(`⏳ ממתין 3 שניות לפני ניסיון נוסף... (${attempts}/${maxAttempts})`);
+                  setTimeout(tryToLoadProject, 3000);
+                } else {
+                  console.error('❌ הגענו למספר המקסימלי של ניסיונות');
+                  setError('שגיאה בטעינת הפרויקט לאחר מספר ניסיונות. נסה לרענן את הדף או לחץ על "פתח בסטודיו" מהרשימה.');
+                  setIsProcessing(false);
+                  setUploadedFile(null);
+                  setProjectName('');
+                }
               }
-            } catch (loadError) {
-              console.error('❌ שגיאה בטעינת פרויקט:', loadError);
-              setError('שגיאה בטעינת הפרויקט המוכן. נסה לרענן את הדף.');
-              setIsProcessing(false);
-              setUploadedFile(null);
-              setProjectName('');
-            }
-          }, 2000); // המתן 2 שניות לפני טעינה
+            };
+            
+            // התחל את הניסיונות
+            tryToLoadProject();
+            
+          }, 5000); // המתן 5 שניות לפני התחלת הניסיונות
           
           return;
         }

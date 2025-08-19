@@ -201,6 +201,19 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
           </button>
         </div>
       )}
+      
+      {/* Retry button for loading-project step */}
+      {step === 'loading-project' && onRetry && (
+        <div className="flex items-center justify-center space-x-4">
+          <button
+            onClick={onRetry}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>נסה לטעון שוב</span>
+          </button>
+        </div>
+      )}
 
       {/* Processing Tips */}
       {step === 'separating' && (
@@ -213,6 +226,22 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
             <li>• הפרדת אודיו איכותית לוקחת זמן - אנא המתן בסבלנות</li>
             <li>• איכות התוצאה תלויה באיכות הקובץ המקורי</li>
             <li>• ניתן לסגור את הדף - התהליך ימשיך לפעול בשרת</li>
+          </ul>
+        </div>
+      )}
+      
+      {/* Loading Project Tips */}
+      {step === 'loading-project' && (
+        <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <RefreshCw className="w-4 h-4 text-green-400" />
+            <span className="text-green-200 font-medium">טיפים לטעינת פרויקט</span>
+          </div>
+          <ul className="text-green-200 text-sm space-y-1">
+            <li>• ההפרדה הושלמה! המערכת טוענת את הפרויקט המוכן</li>
+            <li>• אם הטעינה נכשלת, לחץ על "נסה לטעון שוב"</li>
+            <li>• ניתן גם ללחוץ על "פתח בסטודיו" מהרשימה למטה</li>
+            <li>• המערכת תנסה לטעון אוטומטית מספר פעמים</li>
           </ul>
         </div>
       )}
