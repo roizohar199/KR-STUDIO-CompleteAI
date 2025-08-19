@@ -1393,6 +1393,196 @@ const AudioSeparation = () => {
     }
   };
 
+  // בדיקה חוזרת של חיבור לשרת
+  const retryConnection = async () => {
+    console.log('🔄 ===== מתחיל חיבור חוזר לשרת =====');
+    console.log('⏰ זמן התחלה:', new Date().toISOString());
+    setError(null);
+    setGlobalError(null);
+    
+    try {
+      const retryStartTime = performance.now();
+      console.log('🔍 שלב 1: בדיקת חיבור לשרת...');
+      
+      const connectionSuccess = await checkServerConnection();
+      const retryTotalTime = performance.now() - retryStartTime;
+      
+      console.log(`⏱️ זמן חיבור חוזר: ${retryTotalTime.toFixed(0)}ms`);
+      console.log('🔗 תוצאת חיבור:', connectionSuccess);
+      
+      if (connectionSuccess) {
+        console.log(`✅ חיבור חוזר לשרת הצליח (${retryTotalTime.toFixed(0)}ms)`);
+        setError(null);
+        
+        // טעינת פרויקטים אוטומטית אחרי חיבור מוצלח
+        if (retryTotalTime < 3000) { // רק אם החיבור מהיר
+          console.log('📋 טוען פרויקטים אחרי חיבור מוצלח...');
+          setTimeout(() => {
+            loadProjects().catch(err => {
+              console.warn('⚠️ שגיאה בטעינת פרויקטים אחרי חיבור:', err);
+            });
+          }, 500);
+        }
+      } else {
+        console.log(`❌ חיבור חוזר לשרת נכשל (${retryTotalTime.toFixed(0)}ms)`);
+        setError('חיבור חוזר לשרת נכשל - נסה שוב או פנה לתמיכה');
+      }
+      
+      console.log('🔄 ===== חיבור חוזר הושלם =====');
+      
+    } catch (error) {
+      console.error('❌ ===== שגיאה בחיבור חוזר =====');
+      console.error('📊 פרטי השגיאה:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      setError('חיבור חוזר לשרת נכשל - נסה שוב או פנה לתמיכה');
+    }
+  };
+
+  // בדיקת חיבור לשרת
+  const checkServerConnection = async () => {
+    console.log('🔗 ===== מתחיל בדיקת חיבור לשרת =====');
+    console.log('⏰ זמן בדיקה:', new Date().toISOString());
+    
+    try {
+      setServerConnected(false);
+      setGlobalError(null);
+      
+      console.log('🔍 שלב 1: בדיקת חיבור בסיסי...');
+      const startTime = performance.now();
+      
+      const healthResult = await healthCheck();
+      const responseTime = performance.now() - startTime;
+      
+      console.log(`⏱️ זמן תגובה: ${responseTime.toFixed(0)}ms`);
+      console.log('📊 תוצאת בדיקת בריאות:', healthResult);
+      
+      if (!healthResult) {
+        console.error('❌ לא התקבלה תשובה מבדיקת הבריאות');
+        setGlobalError('השרת לא מגיב - בדוק את החיבור לאינטרנט');
+        return false;
+      }
+      
+      if (healthResult.error) {
+        console.error('❌ שגיאה בבדיקת הבריאות:', healthResult.error);
+        setGlobalError(`שגיאה בשרת: ${healthResult.error}`);
+        return false;
+      }
+      
+      console.log('✅ בדיקת בריאות עברה בהצלחה');
+      
+      console.log('🔍 שלב 2: בדיקת חיבור מתקדמת...');
+      const advancedStartTime = performance.now();
+      
+      const connectionResult = await testServerConnection();
+      const advancedResponseTime = performance.now() - advancedStartTime;
+      
+      console.log(`⏱️ זמן תגובה מתקדם: ${advancedResponseTime.toFixed(0)}ms`);
+      console.log('📊 תוצאת בדיקת חיבור מתקדמת:', connectionResult);
+      
+      if (!connectionResult) {
+        console.error('❌ לא התקבלה תשובה מבדיקת החיבור המתקדמת');
+        setGlobalError('השרת לא מגיב לבדיקות מתקדמות');
+        return false;
+      }
+      
+      if (connectionResult.error) {
+        console.error('❌ שגיאה בבדיקת חיבור מתקדמת:', connectionResult.error);
+        setGlobalError(`שגיאה בחיבור מתקדם: ${connectionResult.error}`);
+        return false;
+      }
+      
+      console.log('✅ בדיקת חיבור מתקדמת עברה בהצלחה');
+      
+      console.log('🔍 שלב 3: בדיקת זמינות endpoints...');
+      const endpointsStartTime = performance.now();
+      
+      try {
+        // בדיקת endpoint של פרויקטים
+        const projectsResult = await getProjects();
+        const projectsResponseTime = performance.now() - endpointsStartTime;
+        
+        console.log(`⏱️ זמן תגובה פרויקטים: ${projectsResponseTime.toFixed(0)}ms`);
+        console.log('📊 תוצאת בדיקת פרויקטים:', projectsResult);
+        
+        if (Array.isArray(projectsResult)) {
+          console.log(`✅ endpoint פרויקטים עובד - נמצאו ${projectsResult.length} פרויקטים`);
+        } else {
+          console.warn('⚠️ endpoint פרויקטים החזיר תשובה לא צפויה:', typeof projectsResult);
+        }
+        
+      } catch (endpointError) {
+        console.warn('⚠️ שגיאה בבדיקת endpoint פרויקטים:', endpointError.message);
+        // זה לא קריטי, נמשיך
+      }
+      
+      // עדכון מצב החיבור
+      console.log('✅ ===== כל בדיקות החיבור עברו בהצלחה =====');
+      console.log('📊 סיכום ביצועים:', {
+        healthCheck: responseTime.toFixed(0) + 'ms',
+        advancedCheck: advancedResponseTime.toFixed(0) + 'ms',
+        totalTime: (responseTime + advancedResponseTime).toFixed(0) + 'ms'
+      });
+      
+      setServerConnected(true);
+      setGlobalError(null);
+      
+      return true;
+      
+    } catch (error) {
+      console.error('❌ ===== שגיאה בבדיקת חיבור לשרת =====');
+      console.error('📊 פרטי השגיאה:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'בדיקת חיבור נכשלה - זמן המתנה ארוך מדי. בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      }
+      
+      setGlobalError(errorMessage);
+      setServerConnected(false);
+      
+      return false;
+    }
+  };
+
+  // טעינת פרויקטים קיימים
+  useEffect(() => {
+    if (serverConnected) {
+      try {
+        console.log('📁 ===== טעינה אוטומטית של פרויקטים =====');
+        console.log('⏰ זמן טעינה:', new Date().toISOString());
+        
+        loadProjects();
+        
+        // בדיקה אוטומטית של פרויקטים קיימים אחרי 3 שניות
+        setTimeout(() => {
+          console.log('🔍 ===== בדיקה אוטומטית של פרויקטים קיימים =====');
+          checkExistingProjects();
+        }, 3000);
+        
+      } catch (error) {
+        console.error('❌ שגיאה בטעינת פרויקטים:', error);
+        setError('שגיאה בטעינת פרויקטים - נסה לרענן את הדף');
+      }
+    }
+  }, [serverConnected]);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
