@@ -54,27 +54,42 @@ const AudioSeparation = () => {
 
   // יצירת AudioContext
   useEffect(() => {
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      // ניקוי כל הערוצים בעת עזיבת הקומפוננטה
-      if (Object.keys(audioFiles).length > 0) {
-        stopAllTracks();
-      }
-    };
+    try {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      return () => {
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+        }
+        // ניקוי כל הערוצים בעת עזיבת הקומפוננטה
+        if (Object.keys(audioFiles).length > 0) {
+          stopAllTracks();
+        }
+      };
+    } catch (error) {
+      console.error('❌ שגיאה ביצירת AudioContext:', error);
+      setError('שגיאה באתחול מערכת האודיו - נסה לרענן את הדף');
+    }
   }, [audioFiles]);
 
   // בדיקת חיבור לשרת
   useEffect(() => {
-    checkServerConnection();
+    try {
+      checkServerConnection();
+    } catch (error) {
+      console.error('❌ שגיאה בבדיקת חיבור לשרת:', error);
+      setError('שגיאה בבדיקת חיבור לשרת - נסה לרענן את הדף');
+    }
   }, []);
 
   // טעינת פרויקטים קיימים
   useEffect(() => {
     if (serverConnected) {
-      loadProjects();
+      try {
+        loadProjects();
+      } catch (error) {
+        console.error('❌ שגיאה בטעינת פרויקטים:', error);
+        setError('שגיאה בטעינת פרויקטים - נסה לרענן את הדף');
+      }
     }
   }, [serverConnected]);
 
@@ -82,17 +97,25 @@ const AudioSeparation = () => {
   const retryConnection = async () => {
     console.log('🔄 מנסה חיבור חוזר לשרת...');
     setError(null);
+    setGlobalError(null);
     
     // הודעה למשתמש
     console.log('🔄 ===== מתחיל חיבור חוזר לשרת =====');
     
-    await checkServerConnection();
-    
-    // הודעה למשתמש
-    if (serverConnected) {
-      console.log('✅ חיבור חוזר לשרת הצליח');
-    } else {
-      console.log('❌ חיבור חוזר לשרת נכשל');
+    try {
+      await checkServerConnection();
+      
+      // הודעה למשתמש
+      if (serverConnected) {
+        console.log('✅ חיבור חוזר לשרת הצליח');
+        setError(null);
+      } else {
+        console.log('❌ חיבור חוזר לשרת נכשל');
+        setError('חיבור חוזר לשרת נכשל - נסה שוב או פנה לתמיכה');
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בחיבור חוזר:', error);
+      setError('חיבור חוזר לשרת נכשל - נסה שוב או פנה לתמיכה');
     }
   };
 
@@ -121,9 +144,26 @@ const AudioSeparation = () => {
       
     } catch (error) {
       console.error('❌ בדיקת בריאות נכשלה:', error);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'בדיקת חיבור לשרת נכשלה - זמן המתנה ארוך מדי';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('CORS')) {
+        errorMessage = 'בעיית הרשאות - השרת לא מאפשר גישה מהדפדפן';
+      }
+      
       setServerConnected(false);
       setServerStatus('disconnected');
-      setGlobalError(`לא ניתן להתחבר לשרת: ${error.message}`);
+      setGlobalError(`לא ניתן להתחבר לשרת: ${errorMessage}`);
     }
   };
 
@@ -142,6 +182,22 @@ const AudioSeparation = () => {
       }
     } catch (error) {
       console.error('❌ שגיאה בטעינת פרויקטים:', error);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'טעינת פרויקטים נכשלה - זמן המתנה ארוך מדי';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      }
+      
+      setError(errorMessage);
       setProjects([]);
     }
   };
@@ -172,7 +228,24 @@ const AudioSeparation = () => {
       }
     } catch (error) {
       console.error('❌ שגיאה בטעינת פרויקט:', error);
-      setError(`שגיאה בטעינת פרויקט: ${error.message}`);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'טעינת פרויקט נכשלה - זמן המתנה ארוך מדי';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('404')) {
+        errorMessage = 'הפרויקט לא נמצא - ייתכן שנמחק או שאין לך הרשאה לגשת אליו';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -200,7 +273,26 @@ const AudioSeparation = () => {
       }
     } catch (error) {
       console.error('❌ שגיאה במחיקת פרויקט:', error);
-      setError(`שגיאה במחיקת פרויקט: ${error.message}`);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'מחיקת פרויקט נכשלה - זמן המתנה ארוך מדי';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('404')) {
+        errorMessage = 'הפרויקט לא נמצא - ייתכן שכבר נמחק';
+      } else if (error.message.includes('403')) {
+        errorMessage = 'אין לך הרשאה למחוק פרויקט זה';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -378,6 +470,14 @@ const AudioSeparation = () => {
         errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
       } else if (error.message.includes('NetworkError')) {
         errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('413')) {
+        errorMessage = 'הקובץ גדול מדי - מקסימום 50MB';
+      } else if (error.message.includes('415')) {
+        errorMessage = 'סוג קובץ לא נתמך - אנא בחר קובץ אודיו (MP3, WAV, FLAC, M4A, OGG)';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר או פנה לתמיכה';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
       }
       
       setError(errorMessage);
@@ -427,7 +527,22 @@ const AudioSeparation = () => {
       
     } catch (error) {
       console.error('❌ שגיאה בהפרדה:', error);
-      setError(`שגיאה בהפרדה: ${error.message}`);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'הפרדה נכשלה - זמן המתנה ארוך מדי. נסה שוב או בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר או פנה לתמיכה';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      }
+      
+      setError(errorMessage);
       setIsProcessing(false);
       setProcessingStep(null);
       
@@ -526,37 +641,72 @@ const AudioSeparation = () => {
           setProcessingStep(null);
           clearInterval(interval);
         }
+        
+        // הצג שגיאה למשתמש
+        if (error.message.includes('timeout')) {
+          setError('בדיקת התקדמות נכשלה - זמן המתנה ארוך מדי');
+        } else if (error.message.includes('Failed to fetch')) {
+          setError('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
+        } else if (error.message.includes('NetworkError')) {
+          setError('שגיאת רשת - בדוק את החיבור לאינטרנט');
+        } else {
+          setError(`שגיאה בבדיקת התקדמות: ${error.message}`);
+        }
       }
     }, 2000);
     
     setPollingInterval(interval);
   };
 
+  // ניסיון חוזר לתהליך
+  const retryProcessing = async () => {
+    console.log('🔄 מנסה שוב את התהליך...');
+    setError(null);
+    
+    try {
+      if (selectedFile) {
+        // ניסיון חוזר עם הקובץ שנבחר
+        await handleFileUpload(selectedFile);
+      } else {
+        // אם אין קובץ נבחר, חזור למסך העלאה
+        resetToUpload();
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בניסיון חוזר:', error);
+      setError('ניסיון חוזר נכשל - נסה שוב או פנה לתמיכה');
+    }
+  };
+
   // ביטול תהליך
   const cancelProcessing = () => {
     console.log('❌ מבטל תהליך...');
     
-    // ביטול העלאה אם יש
-    if (uploadController) {
-      uploadController.abort();
-      setUploadController(null);
+    try {
+      // ביטול העלאה אם יש
+      if (uploadController) {
+        uploadController.abort();
+        setUploadController(null);
+      }
+      
+      // עצירת polling
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+      
+      // איפוס מצב
+      setIsProcessing(false);
+      setProcessingStep(null);
+      setProgress(0);
+      setError(null);
+      setUploadedFile(null);
+      setSelectedFile(null);
+      
+      console.log('✅ תהליך בוטל');
+    } catch (error) {
+      console.error('❌ שגיאה בביטול תהליך:', error);
+      setError('שגיאה בביטול התהליך - נסה שוב');
     }
-    
-    // עצירת polling
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
-    }
-    
-    // איפוס מצב
-    setIsProcessing(false);
-    setProcessingStep(null);
-    setProgress(0);
-    setError(null);
-    setUploadedFile(null);
-    setSelectedFile(null);
-    
-    console.log('✅ תהליך בוטל');
   };
 
   // הורדת ערוץ
@@ -581,98 +731,149 @@ const AudioSeparation = () => {
       }
     } catch (error) {
       console.error('❌ שגיאה בהורדת ערוץ:', error);
-      setError(`שגיאה בהורדת ערוץ: ${error.message}`);
+      
+      // הודעה מפורטת יותר למשתמש
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'הורדת ערוץ נכשלה - זמן המתנה ארוך מדי';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
+      } else if (error.message.includes('404')) {
+        errorMessage = 'הערוץ לא נמצא - ייתכן שהפרויקט לא הושלם עדיין';
+      } else if (error.message.includes('403')) {
+        errorMessage = 'אין לך הרשאה להוריד ערוץ זה';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
+      } else if (error.message.includes('503')) {
+        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
+      }
+      
+      setError(errorMessage);
     }
   };
 
   // ניהול אודיו
   const playTrack = (trackId) => {
-    if (playingTrack === trackId) {
-      // עצירת הפעלה
-      if (audioElements[trackId]) {
-        audioElements[trackId].pause();
-        audioElements[trackId].currentTime = 0;
-      }
-      setPlayingTrack(null);
-    } else {
-      // עצירת כל הפעלות אחרות
-      stopAllTracks();
-      
-      // הפעלת הערוץ הנבחר
-      if (audioFiles[trackId]) {
-        const audio = new Audio(audioFiles[trackId].url);
-        audio.volume = volumeLevels[trackId] || 1.0;
-        audio.muted = mutedTracks[trackId] || false;
+    try {
+      if (playingTrack === trackId) {
+        // עצירת הפעלה
+        if (audioElements[trackId]) {
+          audioElements[trackId].pause();
+          audioElements[trackId].currentTime = 0;
+        }
+        setPlayingTrack(null);
+      } else {
+        // עצירת כל הפעלות אחרות
+        stopAllTracks();
         
-        audio.addEventListener('ended', () => setPlayingTrack(null));
-        audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
-        audio.addEventListener('loadedmetadata', () => setDuration(audio.duration));
-        
-        audio.play();
-        setAudioElements(prev => ({ ...prev, [trackId]: audio }));
-        setPlayingTrack(trackId);
+        // הפעלת הערוץ הנבחר
+        if (audioFiles[trackId]) {
+          const audio = new Audio(audioFiles[trackId].url);
+          audio.volume = volumeLevels[trackId] || 1.0;
+          audio.muted = mutedTracks[trackId] || false;
+          
+          audio.addEventListener('ended', () => setPlayingTrack(null));
+          audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
+          audio.addEventListener('loadedmetadata', () => setDuration(audio.duration));
+          
+          audio.play();
+          setAudioElements(prev => ({ ...prev, [trackId]: audio }));
+          setPlayingTrack(trackId);
+        }
       }
+    } catch (error) {
+      console.error('❌ שגיאה בהפעלת ערוץ:', error);
+      setError('שגיאה בהפעלת ערוץ - נסה שוב');
     }
   };
 
   const stopAllTracks = () => {
-    Object.values(audioElements).forEach(audio => {
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    });
-    setAudioElements({});
-    setPlayingTrack(null);
-    setCurrentTime(0);
+    try {
+      Object.values(audioElements).forEach(audio => {
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+      setAudioElements({});
+      setPlayingTrack(null);
+      setCurrentTime(0);
+    } catch (error) {
+      console.error('❌ שגיאה בעצירת כל הערוצים:', error);
+      // לא מציג שגיאה למשתמש כי זה לא קריטי
+    }
   };
 
   const setTrackVolume = (trackId, volume) => {
-    setVolumeLevels(prev => ({ ...prev, [trackId]: volume }));
-    
-    if (audioElements[trackId]) {
-      audioElements[trackId].volume = volume;
+    try {
+      setVolumeLevels(prev => ({ ...prev, [trackId]: volume }));
+      
+      if (audioElements[trackId]) {
+        audioElements[trackId].volume = volume;
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בעדכון עוצמת ערוץ:', error);
+      // לא מציג שגיאה למשתמש כי זה לא קריטי
     }
   };
 
   const toggleTrackMute = (trackId) => {
-    setMutedTracks(prev => ({ ...prev, [trackId]: !prev[trackId] }));
-    
-    if (audioElements[trackId]) {
-      audioElements[trackId].muted = !mutedTracks[trackId];
+    try {
+      setMutedTracks(prev => ({ ...prev, [trackId]: !prev[trackId] }));
+      
+      if (audioElements[trackId]) {
+        audioElements[trackId].muted = !mutedTracks[trackId];
+      }
+    } catch (error) {
+      console.error('❌ שגיאה בעדכון השתקת ערוץ:', error);
+      // לא מציג שגיאה למשתמש כי זה לא קריטי
     }
   };
 
   const resetToUpload = () => {
-    setCurrentView('upload');
-    setShowUploadForm(true);
-    setSelectedProject(null);
-    setAudioFiles({});
-    setError(null);
-    setProgress(0);
-    setProcessingStep(null);
-    setIsProcessing(false);
-    
-    // עצירת כל האודיו
-    stopAllTracks();
-    
-    // ניקוי polling
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
+    try {
+      setCurrentView('upload');
+      setShowUploadForm(true);
+      setSelectedProject(null);
+      setAudioFiles({});
+      setError(null);
+      setProgress(0);
+      setProcessingStep(null);
+      setIsProcessing(false);
+      
+      // עצירת כל האודיו
+      stopAllTracks();
+      
+      // ניקוי polling
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+      
+      console.log('✅ חזרה למסך העלאה');
+    } catch (error) {
+      console.error('❌ שגיאה בחזרה למסך העלאה:', error);
+      setError('שגיאה בחזרה למסך העלאה - נסה שוב');
     }
   };
 
   // ניקוי בעת עזיבת הקומפוננטה
   useEffect(() => {
     return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      try {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+        }
+        if (uploadController) {
+          uploadController.abort();
+        }
+        stopAllTracks();
+      } catch (error) {
+        console.error('❌ שגיאה בניקוי הקומפוננטה:', error);
+        // לא מציג שגיאה למשתמש כי זה לא קריטי
       }
-      if (uploadController) {
-        uploadController.abort();
-      }
-      stopAllTracks();
     };
   }, [pollingInterval, uploadController]);
 
@@ -787,8 +988,10 @@ const AudioSeparation = () => {
                 <ProcessingStatus
                   step={processingStep}
                   progress={progress}
+                  error={error}
                   fileName={selectedFile?.name}
                   onCancel={cancelProcessing}
+                  onRetry={retryProcessing}
                 />
               </div>
             )}
@@ -842,6 +1045,20 @@ const AudioSeparation = () => {
               </button>
             </div>
 
+            {/* Processing Status - הצג כאשר התהליך עדיין רץ */}
+            {isProcessing && (
+              <div className="max-w-2xl mx-auto">
+                <ProcessingStatus
+                  step={processingStep}
+                  progress={progress}
+                  error={error}
+                  fileName={selectedFile?.name}
+                  onCancel={cancelProcessing}
+                  onRetry={retryProcessing}
+                />
+              </div>
+            )}
+
             {/* Audio Tracks */}
             {Object.keys(audioFiles).length > 0 ? (
               <div className="space-y-6">
@@ -861,7 +1078,8 @@ const AudioSeparation = () => {
                 ))}
               </div>
             ) : (
-              <EmptyState />
+              // הצג EmptyState רק כאשר אין עיבוד ואין ערוצי אודיו
+              !isProcessing && <EmptyState />
             )}
           </div>
         )}
