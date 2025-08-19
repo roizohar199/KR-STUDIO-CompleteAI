@@ -48,6 +48,7 @@ const AudioSeparation = () => {
   const [uploadController, setUploadController] = useState(null);
   const [serverStatus, setServerStatus] = useState('checking'); // 'checking', 'connected', 'disconnected'
   const [connectionTest, setConnectionTest] = useState(null);
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef();
   const audioContextRef = useRef();
   const t = useTranslation();
