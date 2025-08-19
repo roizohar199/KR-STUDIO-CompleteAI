@@ -3,16 +3,16 @@ import { Upload, Play, Pause, Download, Trash2, Music, Mic, Volume2, CircleDot, 
 import { useTranslation } from '../lib/translations';
 
 // Import API functions
-import { 
-  uploadAudio, 
-  separateAudio, 
-  getSeparationProgress, 
-  getProjects, 
-  getProject, 
+import {
+  uploadAudio,
+  separateAudio,
+  getSeparationProgress,
+  getProjects,
+  getProject,
   deleteProject,
   downloadStem,
   healthCheck,
-  testServerConnection 
+  quickConnectionTest
 } from '../api/client';
 
 // Import new components
@@ -1451,81 +1451,22 @@ const AudioSeparation = () => {
       setServerConnected(false);
       setGlobalError(null);
       
-      console.log('🔍 שלב 1: בדיקת חיבור בסיסי...');
+      console.log('🔍 בדיקת חיבור לשרת...');
       const startTime = performance.now();
       
-      const healthResult = await healthCheck();
+      // בדיקה מהירה מאוד
+      const quickResult = await quickConnectionTest();
       const responseTime = performance.now() - startTime;
       
       console.log(`⏱️ זמן תגובה: ${responseTime.toFixed(0)}ms`);
-      console.log('📊 תוצאת בדיקת בריאות:', healthResult);
       
-      if (!healthResult) {
-        console.error('❌ לא התקבלה תשובה מבדיקת הבריאות');
-        setGlobalError('השרת לא מגיב - בדוק את החיבור לאינטרנט');
+      if (!quickResult || quickResult.error) {
+        console.error('❌ שגיאה בבדיקה המהירה:', quickResult?.error);
+        setGlobalError('השרת לא מגיב - נסה שוב בעוד כמה שניות');
         return false;
       }
       
-      if (healthResult.error) {
-        console.error('❌ שגיאה בבדיקת הבריאות:', healthResult.error);
-        setGlobalError(`שגיאה בשרת: ${healthResult.error}`);
-        return false;
-      }
-      
-      console.log('✅ בדיקת בריאות עברה בהצלחה');
-      
-      console.log('🔍 שלב 2: בדיקת חיבור מתקדמת...');
-      const advancedStartTime = performance.now();
-      
-      const connectionResult = await testServerConnection();
-      const advancedResponseTime = performance.now() - advancedStartTime;
-      
-      console.log(`⏱️ זמן תגובה מתקדם: ${advancedResponseTime.toFixed(0)}ms`);
-      console.log('📊 תוצאת בדיקת חיבור מתקדמת:', connectionResult);
-      
-      if (!connectionResult) {
-        console.error('❌ לא התקבלה תשובה מבדיקת החיבור המתקדמת');
-        setGlobalError('השרת לא מגיב לבדיקות מתקדמות');
-        return false;
-      }
-      
-      if (connectionResult.error) {
-        console.error('❌ שגיאה בבדיקת חיבור מתקדמת:', connectionResult.error);
-        setGlobalError(`שגיאה בחיבור מתקדם: ${connectionResult.error}`);
-        return false;
-      }
-      
-      console.log('✅ בדיקת חיבור מתקדמת עברה בהצלחה');
-      
-      console.log('🔍 שלב 3: בדיקת זמינות endpoints...');
-      const endpointsStartTime = performance.now();
-      
-      try {
-        // בדיקת endpoint של פרויקטים
-        const projectsResult = await getProjects();
-        const projectsResponseTime = performance.now() - endpointsStartTime;
-        
-        console.log(`⏱️ זמן תגובה פרויקטים: ${projectsResponseTime.toFixed(0)}ms`);
-        console.log('📊 תוצאת בדיקת פרויקטים:', projectsResult);
-        
-        if (Array.isArray(projectsResult)) {
-          console.log(`✅ endpoint פרויקטים עובד - נמצאו ${projectsResult.length} פרויקטים`);
-        } else {
-          console.warn('⚠️ endpoint פרויקטים החזיר תשובה לא צפויה:', typeof projectsResult);
-        }
-        
-      } catch (endpointError) {
-        console.warn('⚠️ שגיאה בבדיקת endpoint פרויקטים:', endpointError.message);
-        // זה לא קריטי, נמשיך
-      }
-      
-      // עדכון מצב החיבור
-      console.log('✅ ===== כל בדיקות החיבור עברו בהצלחה =====');
-      console.log('📊 סיכום ביצועים:', {
-        healthCheck: responseTime.toFixed(0) + 'ms',
-        advancedCheck: advancedResponseTime.toFixed(0) + 'ms',
-        totalTime: (responseTime + advancedResponseTime).toFixed(0) + 'ms'
-      });
+      console.log('✅ בדיקת חיבור עברה בהצלחה');
       
       setServerConnected(true);
       setGlobalError(null);

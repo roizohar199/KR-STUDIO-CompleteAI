@@ -1372,23 +1372,16 @@ app.get('/api/health', (req, res) => {
   const origin = req.headers.origin || '*';
   res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Method, Access-Control-Request-Headers, User-Agent, X-Forwarded-For, X-Forwarded-Proto');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
-  // בדיקה אם השרת מוכן
-  if (!isReady) {
-    return res.status(503).json({ 
-      status: 'starting', 
-      message: 'Server is starting up'
-    });
-  }
-  
-  // תשובה מהירה ופשוטה ל-health checks
+  // תשובה מהירה ופשוטה ל-health checks - ללא בדיקות נוספות
   res.status(200).json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    server: 'KR-STUDIO CompleteAI Backend'
+    server: 'KR-STUDIO CompleteAI Backend',
+    uptime: process.uptime()
   });
 });
 
@@ -1571,12 +1564,14 @@ app.get('/api/worker/health', (req, res) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
   res.header('Access-Control-Allow-Credentials', 'true');
   
+  // תשובה מהירה ללא לוגים מיותרים
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     worker: 'KR-STUDIO CompleteAI Worker',
     version: '1.0.0',
-    mode: 'integrated'
+    mode: 'integrated',
+    uptime: process.uptime()
   });
 });
 
@@ -1619,6 +1614,22 @@ app.post('/api/worker/process', async (req, res) => {
       error: error.message
     });
   }
+});
+
+// Quick connection test endpoint
+app.get('/api/quick-test', (req, res) => {
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // תשובה מהירה מאוד לבדיקת חיבור
+  res.status(200).json({
+    status: 'connected',
+    timestamp: new Date().toISOString(),
+    server: 'KR-STUDIO CompleteAI'
+  });
 });
 
 // Worker download endpoint

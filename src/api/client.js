@@ -36,8 +36,8 @@ const apiCall = async (endpoint, options = {}) => {
         ...options.headers,
       },
       ...options,
-      // אופטימיזציה: timeout קצר יותר לביצועים טובים יותר
-      signal: AbortSignal.timeout(180000), // 3 דקות במקום 5
+          // אופטימיזציה: timeout קצר יותר לביצועים טובים יותר
+    signal: AbortSignal.timeout(30000), // 30 שניות במקום 3 דקות
     };
     
     const response = await fetch(url, fetchOptions);
@@ -264,6 +264,17 @@ export const healthCheck = async () => {
     }
     
     throw new Error(`שגיאה בחיבור לשרת: ${error.message}`);
+  }
+};
+
+// Quick connection test - מהיר יותר
+export const quickConnectionTest = async () => {
+  try {
+    const result = await apiCall('/quick-test');
+    return result;
+  } catch (error) {
+    console.error('❌ בדיקה מהירה נכשלה:', error.message);
+    throw error;
   }
 };
 
