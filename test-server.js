@@ -1,5 +1,5 @@
 // בדיקת חיבור לשרת
-const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
+const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
 
 async function testServerConnection() {
   console.log('🔍 ===== בדיקת חיבור לשרת =====');

@@ -1,9 +1,9 @@
 // בדיקת חיבור Backend
 const testBackendConnection = async () => {
   const testUrls = [
-    'https://kr-studio-completeai.fly.dev/api/health',
-    'https://kr-studio-completeai.fly.dev/',
-    'https://kr-studio-completeai.fly.dev'
+    'https://kr-studio-completeai.onrender.com/api/health',
+    'https://kr-studio-completeai.onrender.com/',
+    'https://kr-studio-completeai.onrender.com'
   ];
 
   console.log('🔍 בודק חיבור Backend...');

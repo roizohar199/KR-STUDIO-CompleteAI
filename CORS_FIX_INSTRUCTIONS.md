@@ -10,23 +10,23 @@
 
 ```javascript
 // לפני
-const API_BASE_URL = 'https://kr-studio-audio-separation.fly.dev/api';
+const API_BASE_URL = 'https://kr-studio-worker.onrender.com/api';
 
 // אחרי
-const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
+const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
 ```
 
 ### שלב 2: בדיקת חיבור
 1. פתח Developer Tools (F12)
 2. עבור לטאב Console
 3. חפש שגיאות CORS
-4. וודא שהן הולכות ל-URL החדש: `https://kr-studio-completeai.fly.dev/api`
+4. וודא שהן הולכות ל-URL החדש: `https://kr-studio-completeai.onrender.com/api`
 
 ### שלב 3: בדיקת שרת
 בדוק שהשרת עובד:
 
 ```bash
-curl https://kr-studio-completeai.fly.dev/api/health
+curl https://kr-studio-completeai.onrender.com/api/health
 ```
 
 ## פתרון מפורט
@@ -34,13 +34,13 @@ curl https://kr-studio-completeai.fly.dev/api/health
 ### 1. עדכון קובץ API Client
 ```javascript
 // src/api/client.js
-const API_BASE_URL = 'https://kr-studio-completeai.fly.dev/api';
+const API_BASE_URL = 'https://kr-studio-completeai.onrender.com/api';
 ```
 
 ### 2. עדכון משתני סביבה
 ```bash
 # .env
-API_BASE_URL=https://kr-studio-completeai.fly.dev/api
+API_BASE_URL=https://kr-studio-completeai.onrender.com/api
 ```
 
 ### 3. בדיקת CORS בשרת

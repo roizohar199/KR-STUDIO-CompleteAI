@@ -11,17 +11,17 @@
 - **פלטפורמה**: Hostinger
 - **תפקיד**: ממשק משתמש
 
-### Backend (Fly.io)
+### Backend (Render.com)
 - **סטטוס**: ✅ פעיל
-- **URL**: `https://kr-studio-completeai.fly.dev`
-- **API URL**: `https://kr-studio-completeai.fly.dev/api`
-- **פלטפורמה**: Fly.io
+- **URL**: `https://kr-studio-completeai.onrender.com`
+- **API URL**: `https://kr-studio-completeai.onrender.com/api`
+- **פלטפורמה**: Render.com
 - **תפקיד**: שרת API ראשי
 
-### Worker (Fly.io)
-- **סטטוס**: ✅ פעיל
-- **URL**: `https://kr-studio-worker.fly.dev`
-- **פלטפורמה**: Fly.io
+### Worker (Render.com)
+- **סטטוס**: ⚠️ צריך ליצור
+- **URL**: `https://kr-studio-worker.onrender.com`
+- **פלטפורמה**: Render.com
 - **תפקיד**: עיבוד אודיו (Demucs)
 
 ## 🔧 פונקציונליות
@@ -47,14 +47,14 @@
 ## 📊 בדיקות שבוצעו
 
 ### בדיקות Backend
-✅ https://kr-studio-completeai.fly.dev/api/health
-✅ https://kr-studio-completeai.fly.dev/
-✅ https://kr-studio-completeai.fly.dev
+✅ https://kr-studio-completeai.onrender.com/api/health
+✅ https://kr-studio-completeai.onrender.com/
+✅ https://kr-studio-completeai.onrender.com
 
 ### בדיקות Worker
-✅ https://kr-studio-worker.fly.dev/api/health
-✅ עיבוד אודיו עובד
-✅ ניהול זיכרון תקין
+⚠️ https://kr-studio-worker.onrender.com/api/worker/health (לא קיים עדיין)
+⚠️ עיבוד אודיו לא עובד (צריך ליצור Worker)
+⚠️ ניהול זיכרון לא זמין
 
 ### בדיקות Frontend
 ✅ https://mixifyai.k-rstudio.com
@@ -71,14 +71,14 @@
 - **הפרדת אודיו**: תלוי באורך הקובץ
 
 ### זיכרון
-- **Backend**: 1GB RAM
-- **Worker**: 2GB RAM
-- **ניקוי אוטומטי**: כל 5 דקות
+- **Backend**: 512MB RAM (תוכנית חינמית)
+- **Worker**: 512MB RAM (תוכנית חינמית)
+- **ניקוי אוטומטי**: כל 3 דקות
 
 ### אמינות
-- **Uptime**: 99.9%+
-- **Auto-scaling**: פעיל
-- **Load balancing**: פעיל
+- **Uptime**: 99%+ (עם auto-sleep)
+- **Auto-scaling**: לא זמין (תוכנית חינמית)
+- **Load balancing**: לא זמין (תוכנית חינמית)
 
 ## 🔒 אבטחה
 
@@ -112,8 +112,8 @@
 - **לוגים**: כל 7 ימים
 
 ### עדכונים
-- **Backend**: אוטומטי
-- **Worker**: אוטומטי
+- **Backend**: אוטומטי (GitHub integration)
+- **Worker**: אוטומטי (GitHub integration)
 - **Frontend**: ידני (Hostinger)
 
 ## 📞 תמיכה
@@ -124,18 +124,18 @@
 - **Documentation**: מעודכן
 
 ### פתרון בעיות
-- **Logs**: זמינים ב-Fly.io
-- **Monitoring**: Grafana
-- **Alerts**: אוטומטיים
+- **Logs**: זמינים ב-Render.com
+- **Monitoring**: Render.com Dashboard
+- **Alerts**: לא זמין (תוכנית חינמית)
 
 ## 🎉 סיכום
 
-המערכת עובדת במלואה:
+המערכת עובדת חלקית:
 - ✅ **Frontend** פעיל ב-Hostinger
-- ✅ **Backend** פעיל ב-Fly.io
-- ✅ **Worker** פעיל ב-Fly.io
-- ✅ **כל הפונקציות** עובדות
-- ✅ **ביצועים** מעולים
-- ✅ **אמינות** גבוהה
+- ✅ **Backend** פעיל ב-Render.com
+- ⚠️ **Worker** צריך ליצור ב-Render.com
+- ⚠️ **הפרדת אודיו** לא עובדת (צריך Worker)
+- ✅ **ניתוח אודיו** עובד
+- ⚠️ **אמינות** חלקית (ללא Worker)
 
-המערכת מוכנה לשימוש מלא! 
+המערכת זקוקה ליצירת Worker כדי לעבוד במלואה! 
