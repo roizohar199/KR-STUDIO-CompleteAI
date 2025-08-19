@@ -41,6 +41,8 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
         return <Zap className="w-8 h-8 text-green-400" />;
       case 'completed':
         return <CheckCircle className="w-8 h-8 text-green-400" />;
+      case 'loading-project':
+        return <RefreshCw className="w-8 h-8 text-blue-400 animate-spin" />;
       case 'error':
         return <AlertCircle className="w-8 h-8 text-red-400" />;
       default:
@@ -58,6 +60,8 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
         return 'from-green-500 to-green-600';
       case 'completed':
         return 'from-green-500 to-green-600';
+      case 'loading-project':
+        return 'from-blue-500 to-blue-600';
       case 'error':
         return 'from-red-500 to-red-600';
       default:
@@ -75,6 +79,8 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
         return 'מפריד ערוצים...';
       case 'completed':
         return 'הושלם בהצלחה!';
+      case 'loading-project':
+        return 'טוען פרויקט...';
       case 'error':
         return 'שגיאה בעיבוד';
       default:
@@ -92,6 +98,8 @@ export default function ProcessingStatus({ step, progress, error, fileName, onRe
         return 'מפריד את האודיו ל-5 ערוצים נפרדים (ווקאל, בס, תופים, כלי נגינה, אחר)';
       case 'completed':
         return 'האודיו הופרד בהצלחה! אתה יכול להוריד את הערוצים';
+      case 'loading-project':
+        return 'ההפרדה הושלמה! טוען את הפרויקט המוכן עם כל הערוצים...';
       case 'error':
         return 'אירעה שגיאה בעיבוד הקובץ';
       default:
