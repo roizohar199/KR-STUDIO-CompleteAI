@@ -82,158 +82,99 @@ const AudioSeparation = () => {
   }, []);
 
   // טעינת פרויקטים קיימים
-  useEffect(() => {
-    if (serverConnected) {
-      try {
-        loadProjects();
-        
-        // בדיקה אוטומטית של פרויקטים קיימים אחרי 3 שניות
-        setTimeout(() => {
-          checkExistingProjects();
-        }, 3000);
-      } catch (error) {
-        console.error('❌ שגיאה בטעינת פרויקטים:', error);
-        setError('שגיאה בטעינת פרויקטים - נסה לרענן את הדף');
-      }
-    }
-  }, [serverConnected]);
-
-  // בדיקה חוזרת של חיבור לשרת
-  const retryConnection = async () => {
-    console.log('🔄 מנסה חיבור חוזר לשרת...');
-    setError(null);
-    setGlobalError(null);
-    
-    // הודעה למשתמש
-    console.log('🔄 ===== מתחיל חיבור חוזר לשרת =====');
-    
-    try {
-      const retryStartTime = performance.now();
-      await checkServerConnection();
-      const retryTotalTime = performance.now() - retryStartTime;
-      
-      // הודעה למשתמש
-      if (serverConnected) {
-        console.log(`✅ חיבור חוזר לשרת הצליח (${retryTotalTime.toFixed(0)}ms)`);
-        setError(null);
-        
-        // טעינת פרויקטים אוטומטית אחרי חיבור מוצלח
-        if (retryTotalTime < 3000) { // רק אם החיבור מהיר
-          console.log('📋 טוען פרויקטים אחרי חיבור מוצלח...');
-          setTimeout(() => {
-            loadProjects().catch(err => {
-              console.warn('⚠️ שגיאה בטעינת פרויקטים אחרי חיבור:', err);
-            });
-          }, 500);
-        }
-      } else {
-        console.log(`❌ חיבור חוזר לשרת נכשל (${retryTotalTime.toFixed(0)}ms)`);
-        setError('חיבור חוזר לשרת נכשל - נסה שוב או פנה לתמיכה');
-      }
-    } catch (error) {
-      console.error('❌ שגיאה בחיבור חוזר:', error);
-      setError('חיבור חוזר לשרת נכשל - נסה שוב או פנה לתמיכה');
-    }
-  };
-
-  // בדיקת חיבור לשרת
-  const checkServerConnection = async () => {
-    try {
-      setServerStatus('checking');
-      console.log('🔍 בודק חיבור לשרת...');
-      
-      // בדיקה מהירה של בריאות השרת
-      const startTime = performance.now();
-      const result = await healthCheck();
-      const responseTime = performance.now() - startTime;
-      
-      console.log(`✅ בדיקת בריאות הצליחה (${responseTime.toFixed(0)}ms):`, result);
-      
-      setServerConnected(true);
-      setServerStatus('connected');
-      setGlobalError(null);
-      
-      // בדיקת חיבור נוספת רק אם הבדיקה הראשונה הצליחה
-      if (responseTime < 1000) { // אם התגובה מהירה, נבדוק חיבור נוסף
-        try {
-          const connectionStartTime = performance.now();
-          const connectionResult = await testServerConnection();
-          const connectionResponseTime = performance.now() - connectionStartTime;
-          
-          console.log(`✅ בדיקת חיבור הצליחה (${connectionResponseTime.toFixed(0)}ms):`, connectionResult);
-          setConnectionTest(connectionResult);
-          
-          // לוג ביצועים
-          if (connectionResponseTime > 2000) {
-            console.warn(`⚠️ תגובה איטית: ${connectionResponseTime.toFixed(0)}ms`);
-          }
-        } catch (connectionError) {
-          console.warn('⚠️ בדיקת חיבור נכשלה:', connectionError.message);
-          setConnectionTest({ success: false, error: connectionError.message });
-        }
-      } else {
-        console.log(`⏱️ תגובה איטית (${responseTime.toFixed(0)}ms) - דילוג על בדיקת חיבור נוספת`);
-      }
-      
-    } catch (error) {
-      console.error('❌ בדיקת בריאות נכשלה:', error);
-      
-      // הודעה מפורטת יותר למשתמש
-      let errorMessage = error.message;
-      if (error.message.includes('timeout')) {
-        errorMessage = 'בדיקת חיבור לשרת נכשלה - זמן המתנה ארוך מדי';
-      } else if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('NetworkError')) {
-        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('500')) {
-        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר';
-      } else if (error.message.includes('503')) {
-        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
-      } else if (error.message.includes('CORS')) {
-        errorMessage = 'בעיית הרשאות - השרת לא מאפשר גישה מהדפדפן';
-      }
-      
-      setServerConnected(false);
-      setServerStatus('disconnected');
-      setGlobalError(`לא ניתן להתחבר לשרת: ${errorMessage}`);
-    }
-  };
-
-  // טעינת פרויקטים
   const loadProjects = async () => {
+    console.log('📁 ===== מתחיל טעינת פרויקטים =====');
+    console.log('⏰ זמן טעינה:', new Date().toISOString());
+    console.log('🔗 מצב חיבור לשרת:', serverConnected);
+    
+    if (!serverConnected) {
+      console.warn('⚠️ אין חיבור לשרת, דילוג על טעינת פרויקטים');
+      return;
+    }
+    
     try {
-      console.log('📋 טוען פרויקטים...');
+      console.log('🔍 שלב 1: שליחת בקשה לשרת...');
       const startTime = performance.now();
       
       const projectsData = await getProjects();
-      const loadTime = performance.now() - startTime;
+      const responseTime = performance.now() - startTime;
       
-      console.log(`📋 פרויקטים נטענו (${loadTime.toFixed(0)}ms):`, projectsData);
+      console.log(`⏱️ זמן תגובה: ${responseTime.toFixed(0)}ms`);
+      console.log('📊 נתוני פרויקטים שהתקבלו:', projectsData);
       
-      if (projectsData && Array.isArray(projectsData)) {
-        // בדיקת תקינות הנתונים
-        const validProjects = projectsData.filter(project => 
-          project && project.id && project.name && project.status
-        );
-        
-        if (validProjects.length !== projectsData.length) {
-          console.warn(`⚠️ ${projectsData.length - validProjects.length} פרויקטים לא תקינים נסרקו`);
-        }
-        
-        setProjects(validProjects);
-        console.log(`✅ ${validProjects.length} פרויקטים נטענו בהצלחה`);
-        
-        // לוג ביצועים
-        if (loadTime > 2000) {
-          console.warn(`⏱️ טעינת פרויקטים איטית: ${loadTime.toFixed(0)}ms`);
-        }
-      } else {
-        console.warn('⚠️ תשובה לא תקינה מ-getProjects:', projectsData);
+      if (!projectsData) {
+        console.warn('⚠️ לא התקבלו נתוני פרויקטים');
         setProjects([]);
+        return;
       }
+      
+      if (!Array.isArray(projectsData)) {
+        console.warn('⚠️ התקבלה תשובה לא צפויה:', typeof projectsData);
+        console.warn('📊 תוכן התשובה:', projectsData);
+        setProjects([]);
+        return;
+      }
+      
+      console.log(`✅ התקבלו ${projectsData.length} פרויקטים מהשרת`);
+      
+      // בדיקת תקינות הפרויקטים
+      console.log('🔍 שלב 2: בדיקת תקינות הפרויקטים...');
+      const validProjects = [];
+      const invalidProjects = [];
+      
+      for (let i = 0; i < projectsData.length; i++) {
+        const project = projectsData[i];
+        console.log(`🔍 בודק פרויקט ${i + 1}/${projectsData.length}:`, {
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          hasStems: !!project.stems,
+          stemsCount: project.stems ? Object.keys(project.stems).length : 0
+        });
+        
+        if (project && project.id && project.name) {
+          validProjects.push(project);
+          console.log(`✅ פרויקט ${i + 1} תקין`);
+        } else {
+          invalidProjects.push(project);
+          console.warn(`⚠️ פרויקט ${i + 1} לא תקין:`, project);
+        }
+      }
+      
+      console.log(`📊 סיכום בדיקת תקינות:`, {
+        total: projectsData.length,
+        valid: validProjects.length,
+        invalid: invalidProjects.length
+      });
+      
+      if (invalidProjects.length > 0) {
+        console.warn('⚠️ נמצאו פרויקטים לא תקינים:', invalidProjects);
+      }
+      
+      // עדכון המצב
+      console.log('💾 שלב 3: עדכון מצב הפרויקטים...');
+      setProjects(validProjects);
+      
+      console.log('✅ ===== טעינת פרויקטים הושלמה בהצלחה =====');
+      console.log('📊 סיכום:', {
+        projectsLoaded: validProjects.length,
+        responseTime: responseTime.toFixed(0) + 'ms',
+        timestamp: new Date().toISOString()
+      });
+      
+      // בדיקה אם יש פרויקט נבחר
+      if (selectedProject && !validProjects.find(p => p.id === selectedProject.id)) {
+        console.warn('⚠️ הפרויקט הנבחר לא נמצא ברשימה המעודכנת, איפוס בחירה');
+        setSelectedProject(null);
+      }
+      
     } catch (error) {
-      console.error('❌ שגיאה בטעינת פרויקטים:', error);
+      console.error('❌ ===== שגיאה בטעינת פרויקטים =====');
+      console.error('📊 פרטי השגיאה:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       
       // הודעה מפורטת יותר למשתמש
       let errorMessage = error.message;
@@ -249,7 +190,9 @@ const AudioSeparation = () => {
         errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
       }
       
-      setError(errorMessage);
+      setError(`שגיאה בטעינת פרויקטים: ${errorMessage}`);
+      
+      // איפוס הפרויקטים במקרה של שגיאה
       setProjects([]);
     }
   };
@@ -578,538 +521,468 @@ const AudioSeparation = () => {
     }
   };
 
-  // העלאת קובץ והתחלת הפרדה
+  // טיפול בהעלאת קובץ
   const handleFileUpload = async (file) => {
-    if (!file) {
-      setError('אנא בחר קובץ אודיו');
-      return;
-    }
-
-    // בדיקת סוג קובץ
-    const allowedTypes = [
-      'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 
-      'audio/x-wav', 'audio/flac', 'audio/x-flac', 
-      'audio/m4a', 'audio/x-m4a', 'audio/ogg', 'audio/x-ogg'
-    ];
-    
-    if (!allowedTypes.includes(file.type)) {
-      setError('סוג קובץ לא נתמך. אנא בחר קובץ אודיו (MP3, WAV, FLAC, M4A, OGG)');
-      return;
-    }
-
-    // בדיקת גודל קובץ
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      setError(`הקובץ גדול מדי (${Math.round(file.size / 1024 / 1024)}MB). מקסימום: 50MB`);
-      return;
-    }
+    console.log('📁 ===== מתחיל טיפול בקובץ שהועלה =====');
+    console.log('📁 פרטי הקובץ:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
 
     try {
-      setError(null);
-      setIsProcessing(true);
-      setProcessingStep('uploading');
-      setProgress(0);
+      // בדיקת תקינות הקובץ
+      console.log('🔍 שלב 1: בדיקת תקינות הקובץ...');
       
-      console.log('📤 ===== מתחיל תהליך העלאה =====');
-      console.log('📤 שם קובץ:', file.name);
-      console.log('📤 גודל קובץ:', Math.round(file.size / 1024 / 1024), 'MB');
-      console.log('📤 סוג קובץ:', file.type);
+      if (!file) {
+        console.error('❌ לא התקבל קובץ');
+        setError('לא התקבל קובץ');
+        return;
+      }
 
-      // יצירת AbortController לביטול
-      const controller = new AbortController();
-      setUploadController(controller);
+      // בדיקת סוג הקובץ
+      const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/flac', 'audio/m4a', 'audio/ogg'];
+      console.log('🎵 סוג קובץ שהתקבל:', file.type);
+      console.log('✅ סוגי קבצים מותרים:', allowedTypes);
+      
+      if (!allowedTypes.includes(file.type)) {
+        console.error('❌ סוג קובץ לא נתמך:', file.type);
+        setError('סוג קובץ לא נתמך. אנא העלה קובץ MP3, WAV, FLAC, M4A או OGG');
+        return;
+      }
 
-      // ניסיונות העלאה עם retry
-      let result;
-      const maxRetries = 3;
-      let retryCount = 0;
+      // בדיקת גודל הקובץ
+      const maxSizeMB = 100;
+      const fileSizeMB = file.size / (1024 * 1024);
+      console.log('📏 גודל קובץ:', fileSizeMB.toFixed(2), 'MB');
+      console.log('📏 גודל מקסימלי מותר:', maxSizeMB, 'MB');
+      
+      if (fileSizeMB > maxSizeMB) {
+        console.error('❌ קובץ גדול מדי:', fileSizeMB.toFixed(2), 'MB');
+        setError(`הקובץ גדול מדי (${fileSizeMB.toFixed(2)}MB). הגודל המקסימלי הוא ${maxSizeMB}MB`);
+        return;
+      }
 
-      while (retryCount < maxRetries) {
-        try {
-          console.log(`📤 ניסיון העלאה ${retryCount + 1}/${maxRetries}...`);
-          
-          // העלאה עם מעקב התקדמות
-          result = await uploadAudio(file, (progress) => {
-            console.log(`📤 התקדמות העלאה: ${progress}%`);
-            setProgress(progress);
-          }, controller);
-          
-          // ניקוי ה-controller
-          setUploadController(null);
-          
-          break; // אם הצליח, צא מהלולאה
-        } catch (uploadError) {
-          retryCount++;
-          console.error(`❌ ניסיון ${retryCount} נכשל:`, uploadError.message);
-          
-          if (retryCount >= maxRetries) {
-            throw new Error(`העלאה נכשלה אחרי ${maxRetries} ניסיונות: ${uploadError.message}`);
-          }
-          
-          // איפוס התקדמות לפני ניסיון נוסף
-          setProgress(0);
-          
-          // המתנה לפני ניסיון נוסף
-          await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('✅ בדיקת תקינות עברה בהצלחה');
+      
+      // בדיקת חיבור לשרת
+      console.log('🔗 שלב 2: בדיקת חיבור לשרת...');
+      console.log('🔗 מצב חיבור נוכחי:', serverConnected);
+      
+      if (!serverConnected) {
+        console.warn('⚠️ אין חיבור לשרת, מנסה חיבור חוזר...');
+        await checkServerConnection();
+        
+        if (!serverConnected) {
+          console.error('❌ לא ניתן להתחבר לשרת');
+          setError('לא ניתן להתחבר לשרת. בדוק את החיבור לאינטרנט ונסה שוב');
+          return;
         }
       }
       
-      console.log('📤 תוצאת uploadAudio:', result);
-      
-      if (!result || !result.file || !result.file.id) {
-        throw new Error('תשובה לא תקינה מהשרת - חסר מזהה קובץ');
+      console.log('✅ חיבור לשרת תקין');
+
+      // בדיקת זיכרון פנוי
+      console.log('💾 שלב 3: בדיקת זיכרון פנוי...');
+      if ('memory' in performance) {
+        const memoryInfo = performance.memory;
+        const usedMemoryMB = memoryInfo.usedJSHeapSize / (1024 * 1024);
+        const totalMemoryMB = memoryInfo.totalJSHeapSize / (1024 * 1024);
+        const limitMemoryMB = memoryInfo.jsHeapSizeLimit / (1024 * 1024);
+        
+        console.log('💾 זיכרון בשימוש:', usedMemoryMB.toFixed(2), 'MB');
+        console.log('💾 זיכרון כולל:', totalMemoryMB.toFixed(2), 'MB');
+        console.log('💾 מגבלת זיכרון:', limitMemoryMB.toFixed(2), 'MB');
+        
+        if (usedMemoryMB > limitMemoryMB * 0.8) {
+          console.warn('⚠️ זיכרון כמעט מלא, ייתכן שיהיו בעיות ביצועים');
+        }
+      } else {
+        console.log('💾 מידע זיכרון לא זמין בדפדפן זה');
       }
+
+      // שמירת הקובץ במצב
+      console.log('💾 שלב 4: שמירת הקובץ במצב...');
+      setUploadedFile(file);
+      setError(null);
       
-      setUploadedFile(result.file);
-      setSelectedFile(file);
-      setProgress(100); // עדכון ל-100% כאשר ההעלאה מסתיימת
-      
-      console.log('✅ קובץ הועלה בהצלחה!');
-      console.log('📁 fileId:', result.file.id);
-      console.log('📁 שם קובץ:', result.file.name);
-      console.log('📁 גודל קובץ:', result.file.size);
-      
-      // הודעה למשתמש
-      setError(null); // ניקוי שגיאות קודמות
-      
-                // התחלת הפרדה אוטומטית
-          console.log('🎵 ===== מתחיל תהליך הפרדה =====');
-          console.log('🎵 בדיקת תוצאת העלאה:', result);
-          console.log('🎵 האם יש file:', !!result.file);
-          console.log('🎵 האם יש file.id:', !!result.file?.id);
-          
-          setProcessingStep('separating');
-          setProgress(0); // איפוס התקדמות לתחילת הפרדה
-          
-          // יצירת שם פרויקט אוטומטי
-          const autoProjectName = file.name.replace(/\.[^/.]+$/, '') + '_' + Date.now();
-          setProjectName(autoProjectName);
-          
-          console.log('🎵 שם פרויקט אוטומטי:', autoProjectName);
-          console.log('🎵 fileId לפרדה:', result.file.id);
-          
-          // התחלת הפרדה
-          console.log('📤 שולח בקשת הפרדה לשרת...');
-          console.log('📤 קריאה ל-separateAudio עם פרמטרים:', { fileId: result.file.id, projectName: autoProjectName });
-          
-          try {
-            console.log('🎵 לפני קריאה ל-separateAudio...');
-            const separationResult = await separateAudio(result.file.id, autoProjectName);
-            console.log('🎵 אחרי קריאה ל-separateAudio...');
-            
-            console.log('🎵 תוצאת הפרדה מהשרת:', separationResult);
-            console.log('🎵 סוג תוצאה:', typeof separationResult);
-            console.log('🎵 האם יש success:', separationResult && separationResult.success);
-            
-            if (separationResult && separationResult.success) {
-              console.log('✅ הפרדה החלה בהצלחה!');
-              console.log('🔄 מתחיל polling להתקדמות...');
-              
-              // הודעה למשתמש
-              setError(null); // ניקוי שגיאות קודמות
-              
-              // התחלת polling להתקדמות
-              startProgressPolling(result.file.id);
-              
-              console.log('📱 נשארים במסך ההתקדמות עד שההפרדה תסתיים...');
-              // נשארים במסך ההתקדמות במקום לעבור לסטודיו
-              // setCurrentView('studio');
-              // setShowUploadForm(false);
-              
-              // לא מאפסים את uploadedFile ו-projectName עד שההפרדה תסתיים
-              // setUploadedFile(null);
-              // setProjectName('');
-              
-              console.log('📋 לא טוענים פרויקטים עד שההפרדה תסתיים...');
-              // לא טוענים פרויקטים עד שההפרדה תסתיים
-              // await loadProjects();
-              
-              console.log('✅ ===== תהליך העלאה והפרדה הושלם בהצלחה =====');
-            } else {
-              console.error('❌ הפרדה נכשלה - תשובה לא תקינה מהשרת');
-              console.error('❌ separationResult:', separationResult);
-              console.error('❌ סוג separationResult:', typeof separationResult);
-              throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
-            }
-          } catch (separationError) {
-            console.error('❌ ===== שגיאה בהפרדה =====');
-            console.error('❌ פרטי השגיאה:', separationError);
-            console.error('❌ הודעת שגיאה:', separationError.message);
-            console.error('❌ Stack trace:', separationError.stack);
-            console.error('❌ שם השגיאה:', separationError.name);
-            throw separationError;
-          }
-      
+      console.log('✅ קובץ נשמר במצב בהצלחה');
+      console.log('📁 מצב קובץ:', {
+        hasFile: !!file,
+        fileName: file.name,
+        fileSize: file.size
+      });
+
+      // בדיקת פרויקטים קיימים
+      console.log('📁 שלב 5: בדיקת פרויקטים קיימים...');
+      try {
+        await loadProjects();
+        console.log(`✅ נטענו ${projects.length} פרויקטים קיימים`);
+      } catch (error) {
+        console.warn('⚠️ שגיאה בטעינת פרויקטים קיימים:', error);
+        // זה לא קריטי, נמשיך
+      }
+
+      console.log('🎉 ===== טיפול בקובץ הושלם בהצלחה =====');
+      console.log('📋 הקובץ מוכן להפרדה. הזן שם לפרויקט ולחץ על "התחל הפרדת אודיו"');
+
     } catch (error) {
-      console.error('❌ ===== שגיאה בתהליך העלאה/הפרדה =====');
-      console.error('❌ פרטי השגיאה:', error);
-      console.error('❌ הודעת שגיאה:', error.message);
-      console.error('❌ Stack trace:', error.stack);
+      console.error('❌ ===== שגיאה בטיפול בקובץ =====');
+      console.error('📊 פרטי השגיאה:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       
-      // הודעה מפורטת יותר למשתמש
-      let errorMessage = error.message;
-      if (error.message.includes('timeout')) {
-        errorMessage = 'העלאה נכשלה - זמן המתנה ארוך מדי. נסה שוב או בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('NetworkError')) {
-        errorMessage = 'שגיאת רשת - בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('413')) {
-        errorMessage = 'הקובץ גדול מדי - מקסימום 50MB';
-      } else if (error.message.includes('415')) {
-        errorMessage = 'סוג קובץ לא נתמך - אנא בחר קובץ אודיו (MP3, WAV, FLAC, M4A, OGG)';
-      } else if (error.message.includes('500')) {
-        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר או פנה לתמיכה';
-      } else if (error.message.includes('503')) {
-        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
-      }
+      setError(`שגיאה בטיפול בקובץ: ${error.message}`);
       
-      setError(errorMessage);
-      setIsProcessing(false);
-      setProcessingStep(null);
-      setProgress(0);
-      
-      // איפוס המצב כאשר יש שגיאה
+      // איפוס המצב במקרה של שגיאה
       setUploadedFile(null);
       setProjectName('');
-      
-      // הודעה למשתמש
-      console.error('❌ ===== שגיאה בתהליך העלאה/הפרדה =====');
     }
   };
 
   // התחלת הפרדה
   const startSeparation = async () => {
     if (!uploadedFile || !projectName.trim()) {
-      setError('אנא הכנס שם לפרויקט');
+      console.error('❌ חסרים נתונים להפרדה:', { 
+        hasFile: !!uploadedFile, 
+        projectName: projectName 
+      });
+      setError('נדרש קובץ אודיו ושם פרויקט');
       return;
     }
 
+    console.log('🚀 ===== מתחיל תהליך הפרדת אודיו =====');
+    console.log('📁 פרטי הקובץ:', {
+      name: uploadedFile.name,
+      size: uploadedFile.size,
+      type: uploadedFile.type,
+      lastModified: new Date(uploadedFile.lastModified).toISOString()
+    });
+    console.log('🏷️ שם הפרויקט:', projectName);
+    console.log('🔗 חיבור לשרת:', serverConnected);
+
     try {
       setError(null);
-      setProcessingStep('separating');
       setIsProcessing(true);
+      setProcessingStep('uploading');
       setProgress(0);
 
-      console.log('🎵 ===== מתחיל הפרדה =====');
-      console.log('🎵 שם פרויקט:', projectName);
-      console.log('🎵 fileId:', uploadedFile.id);
-      console.log('🎵 נשארים במסך ההתקדמות...');
-      console.log('🎵 מצב עיבוד:', { isProcessing: true, processingStep: 'separating', progress: 0, currentView: 'upload' });
+      console.log('📤 שלב 1: העלאת קובץ לשרת...');
+      const uploadStartTime = performance.now();
       
-      const result = await separateAudio(uploadedFile.id, projectName);
-      
-      if (result && result.success) {
-        console.log('✅ הפרדה החלה:', result);
-        console.log('🔄 נשארים במסך ההתקדמות - לא עוברים לסטודיו עד שההפרדה תסתיים');
-        console.log('🔄 מצב עיבוד אחרי התחלת הפרדה:', { isProcessing: true, processingStep: 'separating', progress: 0, currentView: 'upload' });
-        
-        // התחלת polling להתקדמות
-        startProgressPolling(uploadedFile.id);
-        
-        // נשארים במסך ההתקדמות במקום לעבור לסטודיו
-        // setCurrentView('studio');
-        // setShowUploadForm(false);
-        
-        console.log('🔄 נשארים במסך ההתקדמות...');
-        
-        // לא מאפסים את uploadedFile ו-projectName עד שההפרדה תסתיים
-        // setUploadedFile(null);
-        // setProjectName('');
-        
-        // לא טוענים פרויקטים עד שההפרדה תסתיים
-        // await loadProjects();
-      } else {
-        throw new Error('הפרדה נכשלה - תשובה לא תקינה מהשרת');
+      const uploadResult = await uploadAudio(uploadedFile, (progress) => {
+        console.log(`📤 התקדמות העלאה: ${progress}%`);
+        setProgress(progress);
+      });
+
+      const uploadTime = performance.now() - uploadStartTime;
+      console.log(`✅ העלאה הושלמה בהצלחה (${uploadTime.toFixed(0)}ms)`);
+      console.log('📤 תוצאת העלאה:', uploadResult);
+
+      if (!uploadResult || !uploadResult.fileId) {
+        throw new Error('לא התקבל fileId מהשרת');
       }
-      
+
+      const fileId = uploadResult.fileId;
+      console.log('🆔 מזהה קובץ שהתקבל:', fileId);
+
+      setProcessingStep('separating');
+      setProgress(25);
+      console.log('🎵 שלב 2: התחלת הפרדת אודיו...');
+
+      const separationStartTime = performance.now();
+      const separationResult = await separateAudio(fileId, projectName);
+      const separationTime = performance.now() - separationStartTime;
+
+      console.log(`✅ בקשת הפרדה נשלחה (${separationTime.toFixed(0)}ms)`);
+      console.log('🎵 תוצאת הפרדה:', separationResult);
+
+      if (!separationResult || !separationResult.success) {
+        throw new Error(separationResult?.error || 'הפרדת האודיו נכשלה');
+      }
+
+      setProgress(50);
+      console.log('⏳ שלב 3: המתנה לסיום הפרדה...');
+      console.log('🔄 מתחיל מעקב אחר התקדמות...');
+
+      // התחלת מעקב אחר התקדמות
+      startProgressPolling(fileId);
+
     } catch (error) {
-      console.error('❌ שגיאה בהפרדה:', error);
+      console.error('❌ שגיאה בתהליך ההפרדה:', error);
+      console.error('📊 פרטי השגיאה:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       
-      // הודעה מפורטת יותר למשתמש
-      let errorMessage = error.message;
-      if (error.message.includes('timeout')) {
-        errorMessage = 'הפרדה נכשלה - זמן המתנה ארוך מדי. נסה שוב או בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('NetworkError')) {
-        errorMessage = 'שגיאה ברשת - בדוק את החיבור לאינטרנט';
-      } else if (error.message.includes('500')) {
-        errorMessage = 'שגיאת שרת - נסה שוב מאוחר יותר או פנה לתמיכה';
-      } else if (error.message.includes('503')) {
-        errorMessage = 'השרת לא זמין כרגע - נסה שוב מאוחר יותר';
-      }
-      
-      setError(errorMessage);
+      setError(`שגיאה בהפרדת האודיו: ${error.message}`);
       setIsProcessing(false);
-      setProcessingStep(null);
+      setProcessingStep('error');
       setProgress(0);
-      
-      // איפוס המצב כאשר יש שגיאה
-      setUploadedFile(null);
-      setProjectName('');
-      
-      // הודעה למשתמש
-      console.error('❌ ===== שגיאה בהפרדה =====');
     }
   };
 
-  // Polling להתקדמות
+  // התחלת מעקב אחר התקדמות
   const startProgressPolling = (fileId) => {
-    console.log('🔄 ===== מתחיל polling להתקדמות =====');
-    console.log('🔄 fileId:', fileId);
-    console.log('🔄 מתחיל בדיקות כל 2 שניות...');
-    console.log('🔄 המערכת נשארת במסך ההתקדמות עד שההפרדה תסתיים');
-    
-    // שמירת זמן התחלה
-    const startTime = Date.now();
-    
-    const interval = setInterval(async () => {
+    console.log('🔄 ===== מתחיל מעקב אחר התקדמות =====');
+    console.log('🆔 מזהה קובץ למעקב:', fileId);
+    console.log('⏰ זמן התחלה:', new Date().toISOString());
+
+    let attempts = 0;
+    const maxAttempts = 300; // 5 דקות עם polling כל שנייה
+    let lastProgress = 0;
+
+    const pollProgress = async () => {
+      attempts++;
+      console.log(`📊 ניסיון ${attempts}/${maxAttempts} - בדיקת התקדמות...`);
+      
       try {
-        console.log('📊 ===== בדיקת התקדמות =====');
-        console.log('📊 fileId:', fileId);
-        console.log('📊 זמן בדיקה:', new Date().toLocaleTimeString());
-        console.log('📊 מספר ניסיון:', Math.floor((Date.now() - startTime) / 2000));
-        console.log('📊 מצב עיבוד נוכחי:', { isProcessing, processingStep, progress, currentView });
-        
+        const startTime = performance.now();
         const progressData = await getSeparationProgress(fileId);
+        const responseTime = performance.now() - startTime;
         
-        console.log('📊 נתוני התקדמות מהשרת:', progressData);
-        console.log('📊 התקדמות:', progressData.progress + '%');
-        console.log('📊 סטטוס:', progressData.status);
-        console.log('📊 הודעה:', progressData.message);
-        console.log('📊 שגיאה:', progressData.error);
-        
-        if (progressData.error) {
-          console.error('❌ שגיאה מהשרת:', progressData.error);
-          setError(`שגיאה מהשרת: ${progressData.error}`);
-          setIsProcessing(false);
-          setProcessingStep(null);
-          setProgress(0);
-          
-          // איפוס המצב כאשר יש שגיאה
-          setUploadedFile(null);
-          setProjectName('');
-          
-          clearInterval(interval);
-          return;
-        }
-        
-        if (progressData.status === 'completed') {
-          console.log('✅ הפרדה הושלמה בהצלחה!');
-          console.log('⏳ ממתין לטעינת הפרויקט המוכן...');
-          setProgress(100);
-          setProcessingStep('loading-project');
-          
-          // השאר את מסך ההתקדמות פעיל
-          console.log('📊 נשאר במסך ההתקדמות עד שהפרויקט נטען');
-          
-          clearInterval(interval);
-          
-          // המתן יותר זמן לוודא שהקבצים מוכנים בשרת
-          setTimeout(async () => {
-            console.log('🔄 מתחיל לבדוק אם הפרויקט מוכן...');
-            
-            // נסה כמה פעמים עם המתנה בין הניסיונות
-            let attempts = 0;
-            const maxAttempts = 15; // הגדלת מספר הניסיונות ל-15
-            
-            const tryToLoadProject = async () => {
-              attempts++;
-              console.log(`🔄 ניסיון ${attempts}/${maxAttempts} לטעינת הפרויקט...`);
-              
-              try {
-                // טעינה מחדש של פרויקטים
-                await loadProjects();
-                
-                // טעינת הפרויקט החדש שנוצר
-                const newProjects = await getProjects();
-                if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
-                  // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
-                  let latestProject = newProjects.find(p => p.id === fileId);
-                  if (!latestProject) {
-                    latestProject = newProjects[newProjects.length - 1];
-                  }
-                  
-                  if (latestProject && latestProject.id) {
-                    console.log('📁 נמצא פרויקט:', latestProject.id);
-                    
-                    // בדיקה שהפרויקט מוכן
-                    const projectData = await getProject(latestProject.id);
-                    console.log('📊 נתוני פרויקט:', projectData);
-                    
-                    if (projectData && projectData.success && 
-                        projectData.project && projectData.project.stems &&
-                        Object.keys(projectData.project.stems).length >= 5) {
-                      
-                      console.log('✅ פרויקט מוכן עם', Object.keys(projectData.project.stems).length, 'ערוצים');
-                      
-                      // בדיקה מתקדמת של מצב הפרויקט
-                      const advancedStatus = await checkProjectStatusAdvanced(latestProject.id);
-                      console.log('🔍 בדיקה מתקדמת:', advancedStatus);
-                      
-                      if (advancedStatus.isReady) {
-                        // נסה לטעון את הפרויקט
-                        const loadSuccess = await loadProject(latestProject.id);
-                        
-                        if (loadSuccess) {
-                          // עכשיו אפשר לעבור לסטודיו
-                          setIsProcessing(false);
-                          setUploadedFile(null);
-                          setProjectName('');
-                          setError(null); // ניקוי שגיאות קודמות
-                          console.log('🎉 הפרויקט נטען בהצלחה!');
-                          return; // יציאה מוצלחת
-                        } else {
-                          console.warn('⚠️ הפרויקט לא נטען בהצלחה, מנסה שוב...');
-                        }
-                      } else {
-                        console.warn('⚠️ הפרויקט לא מוכן לחלוטין:', advancedStatus.reason);
-                        console.log('📊 פרטים:', advancedStatus.details);
-                      }
-                    } else {
-                      console.warn('⚠️ הפרויקט עדיין לא מוכן:', {
-                        success: projectData?.success,
-                        hasProject: !!projectData?.project,
-                        stemsCount: projectData?.project?.stems ? Object.keys(projectData.project.stems).length : 0
-                      });
-                    }
-                  } else {
-                    console.warn('⚠️ לא נמצא פרויקט עם ID תקין');
-                  }
-                } else {
-                  console.warn('⚠️ לא נמצאו פרויקטים ברשימה');
-                }
-                
-                // אם לא הצלחנו, נסה שוב אחרי המתנה
-                if (attempts < maxAttempts) {
-                  // זמני המתנה חכמים - המתנה ארוכה יותר ככל שמספר הניסיונות עולה
-                  const waitTime = Math.min(2000 + (attempts * 1000), 10000); // 2-10 שניות
-                  console.log(`⏳ ממתין ${waitTime/1000} שניות לפני ניסיון נוסף... (${attempts}/${maxAttempts})`);
-                  setTimeout(tryToLoadProject, waitTime);
-                } else {
-                  console.error('❌ הגענו למספר המקסימלי של ניסיונות');
-                  setError('הפרויקט לא נטען לאחר מספר ניסיונות. נסה לרענן את הדף או לחץ על "פתח בסטודיו" מהרשימה.');
-                  setIsProcessing(false);
-                  setUploadedFile(null);
-                  setProjectName('');
-                }
-                
-              } catch (loadError) {
-                console.error(`❌ שגיאה בניסיון ${attempts}:`, loadError);
-                
-                if (attempts < maxAttempts) {
-                  // זמני המתנה חכמים גם במקרה של שגיאה
-                  const waitTime = Math.min(3000 + (attempts * 1000), 12000); // 3-12 שניות
-                  console.log(`⏳ ממתין ${waitTime/1000} שניות לפני ניסיון נוסף... (${attempts}/${maxAttempts})`);
-                  setTimeout(tryToLoadProject, waitTime);
-                } else {
-                  console.error('❌ הגענו למספר המקסימלי של ניסיונות');
-                  setError('שגיאה בטעינת הפרויקט לאחר מספר ניסיונות. נסה לרענן את הדף או לחץ על "פתח בסטודיו" מהרשימה.');
-                  setIsProcessing(false);
-                  setUploadedFile(null);
-                  setProjectName('');
-                }
-              }
-            };
-            
-            // התחל את הניסיונות אחרי המתנה קצרה יותר
-            setTimeout(tryToLoadProject, 3000); // המתן 3 שניות במקום 5
-            
-          }, 5000); // המתן 5 שניות לפני התחלת הניסיונות
-          
-          return;
-        }
-        
-        // עדכון התקדמות
-        if (progressData.progress !== undefined) {
-          setProgress(progressData.progress);
-          console.log(`📈 התקדמות עודכנה ל: ${progressData.progress}%`);
-        }
-        
-        // עדכון שלב העיבוד
-        if (progressData.status) {
-          setProcessingStep(progressData.status);
-          console.log(`🔄 שלב עיבוד עודכן ל: ${progressData.status}`);
-        }
-        
-        // עדכון הודעת עיבוד
-        if (progressData.message) {
-          console.log(`💬 הודעת עיבוד: ${progressData.message}`);
-        }
-        
-        // בדיקה אם התהליך תקוע
-        const elapsedTime = Date.now() - startTime;
-        if (elapsedTime > 300000) { // 5 דקות
-          console.warn('⚠️ התהליך תקוע יותר מ-5 דקות');
-          setError('התהליך תקוע - נסה שוב או פנה לתמיכה');
-          setIsProcessing(false);
-          setProcessingStep(null);
-          setProgress(0);
-          
-          // איפוס המצב כאשר התהליך תקוע
-          setUploadedFile(null);
-          setProjectName('');
-          
-          clearInterval(interval);
-        }
-        
-      } catch (error) {
-        console.error('❌ שגיאה בבדיקת התקדמות:', error);
-        
-        // בדיקה אם השגיאה היא בגלל שהקובץ לא נמצא (אולי הושלם)
-        if (error.message.includes('not found') || error.message.includes('404')) {
-          console.log('📁 הקובץ לא נמצא - ייתכן שההפרדה הושלמה');
-          
-          // בדיקה אם יש פרויקטים חדשים
-          await loadProjects();
-          
-          // אם יש פרויקטים, כנראה שההפרדה הושלמה
-          if (projects.length > 0) {
-            console.log('✅ הפרדה הושלמה בהצלחה!');
-            console.log('🔄 עוברים לסטודיו...');
-            setProgress(100);
+        console.log(`⏱️ זמן תגובה: ${responseTime.toFixed(0)}ms`);
+        console.log('📊 נתוני התקדמות שהתקבלו:', progressData);
+
+        if (!progressData) {
+          console.warn('⚠️ לא התקבלו נתוני התקדמות');
+          if (attempts >= maxAttempts) {
+            console.error('❌ הגעת למספר המקסימלי של ניסיונות');
+            setError('הפרדת האודיו לוקחת יותר מדי זמן - נסה שוב');
             setIsProcessing(false);
-            setProcessingStep('completed');
-            
-            // מעבר לסטודיו
-            setCurrentView('studio');
-            setShowUploadForm(false);
-            
-            clearInterval(interval);
+            setProcessingStep('error');
+            setProgress(0);
             return;
           }
+          // נסה שוב אחרי שנייה
+          setTimeout(pollProgress, 1000);
+          return;
         }
-        
-        // אם השגיאה נמשכת, עצור את ה-polling
-        if (Date.now() - startTime > 60000) { // דקה
-          console.error('❌ יותר מדי שגיאות - עצירת polling');
-          setError('שגיאה בבדיקת התקדמות - נסה שוב');
+
+        // בדיקה אם יש שגיאה
+        if (progressData.error) {
+          console.error('❌ שגיאה בהתקדמות:', progressData.error);
+          setError(`שגיאה בהפרדה: ${progressData.error}`);
           setIsProcessing(false);
-          setProcessingStep(null);
+          setProcessingStep('error');
           setProgress(0);
+          return;
+        }
+
+        // עדכון התקדמות
+        const currentProgress = progressData.progress || 0;
+        const currentStatus = progressData.status || 'unknown';
+        const currentMessage = progressData.message || 'אין הודעה';
+        
+        console.log('📈 פרטי התקדמות:', {
+          progress: currentProgress,
+          status: currentStatus,
+          message: currentMessage,
+          previousProgress: lastProgress,
+          change: currentProgress - lastProgress
+        });
+
+        // עדכון UI רק אם יש שינוי
+        if (currentProgress !== lastProgress) {
+          console.log(`🔄 עדכון התקדמות: ${lastProgress}% → ${currentProgress}%`);
+          setProgress(currentProgress);
+          lastProgress = currentProgress;
+        }
+
+        // עדכון סטטוס
+        if (currentStatus !== processingStep) {
+          console.log(`🔄 עדכון סטטוס: ${processingStep} → ${currentStatus}`);
+          setProcessingStep(currentStatus);
+        }
+
+        // בדיקה אם ההפרדה הושלמה
+        if (currentStatus === 'completed' || currentProgress >= 100) {
+          console.log('🎉 ===== הפרדה הושלמה בהצלחה! =====');
+          console.log('📊 התקדמות סופית:', currentProgress);
+          console.log('✅ סטטוס סופי:', currentStatus);
+          console.log('💬 הודעה סופית:', currentMessage);
           
-          // איפוס המצב כאשר יש יותר מדי שגיאות
-          setUploadedFile(null);
-          setProjectName('');
+          setIsProcessing(false);
+          setProcessingStep('completed');
+          setProgress(100);
           
-          clearInterval(interval);
+          // המתנה קצרה ואז טעינת הפרויקט
+          console.log('⏳ המתנה 3 שניות לפני טעינת הפרויקט...');
+          setTimeout(async () => {
+            console.log('🔄 מתחיל טעינת הפרויקט המוכן...');
+            await loadProjects();
+            
+            // ניסיון לטעון את הפרויקט החדש
+            const newProjects = await getProjects();
+            if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
+              console.log(`📁 נמצאו ${newProjects.length} פרויקטים`);
+              
+              // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
+              let latestProject = newProjects.find(p => p.id == fileId) || newProjects[newProjects.length - 1];
+              console.log('🎯 פרויקט חדש שנמצא:', latestProject);
+              
+              if (latestProject && latestProject.id) {
+                console.log('🔄 מנסה לטעון את הפרויקט החדש...');
+                
+                // נסה כמה פעמים עם המתנה בין הניסיונות
+                let attempts = 0;
+                const maxAttempts = 15; // הגדלת מספר הניסיונות ל-15
+                
+                const tryToLoadProject = async () => {
+                  attempts++;
+                  console.log(`🔄 ניסיון ${attempts}/${maxAttempts} לטעינת הפרויקט...`);
+                  
+                  try {
+                    // טעינה מחדש של פרויקטים
+                    await loadProjects();
+                    
+                    // טעינת הפרויקט החדש שנוצר
+                    const newProjects = await getProjects();
+                    if (newProjects && Array.isArray(newProjects) && newProjects.length > 0) {
+                      // מצא את הפרויקט החדש (האחרון ברשימה או לפי fileId)
+                      let latestProject = newProjects.find(p => p.id == fileId) || newProjects[newProjects.length - 1];
+                      
+                      if (latestProject && latestProject.id) {
+                        console.log('🔍 בודק אם הפרויקט מוכן...');
+                        
+                        // בדיקה שהפרויקט מוכן באמת
+                        const projectData = await getProject(latestProject.id);
+                        if (projectData && projectData.success && 
+                            projectData.project && projectData.project.stems &&
+                            Object.keys(projectData.project.stems).length >= 5) {
+                          
+                          console.log('✅ פרויקט מוכן עם', Object.keys(projectData.project.stems).length, 'ערוצים');
+                          
+                          // בדיקה מתקדמת של מצב הפרויקט
+                          const advancedStatus = await checkProjectStatusAdvanced(latestProject.id);
+                          console.log('🔍 בדיקה מתקדמת:', advancedStatus);
+                          
+                          if (advancedStatus.isReady) {
+                            // נסה לטעון את הפרויקט
+                            const loadSuccess = await loadProject(latestProject.id);
+                            
+                            if (loadSuccess) {
+                              console.log('🎉 הפרויקט נטען בהצלחה!');
+                              setError(null);
+                              setCurrentView('studio');
+                              setShowUploadForm(false);
+                              setUploadedFile(null);
+                              setProjectName('');
+                              return;
+                            } else {
+                              console.error('❌ הפרויקט לא נטען למרות שהוא מוכן');
+                              setError('הפרויקט מוכן אבל לא נטען. נסה לרענן את הדף.');
+                              return;
+                            }
+                          } else {
+                            console.log('⚠️ הפרויקט עדיין לא מוכן:', advancedStatus.reason);
+                          }
+                        } else {
+                          console.log('⚠️ הפרויקט לא מכיל מספיק ערוצים');
+                        }
+                      }
+                    }
+                    
+                    // אם הגענו לכאן, הפרויקט עדיין לא מוכן
+                    if (attempts >= maxAttempts) {
+                      console.error('❌ הגעת למספר המקסימלי של ניסיונות לטעינת הפרויקט');
+                      setError('הפרויקט לא נטען אחרי ניסיונות רבים. נסה לרענן את הדף.');
+                      return;
+                    }
+                    
+                    // המתנה לפני הניסיון הבא
+                    const waitTime = Math.min(2000 + (attempts * 1000), 12000); // 2-12 שניות
+                    console.log(`⏳ המתנה ${waitTime}ms לפני ניסיון נוסף...`);
+                    setTimeout(tryToLoadProject, waitTime);
+                    
+                  } catch (error) {
+                    console.error(`❌ שגיאה בניסיון ${attempts}:`, error);
+                    
+                    if (attempts >= maxAttempts) {
+                      console.error('❌ הגעת למספר המקסימלי של ניסיונות');
+                      setError('הפרויקט לא נטען אחרי ניסיונות רבים. נסה לרענן את הדף.');
+                      return;
+                    }
+                    
+                    // המתנה לפני הניסיון הבא
+                    const waitTime = Math.min(2000 + (attempts * 1000), 12000);
+                    console.log(`⏳ המתנה ${waitTime}ms לפני ניסיון נוסף...`);
+                    setTimeout(tryToLoadProject, waitTime);
+                  }
+                };
+                
+                // התחלת הניסיונות אחרי המתנה קצרה
+                setTimeout(tryToLoadProject, 3000);
+                
+              } else {
+                console.error('❌ לא נמצא פרויקט חדש');
+                setError('הפרויקט לא נמצא אחרי השלמת ההפרדה');
+              }
+            } else {
+              console.error('❌ לא התקבלו פרויקטים מהשרת');
+              setError('לא התקבלו פרויקטים מהשרת אחרי השלמת ההפרדה');
+            }
+          }, 3000);
+          
+          return;
+        }
+
+        // בדיקה אם יש שגיאה
+        if (currentStatus === 'error' || currentStatus === 'failed') {
+          console.error('❌ הפרדה נכשלה:', currentMessage);
+          setError(`הפרדה נכשלה: ${currentMessage}`);
+          setIsProcessing(false);
+          setProcessingStep('error');
+          setProgress(0);
+          return;
+        }
+
+        // המשך polling אם לא הושלם
+        if (attempts >= maxAttempts) {
+          console.error('❌ הגעת למספר המקסימלי של ניסיונות');
+          setError('הפרדת האודיו לוקחת יותר מדי זמן - נסה שוב');
+          setIsProcessing(false);
+          setProcessingStep('error');
+          setProgress(0);
+          return;
+        }
+
+        // המתנה לפני הבדיקה הבאה
+        const nextPollDelay = 1000; // שנייה אחת
+        console.log(`⏳ המתנה ${nextPollDelay}ms לפני בדיקה הבאה...`);
+        setTimeout(pollProgress, nextPollDelay);
+
+      } catch (error) {
+        console.error(`❌ שגיאה בניסיון ${attempts}:`, error);
+        console.error('📊 פרטי השגיאה:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        
+        if (attempts >= maxAttempts) {
+          console.error('❌ הגעת למספר המקסימלי של ניסיונות');
+          setError('הפרדת האודיו לוקחת יותר מדי זמן - נסה שוב');
+          setIsProcessing(false);
+          setProcessingStep('error');
+          setProgress(0);
+          return;
         }
         
-        // הצג שגיאה למשתמש
-        if (error.message.includes('timeout')) {
-          setError('בדיקת התקדמות נכשלה - זמן המתנה ארוך מדי');
-        } else if (error.message.includes('Failed to fetch')) {
-          setError('לא ניתן להתחבר לשרת - בדוק את החיבור לאינטרנט');
-        } else if (error.message.includes('NetworkError')) {
-          setError('שגיאה ברשת - בדוק את החיבור לאינטרנט');
-        } else {
-          setError(`שגיאה בבדיקת התקדמות: ${error.message}`);
-        }
+        // המתנה לפני הניסיון הבא
+        const waitTime = Math.min(2000 + (attempts * 1000), 12000);
+        console.log(`⏳ המתנה ${waitTime}ms לפני ניסיון נוסף...`);
+        setTimeout(pollProgress, waitTime);
       }
-    }, 2000);
-    
-    setPollingInterval(interval);
+    };
+
+    // התחלת polling
+    console.log('🚀 מתחיל polling ראשון...');
+    pollProgress();
   };
 
   // טעינה חוזרת של פרויקט ספציפי (לכפתור "נסה לטעון שוב")
