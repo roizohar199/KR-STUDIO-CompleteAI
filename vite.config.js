@@ -12,10 +12,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // הפרדת vendor chunks
+          // הפרדת vendor chunks - רק לקבצים שמותקנים
           vendor: ['react', 'react-dom'],
-          icons: ['lucide-react'],
-          utils: ['lodash', 'date-fns']
+          icons: ['lucide-react']
+          // הסרת lodash ו-date-fns שלא מותקנים
         }
       }
     },
