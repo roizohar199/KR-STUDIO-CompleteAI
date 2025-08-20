@@ -403,10 +403,13 @@ const ${code.match(/(\w+)\s*\[/)[1]}Map = new Map(Object.entries(${code.match(/(
     const awaitPattern = /await\s+(\w+)\([^)]*\)\s*;\s*await\s+(\w+)\([^)]*\)/g;
     
     if (awaitPattern.test(code)) {
-      const parallelCode = `// אופטימיזציה: הרצה במקביל עם Promise.all
-const [result1, result2] = await Promise.all([
-  ${code.match(/await\s+(\w+)\([^)]*\)/g).map(await => await.replace('await ', '')).join(',\n  ')}
-]);`;
+      const awaitMatches = code.match(/await\s+(\w+)\([^)]*\)/g) || [];
+      const promiseFunctions = awaitMatches.map(awaitMatch => awaitMatch.replace('await ', ''));
+      
+      // בניית הקוד ללא שימוש ב-template literal עם await
+      const parallelCode = '// אופטימיזציה: הרצה במקביל עם Promise.all\n' +
+        'const [result1, result2] = ' + 'await' + ' Promise.all([\n  ' +
+        promiseFunctions.join(',\n  ') + '\n]);';
       
       code = code.replace(awaitPattern, parallelCode);
     }
@@ -422,9 +425,11 @@ const [result1, result2] = await Promise.all([
     const racePattern = /const\s+(\w+)\s*=\s*await\s+(\w+)\([^)]*\)\s*;\s*if\s*\(\s*\1\s*\)/g;
     
     if (racePattern.test(code)) {
+      const awaitMatches = code.match(/await\s+(\w+)\([^)]*\)/g) || [];
+      const promiseFunctions = awaitMatches.map(awaitText => awaitText.replace('await ', ''));
       const raceCode = `// אופטימיזציה: שימוש ב-Promise.race
 const result = await Promise.race([
-  ${code.match(/await\s+(\w+)\([^)]*\)/g).map(await => await.replace('await ', '')).join(',\n  ')}
+  ${promiseFunctions.join(',\n  ')}
 ]);`;
       
       code = code.replace(racePattern, raceCode);
