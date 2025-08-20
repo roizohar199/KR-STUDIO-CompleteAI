@@ -20,12 +20,10 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
-import { menuItems } from '../lib/menuConfig';
 
 const Dashboard = ({ onPageChange }) => {
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   const t = useTranslation();
   
   const stats = [

@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Circle
 } from 'lucide-react';
-import { LanguageContext } from '../App';
+// LanguageContext removed - using default Hebrew
 import { useTranslation } from '../lib/translations';
 import LanguageSelector from './LanguageSelector';
 import { menuItems, menuConfig } from '../lib/menuConfig';
@@ -74,7 +74,7 @@ const Sidebar = ({ activePage, onPageChange }) => {
     return active;
   };
 
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   const t = useTranslation();
   
   // עדכון התגיות עם תרגומים

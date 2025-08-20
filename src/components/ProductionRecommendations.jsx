@@ -6,7 +6,6 @@ import { Button } from './ui/button';
 import YAMNetAnalyzer from '../lib/yamnet';
 import AIApiService from '../lib/aiApi';
 import { AdvancedTempoAnalyzer } from '../lib/tempoAnalysis.js';
-import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 
 // ----- מערכת AI לניתוח אודיו עם YAMNet -----
@@ -3050,7 +3049,7 @@ const ProductionRecommendations = () => {
   const [aiStatus, setAiStatus] = useState({ available: false, error: null });
   const [enhancedRecommendations, setEnhancedRecommendations] = useState(null);
   const { t } = useTranslation();
-  const language = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
 
   const audioAnalyzer = new AudioAnalyzer();
 

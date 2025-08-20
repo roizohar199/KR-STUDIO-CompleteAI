@@ -1,11 +1,10 @@
 import React, { useContext } from 'react';
 import { BarChart3, Download, FileText, Music, Volume2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 
 const ExportVersions = () => {
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   const t = useTranslation();
 
   const exportOptions = [

@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 
 const SketchCreation = () => {
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   const t = useTranslation();
   
   const [formData, setFormData] = useState({

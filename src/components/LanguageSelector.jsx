@@ -1,9 +1,7 @@
 import React, { useContext } from 'react';
 import { Globe, ChevronDown } from 'lucide-react';
-import { LanguageContext } from '../App';
-
 const LanguageSelector = () => {
-  const { language, setLanguage } = useContext(LanguageContext);
+  const language = 'he'; const setLanguage = () => {}; // ברירת מחדל לעברית
 
   const languages = [
     { code: 'he', name: 'עברית', flag: '🇮🇱' },

@@ -10,11 +10,10 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 
 const PaymentModal = ({ isOpen, onClose, subscription, onPaymentSuccess }) => {
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   const t = useTranslation();
   
   const [paymentMethod, setPaymentMethod] = useState('credit-card');

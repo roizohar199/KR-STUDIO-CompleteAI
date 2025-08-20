@@ -1,11 +1,10 @@
 import React, { useContext } from 'react';
 import { AlertTriangle, CreditCard, Clock, CheckCircle } from 'lucide-react';
 import { Button } from './ui/button';
-import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 
 const PaymentAlert = ({ status = 'active', daysUntilExpiry = 30 }) => {
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   const t = useTranslation();
   
   const getAlertConfig = () => {

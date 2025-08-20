@@ -1,5 +1,4 @@
-import React, { useContext } from 'react';
-import { LanguageContext } from '../App';
+import React from 'react';
 
 export const translations = {
   he: {
@@ -454,7 +453,7 @@ export const translations = {
 
 // Hook לשימוש בתרגומים
 export const useTranslation = () => {
-  const { language } = useContext(LanguageContext);
+  const language = 'he'; // ברירת מחדל לעברית
   
   const t = (key) => {
     return translations[language]?.[key] || key;
