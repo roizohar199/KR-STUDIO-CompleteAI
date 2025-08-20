@@ -286,11 +286,11 @@ function App() {
 
   // אתחול SafetyGuards
   useEffect(() => {
-    try {
-      safetyGuards.initialize();
+    try { 
+      safetyGuards?.initialize?.(); 
       console.log('✅ KR-STUDIO App initialized with SafetyGuards');
-    } catch (error) {
-      console.error('❌ Failed to initialize SafetyGuards:', error);
+    } catch (e) { 
+      console.error('❌ Failed to initialize SafetyGuards:', e); 
     }
   }, []);
 

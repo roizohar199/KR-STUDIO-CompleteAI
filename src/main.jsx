@@ -4,18 +4,18 @@ import App from './App.jsx'
 import './index.css'
 import { safetyGuards } from './lib/safetyGuards'
 
-// אתחול SafetyGuards לפני טעינת האפליקציה
-try {
-  safetyGuards.initialize();
+// אתחול SafetyGuards לפני טעינת האפליקציה - עם בדיקות בטוחות
+try { 
+  safetyGuards?.initialize?.(); 
   console.log('✅ SafetyGuards initialized in main.jsx');
-} catch (error) {
-  console.error('❌ Failed to initialize SafetyGuards in main.jsx:', error);
+} catch (e) { 
+  console.error('❌ Failed to initialize SafetyGuards in main.jsx:', e); 
 }
 
-// טיפול בשגיאות גלובליות
+// טיפול בשגיאות גלובליות - עם בדיקות בטוחות
 window.addEventListener('error', (event) => {
   console.error('🚨 Global error caught in main.jsx:', event.error);
-  safetyGuards.handleError('Global Error', {
+  safetyGuards?.handleError?.('Global Error', {
     message: event.error?.message || 'Unknown error',
     stack: event.error?.stack || 'No stack trace',
     filename: event.filename,
@@ -24,17 +24,17 @@ window.addEventListener('error', (event) => {
   });
 });
 
-// טיפול ב-Promise rejections שלא טופלו
+// טיפול ב-Promise rejections שלא טופלו - עם בדיקות בטוחות
 window.addEventListener('unhandledrejection', (event) => {
   console.error('🚨 Unhandled promise rejection in main.jsx:', event.reason);
-  safetyGuards.handleError('Unhandled Promise Rejection', {
+  safetyGuards?.handleError?.('Unhandled Promise Rejection', {
     message: event.reason?.message || 'Unknown promise rejection',
     stack: event.reason?.stack || 'No stack trace'
   });
   event.preventDefault(); // מניעת הצגת שגיאה ברירת מחדל
 });
 
-// טיפול בשגיאות React
+// טיפול בשגיאות React - עם בדיקות בטוחות
 const originalConsoleError = console.error;
 console.error = (...args) => {
   // לוג השגיאה המקורי
@@ -43,7 +43,7 @@ console.error = (...args) => {
   // בדיקה אם זו שגיאת React
   const errorMessage = args.join(' ');
   if (errorMessage.includes('React') || errorMessage.includes('Warning')) {
-    safetyGuards.handleError('React Error', {
+    safetyGuards?.handleError?.('React Error', {
       message: errorMessage,
       args: args
     });

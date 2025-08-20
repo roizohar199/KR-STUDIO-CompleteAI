@@ -7,8 +7,19 @@ export default defineConfig({
   
   // הגדרת sourcemaps
   build: {
-    sourcemap: true, // הפעלת sourcemaps לבילד
+    sourcemap: true, // הפעלת sourcemaps לבילד - לפרודקשן
     minify: 'terser', // שימוש ב-terser למיניפיקציה
+    // הגדרות terser עם שמירת שמות פונקציות
+    terserOptions: {
+      compress: {
+        drop_console: false, // שמירת console.log בפרודקשן לצורך דיבוג
+        drop_debugger: false
+      },
+      mangle: {
+        keep_fnames: true, // שמירת שמות פונקציות למיפוי טוב יותר
+        keep_classnames: true
+      }
+    },
     rollupOptions: {
       output: {
         manualChunks: {
