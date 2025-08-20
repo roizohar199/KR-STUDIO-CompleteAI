@@ -24,7 +24,9 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     // הגדרת chunk size warnings
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    // הגדרת base path ליחסי
+    base: './'
   },
   
   // הגדרות פיתוח

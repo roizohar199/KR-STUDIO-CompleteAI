@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KR-STUDIO Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h1 {
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        p {
+            margin: 0;
+            opacity: 0.8;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h1>KR-STUDIO</h1>
+        <p>מכין את המערכת...</p>
+        <div class="status">
+            <div>סטטוס: טוען</div>
+            <div>זמן: <span id="time"></span></div>
+        </div>
+    </div>
+
+    <script>
+        // עדכון זמן
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleTimeString('he-IL');
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // בדיקת טעינת קבצים
+        console.log('KR-STUDIO Test Page Loaded');
+        
+        // בדיקה אם הקבצים נטענים
+        setTimeout(() => {
+            console.log('Checking if main files are accessible...');
+            
+            // בדיקת קובץ CSS
+            fetch('./dist/assets/index-baf772f0.css')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ CSS file loaded successfully');
+                    } else {
+                        console.log('❌ CSS file failed to load:', response.status);
+                    }
+                })
+                .catch(error => {
+                    console.log('❌ CSS file error:', error.message);
+                });
+
+            // בדיקת קובץ JavaScript
+            fetch('./dist/assets/index-2831a802.js')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ JavaScript file loaded successfully');
+                    } else {
+                        console.log('❌ JavaScript file failed to load:', response.status);
+                    }
+                })
+                .catch(error => {
+                    console.log('❌ JavaScript file error:', error.message);
+                });
+        }, 2000);
+    </script>
+</body>
+</html>
