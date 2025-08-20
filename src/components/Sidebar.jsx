@@ -86,12 +86,12 @@ const Sidebar = ({ activePage, onPageChange }) => {
   const t = useTranslation();
   const menuItems = [
     { id: 'dashboard', key: 'dashboard', label: t('dashboard'), icon: Home },
-    { id: 'sketches', key: 'sketch-creation', label: t('sketches'), icon: Music },
-    { id: 'sessions', key: 'session-management', label: t('sessions'), icon: Users },
-    { id: 'productionRecommendations', key: 'production-recommendations', label: t('productionRecommendations'), icon: Lightbulb },
-    { id: 'export', key: 'export-versions', label: t('exportVersions'), icon: BarChart3 },
-    { id: 'credits', key: 'credits-contracts', label: t('creditsContracts'), icon: FileText },
-    { id: 'verification', key: 'user-verification', label: t('userVerification'), icon: Shield },
+    { id: 'sketches', key: 'sketches', label: t('sketches'), icon: Music },
+    { id: 'sessions', key: 'sessions', label: t('sessions'), icon: Users },
+    { id: 'productionRecommendations', key: 'productionRecommendations', label: t('productionRecommendations'), icon: Lightbulb },
+    { id: 'export', key: 'export', label: t('exportVersions'), icon: BarChart3 },
+    { id: 'credits', key: 'credits', label: t('creditsContracts'), icon: FileText },
+    { id: 'verification', key: 'verification', label: t('userVerification'), icon: Shield },
     { id: 'audio-separation', key: 'audio-separation', label: 'הפרדת אודיו', icon: Split },
   ];
 

@@ -49,6 +49,8 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [language, setLanguage] = useState('he'); // ברירת מחדל: עברית
   const [loadedComponents, setLoadedComponents] = useState(new Map());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // טעינה דינמית של רכיבים
   const loadComponent = async (componentName) => {
