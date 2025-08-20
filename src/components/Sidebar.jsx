@@ -1,18 +1,9 @@
 import React, { useContext } from 'react';
 import {
-  Home,
   Mic,
   Brain,
   Database,
   Cloud,
-  Music,
-  Users,
-  Lightbulb,
-  BarChart3,
-  FileText,
-  Headphones,
-  Shield,
-  Split,
   Settings,
   Download,
   Edit3,
@@ -22,6 +13,7 @@ import {
 import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
 import LanguageSelector from './LanguageSelector';
+import { menuItems, menuConfig } from '../lib/menuConfig';
 
 const Sidebar = ({ activePage, onPageChange }) => {
   const handleMenuClick = (item) => {
@@ -84,16 +76,12 @@ const Sidebar = ({ activePage, onPageChange }) => {
 
   const { language } = useContext(LanguageContext);
   const t = useTranslation();
-  const menuItems = [
-    { id: 'dashboard', key: 'dashboard', label: t('dashboard'), icon: Home },
-    { id: 'sketches', key: 'sketches', label: t('sketches'), icon: Music },
-    { id: 'sessions', key: 'sessions', label: t('sessions'), icon: Users },
-    { id: 'productionRecommendations', key: 'productionRecommendations', label: t('productionRecommendations'), icon: Lightbulb },
-    { id: 'export', key: 'export', label: t('exportVersions'), icon: BarChart3 },
-    { id: 'credits', key: 'credits', label: t('creditsContracts'), icon: FileText },
-    { id: 'verification', key: 'verification', label: t('userVerification'), icon: Shield },
-    { id: 'audio-separation', key: 'audio-separation', label: 'הפרדת אודיו', icon: Split },
-  ];
+  
+  // עדכון התגיות עם תרגומים
+  const translatedMenuItems = menuItems.map(item => ({
+    ...item,
+    label: t(item.label)
+  }));
 
   const quickStats = [
     { label: t('activeProjects'), value: '0', color: 'text-green-500' },
@@ -121,7 +109,7 @@ const Sidebar = ({ activePage, onPageChange }) => {
         <div className="mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('productionTools')}</h3>
           <nav className="space-y-1">
-            {menuItems.map((item) => {
+            {translatedMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activePage === item.id;
               return (

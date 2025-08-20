@@ -22,6 +22,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { LanguageContext } from '../App';
 import { useTranslation } from '../lib/translations';
+import { menuItems } from '../lib/menuConfig';
 
 const Dashboard = ({ onPageChange }) => {
   const { language } = useContext(LanguageContext);
@@ -343,27 +344,30 @@ const Dashboard = ({ onPageChange }) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {menuItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handlePageChange(item.id)}
-                className="bg-studio-dark rounded-lg p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                    {getCardIcon(item.id)}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      {getCardTitle(item.id)}
-                    </h3>
-                    <p className="text-gray-300 text-sm">
-                      {getCardDescription(item.id)}
-                    </p>
+            {menuItems.map((item) => {
+              const translatedLabel = t(item.label);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => handlePageChange(item.id)}
+                  className="bg-studio-dark rounded-lg p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                      {getCardIcon(item.id)}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">
+                        {getCardTitle(item.id)}
+                      </h3>
+                      <p className="text-gray-300 text-sm">
+                        {getCardDescription(item.id)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
