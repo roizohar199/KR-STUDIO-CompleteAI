@@ -14,19 +14,23 @@ async function deploy() {
       password: "Roizohar1985!",
       secure: false,
     });
-    console.log('Current working directory:', await client.pwd());
-    // נסה להדפיס את התיקיות
-    console.log('Root folders:', await client.list("/"));
-    console.log('Domains folders:', await client.list("/domains"));
+    
     // העלה לנתיב המלא
     await client.ensureDir("/domains/mixifyai.k-rstudio.com/public_html");
     await client.clearWorkingDir();
+    
+    console.log('Uploading files...');
+    
+    // העלאת כל התוכן מתיקיית dist ישירות
     await client.uploadFromDir(__dirname + "/dist");
+    console.log('✅ All files from dist uploaded');
+    
     console.log("העלאה הסתיימה!");
   } catch (err) {
-    console.error(err);
+    console.error('Error during deployment:', err);
+  } finally {
+    client.close();
   }
-  client.close();
 }
 
 deploy();
