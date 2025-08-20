@@ -6,7 +6,8 @@ import {
   BarChart3, 
   FileText, 
   Shield, 
-  Split 
+  Split,
+  Code
 } from 'lucide-react';
 
 // הגדרות התפריט הראשי
@@ -19,6 +20,7 @@ export const menuItems = [
   { id: 'credits', key: 'credits', label: 'creditsContracts', icon: FileText },
   { id: 'verification', key: 'verification', label: 'userVerification', icon: Shield },
   { id: 'audio-separation', key: 'audio-separation', label: 'הפרדת אודיו', icon: Split },
+  { id: 'advancedCodeManager', key: 'advancedCodeManager', label: 'מנהל קוד מתקדם', icon: Code },
 ];
 
 // הגדרות נוספות לתפריט
@@ -28,5 +30,9 @@ export const menuConfig = {
   activeProjects: 'activeProjects',
   weeklyAnalyses: 'weeklyAnalyses',
   sketchesCreated: 'sketchesCreated',
-  premiumActive: 'premiumActive'
+  premiumActive: 'premiumActive',
+  codeAnalysis: 'codeAnalysis',
+  codeOptimization: 'codeOptimization',
+  autoTesting: 'autoTesting',
+  performanceMonitoring: 'performanceMonitoring'
 };

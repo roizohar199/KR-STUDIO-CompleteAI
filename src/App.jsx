@@ -311,23 +311,26 @@ function App() {
         case 'audio-separation':
           Component = (await import('./components/AudioSeparation')).default;
           break;
-        case 'production-recommendations':
+        case 'productionRecommendations':
           Component = (await import('./components/ProductionRecommendations')).default;
           break;
-        case 'sketch-creation':
+        case 'sketches':
           Component = (await import('./components/SketchCreation')).default;
           break;
-        case 'export-versions':
+        case 'export':
           Component = (await import('./components/ExportVersions')).default;
           break;
-        case 'credits-contracts':
+        case 'credits':
           Component = (await import('./components/CreditsContracts')).default;
           break;
-        case 'session-management':
+        case 'sessions':
           Component = (await import('./components/SessionManagement')).default;
           break;
-        case 'user-verification':
+        case 'verification':
           Component = (await import('./components/UserVerification')).default;
+          break;
+        case 'advancedCodeManager':
+          Component = (await import('./components/AdvancedCodeManager')).default;
           break;
         case 'statistics-display':
           Component = (await import('./components/StatisticsDisplay')).default;
